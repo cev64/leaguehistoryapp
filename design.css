@@ -946,6 +946,9 @@ body:not(#_) .third-place-matchup .matchup-row.bk-tbd { min-height: 36px; }
 
 /* Header: the league's name set like Bracketeer's */
 .brand-kicker { letter-spacing: .12em; font-size: 9.5px; }
+/* a league's name can be long: it gives way with an ellipsis (the whole
+   name is its tooltip) rather than being cut off mid-letter */
+.brand-kicker { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* the season capsule's views read like Bracketeer's tabs */
 .sn-seg button { font-weight: 600; font-size: 13.5px; letter-spacing: 0; }
@@ -1459,3 +1462,4 @@ body:not(#_) .footer::before {
   opacity: .45;
 }
 body:not(#_) .footer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+body:not(#_) .footer .footer-switch { display: table; margin: 0 auto 8px; font-weight: 700; color: var(--ink-2); }

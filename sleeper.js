@@ -516,7 +516,7 @@
     return {
       year,
       leagueId: league.league_id,
-      name: league.name,
+      name: (league.name || "").trim() || "League",
       avatar: league.avatar ? avatarUrl(league.avatar) : null,
       status: league.status,
       finished,
@@ -955,7 +955,7 @@
     return heads
       .map((l) => ({
         id: l.league_id,
-        name: l.name,
+        name: (l.name || "").trim() || "League",
         season: Number(l.season),
         status: l.status,
         teams: l.total_rosters,
@@ -1006,12 +1006,14 @@
   function fillSeasonMenu(select, model, selected) {
     if (!select) return;
     const years = model.seasons.map((s) => s.year).sort((a, b) => b - a);
-    select.innerHTML = `<option value="home">All-Time</option>${years.map((y) => `<option value="${y}">${y}</option>`).join("")}` +
-      `<option value="switch">Switch league…</option>`;
+    // Seasons only: a select is as wide as its longest option, and the
+    // header gives it just the room "All-Time" needs. Switching leagues is
+    // in the footer.
+    select.innerHTML = `<option value="home">All-Time</option>${years.map((y) => `<option value="${y}">${y}</option>`).join("")}`;
     select.value = String(selected);
     select.addEventListener("change", () => {
       const v = select.value;
-      location.href = v === "home" ? url("alltime") : v === "switch" ? "index.html" : url("season", { season: v });
+      location.href = v === "home" ? url("alltime") : url("season", { season: v });
     });
   }
 
@@ -1023,11 +1025,10 @@
     if (brand) {
       brand.href = url("alltime");
       const kicker = brand.querySelector(".brand-kicker");
-      if (kicker) kicker.textContent = model.name;
+      if (kicker) { kicker.textContent = model.name; kicker.title = model.name; }
       const img = brand.querySelector(".brand-mark img");
       if (img && model.avatar) {
         img.src = model.avatar;
-        img.crossOrigin = "anonymous";
         img.closest(".brand-mark").classList.add("league-avatar");
         img.addEventListener("error", () => { img.src = "icons/crest.png"; img.closest(".brand-mark").classList.remove("league-avatar"); }, { once: true });
       }
