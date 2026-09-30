@@ -3,11 +3,11 @@
      - navigations (the pages): network first, cached copy as fallback
      - same-origin assets: cache first, refreshed in the background
      - Google Fonts: stale-while-revalidate in a separate cache
-     - Sleeper's API and images: left to the browser; sleeper.js keeps its
-       own copy of league data in IndexedDB
+     - Sleeper's API and images, and data/ (the daily players file): left
+       to the browser; sleeper.js keeps its own copies in IndexedDB
    Bump CACHE_VERSION whenever the precache list or these rules change. */
 
-const CACHE_VERSION = 'v76';
+const CACHE_VERSION = 'v77';
 const SHELL_CACHE = `league-history-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `league-history-fonts-${CACHE_VERSION}`;
 
@@ -126,6 +126,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.origin !== self.location.origin) return;
+
+  // The players file changes every morning; never serve yesterday's.
+  if (url.pathname.includes('/data/')) return;
 
   // Pages come from the network first, so a new version shows at once.
   if (request.mode === 'navigate' || url.pathname.endsWith('.html')) {

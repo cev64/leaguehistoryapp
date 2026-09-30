@@ -1446,7 +1446,6 @@
       font-size: 8px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
     }
     .starters-rank { color: var(--muted); font-size: 11px; font-weight: 900; text-align: center; }
-    .starters-logo { width: 28px; height: 20px; object-fit: contain; }
     .starters-chip {
       display: inline-block; width: 28px; padding: 3px 0; border-radius: 4px;
       background: #e7ebef; color: #4b5866; font-size: 8px; font-weight: 900; text-align: center;
@@ -1459,7 +1458,6 @@
       height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
       border-radius: 6px; font-size: 9.5px; font-weight: 900; line-height: 1;
     }
-    .starters-year img { width: 24px; height: 16px; object-fit: contain; }
     .starters-year .starters-chip { width: 24px; padding: 2px 0; font-size: 7px; }
     .starters-year.on { background: color-mix(in srgb, var(--team-color) calc(var(--fill) * 100%), #fff); color: var(--ink); }
     .starters-year.off { background: #f1f4f7; color: #c3ccd5; }
@@ -1515,12 +1513,10 @@
       }
       .starters-row.header { font-size: 7px; }
       .starters-rank { font-size: 9px; }
-      .starters-logo { width: 20px; height: 15px; }
       .starters-name strong { font-size: 10px; }
       .starters-name small { font-size: 8px; }
       .starters-years { gap: 2px; }
       .starters-year { height: 28px; border-radius: 4px; font-size: 8px; }
-      .starters-year img { width: 17px; height: 12px; }
       .starters-total strong { font-size: 10px; }
       .starters-total small { font-size: 7px; }
     }
@@ -1837,6 +1833,11 @@
       </article>
     </div>
   </main>
+
+  <footer class="footer">
+    Not affiliated with or endorsed by Sleeper. League data from the
+    <a href="https://docs.sleeper.com/" target="_blank" rel="noopener">Sleeper API</a>.
+  </footer>
 
   <script>
     /* The front door. A Sleeper username finds its leagues (each history

@@ -24,15 +24,15 @@
 
    Sleeper is asked as little as possible. A finished season never changes, so
    everything about it is kept in IndexedDB for a month; a season in progress
-   is kept for a few minutes. Box scores, the player index and projections are
-   built only when a page first needs them.
+   is kept for a few minutes. Box scores and the player index are built only
+   when a page first needs them. Only Sleeper's documented public API is
+   used (api.sleeper.app/v1), plus its image server for avatars and photos.
 
    Plain script, not a module, so every page can load it before its own. */
 (function () {
   "use strict";
 
   const API = "https://api.sleeper.app/v1";
-  const STATS_API = "https://api.sleeper.com";
   const CDN = "https://sleepercdn.com";
 
   const MINUTE = 60 * 1000;
@@ -153,6 +153,25 @@
   // Sleeper's club codes, spelled the way the site's logos are named.
   const CLUB = { WAS: "WSH", JAC: "JAX", OAK: "LV", SD: "LAC", STL: "LAR", LA: "LAR" };
   const club = (code) => (code ? CLUB[code] || code : "FA");
+
+  /* An NFL club is shown as its abbreviation on the club's colour (no logos:
+     those belong to the NFL). The ink is worked out from the colour, so
+     Pittsburgh's yellow gets black text and Philadelphia's green white. */
+  const CLUB_COLOR = {
+    ARI: "#97233F", ATL: "#A71930", BAL: "#241773", BUF: "#00338D", CAR: "#0085CA", CHI: "#0B162A",
+    CIN: "#FB4F14", CLE: "#311D00", DAL: "#041E42", DEN: "#FB4F14", DET: "#0076B6", GB: "#203731",
+    HOU: "#03202F", IND: "#002C5F", JAX: "#101820", KC: "#E31837", LAC: "#0080C6", LAR: "#003594",
+    LV: "#111111", MIA: "#008E97", MIN: "#4F2683", NE: "#002244", NO: "#A08A5B", NYG: "#0B2265",
+    NYJ: "#125740", PHI: "#004C54", PIT: "#FFB612", SEA: "#002244", SF: "#AA0000", TB: "#D50A0A",
+    TEN: "#0C2340", WSH: "#5A1414",
+  };
+  function clubStyle(abbr) {
+    const hex = CLUB_COLOR[abbr];
+    if (!hex) return "";
+    const n = parseInt(hex.slice(1), 16);
+    const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+    return `background:${hex};color:${lum > 0.62 ? "#0b1726" : "#ffffff"}`;
+  }
 
   /* Team colours. Each manager gets one for good, handed out in the order
      they joined, so no two in a league of up to twenty share one; larger
@@ -630,7 +649,6 @@
       roster: (year) => rosterOf(model, year),
       starters: () => startersOf(model),
       playerIndex: () => playerIndexOf(model),
-      projections: (year, week) => projectionsFor(model, year, week),
     };
     return model;
   }
@@ -675,27 +693,24 @@
 
   /* ------------------------------------------------------------ players */
 
-  /* Every NFL player's name, position and club, slimmed from Sleeper's
-     players file (2.6 MB on the wire) and kept for a day. Only fetched once
-     something needs a name: a box score, a team's starters, a search. */
+  /* Every NFL player's name, position and club. Sleeper asks that its
+     players file be fetched at most once a day and kept on our side, so a
+     scheduled job (tools/update-players.py) copies it into this site each
+     morning as data/players.json, [name, position, Sleeper's club code] per
+     player, and pages read that copy, never Sleeper's. Kept for a day; only
+     fetched once something needs a name: a box score, starters, a search. */
   let playersPromise = null;
   function players() {
     if (!playersPromise) {
       playersPromise = (async () => {
-        const hit = await storeGet("players:nfl");
+        const hit = await storeGet("players:site");
         if (hit && Date.now() - hit.t < TTL.players) return hit.v;
         try {
-          const all = await fetchJSON(`${API}/players/nfl`);
+          const all = await fetchJSON("data/players.json");
           const slim = {};
-          Object.entries(all || {}).forEach(([pid, p]) => {
-            if (p.position === "DEF") {
-              slim[pid] = [`${p.last_name || pid} D/ST`, "DST", club(pid)];
-            } else {
-              const name = p.full_name || `${p.first_name || ""} ${p.last_name || ""}`.trim() || pid;
-              slim[pid] = [name, p.position || (p.fantasy_positions || [])[0] || "?", club(p.team)];
-            }
-          });
-          await storeSet("players:nfl", { t: Date.now(), v: slim });
+          Object.entries(all || {}).forEach(([pid, p]) => { slim[pid] = [p[0], p[1], club(p[2])]; });
+          if (!Object.keys(slim).length) throw new Error("no players");
+          await storeSet("players:site", { t: Date.now(), v: slim });
           return slim;
         } catch (err) {
           return hit ? hit.v : {};
@@ -714,7 +729,7 @@
 
   /* One team's lineup for a week, in the order Sleeper lists its slots:
      the starters, then the bench by points. */
-  function lineup(season, entry, db, proj) {
+  function lineup(season, entry, db) {
     const slots = season.settings.rosterPositions.filter((p) => p !== "BN" && p !== "IR" && p !== "TAXI");
     const starters = (entry.starters || []);
     const pts = entry.players_points || {};
@@ -725,16 +740,13 @@
       if (!pid || pid === "0") return;
       started.add(pid);
       const info = playerInfo(db, pid);
-      const pj = proj && proj[pid];
-      out.push({ id: pid, ...info, nfl: (pj && pj[1]) || info.nfl, slot, pts: round2(pts[pid] || 0),
-        proj: pj ? pj[0] : null, starter: true, injury: null });
+      out.push({ id: pid, ...info, slot, pts: round2(pts[pid] || 0), proj: null, starter: true, injury: null });
     });
     const reserve = new Set(entry.reserve || []);
     (entry.players || []).filter((pid) => !started.has(pid)).map((pid) => {
       const info = playerInfo(db, pid);
-      const pj = proj && proj[pid];
-      return { id: pid, ...info, nfl: (pj && pj[1]) || info.nfl, slot: reserve.has(pid) ? "IR" : "BE", pts: round2(pts[pid] || 0),
-        proj: pj ? pj[0] : null, starter: false, injury: null };
+      return { id: pid, ...info, slot: reserve.has(pid) ? "IR" : "BE", pts: round2(pts[pid] || 0),
+        proj: null, starter: false, injury: null };
     }).sort((a, b) => b.pts - a.pts).forEach((p) => out.push(p));
     return out;
   }
@@ -763,44 +775,13 @@
   async function boxWeek(model, year, week) {
     const season = model.season(year);
     if (!season || !weekIsFinal(season, week)) return null;
-    const [db, proj] = await Promise.all([players(), projectionsFor(model, year, week).catch(() => null)]);
+    const db = await players();
     const games = weekGames(season, week).map(([a, b]) => ({
       home: `r${a.roster_id}`, away: `r${b.roster_id}`,
       homeScore: pointsOf(a), awayScore: pointsOf(b),
-      lineups: { [`r${a.roster_id}`]: lineup(season, a, db, proj), [`r${b.roster_id}`]: lineup(season, b, db, proj) },
+      lineups: { [`r${a.roster_id}`]: lineup(season, a, db), [`r${b.roster_id}`]: lineup(season, b, db) },
     }));
-    return { season: season.year, week, games, projected: Boolean(proj) };
-  }
-
-  /* Projected points for a week, priced with the league's own scoring
-     (Sleeper's projected stats times the league's points for each), with
-     each player's club that week. Kept per league and week, and only for
-     the players on this league's rosters, so the copy is small. */
-  const projJobs = new Map();
-  function projectionsFor(model, year, week) {
-    const season = model.season(year);
-    if (!season) return Promise.resolve(null);
-    const key = `proj:${season.leagueId}:${week}`;
-    if (!projJobs.has(key)) {
-      projJobs.set(key, (async () => {
-        const hit = await storeGet(key);
-        if (hit) return hit.v;
-        const positions = ["QB", "RB", "WR", "TE", "K", "DEF", "DL", "LB", "DB"].map((p) => `position[]=${p}`).join("&");
-        const rows = await fetchJSON(`${STATS_API}/projections/nfl/${season.year}/${week}?season_type=regular&${positions}`);
-        const wanted = new Set();
-        (season.matchups[week] || []).forEach((m) => (m.players || []).forEach((pid) => wanted.add(pid)));
-        const scoring = season.settings.scoring;
-        const out = {};
-        (rows || []).forEach((row) => {
-          if (!wanted.has(row.player_id)) return;
-          const pts = Object.entries(row.stats || {}).reduce((t, [k, v]) => t + (Number(v) || 0) * (scoring[k] || 0), 0);
-          out[row.player_id] = [round2(pts), row.team ? club(row.team) : null];
-        });
-        await storeSet(key, { t: Date.now(), v: out });
-        return out;
-      })().catch(() => null));
-    }
-    return projJobs.get(key);
+    return { season: season.year, week, games, projected: false };
   }
 
   /* Every player a team used, week by week, for the team drawer's
@@ -819,7 +800,7 @@
             const teamId = `r${entry.roster_id}`;
             const team = (out[teamId] = out[teamId] || { weeks: [], players: {} });
             team.weeks.push(week);
-            lineup(season, entry, db, null).forEach((p) => {
+            lineup(season, entry, db).forEach((p) => {
               const r = (team.players[p.id] = team.players[p.id] || { id: p.id, name: p.name, pos: p.pos, starts: 0, pts: 0, clubs: {}, weeks: {} });
               r.weeks[week] = [p.pts, p.starter ? 1 : 0, p.nfl];
               if (p.starter) {
@@ -858,7 +839,7 @@
               const owner = team.ownerId;
               (ownerSeasons[owner] = ownerSeasons[owner] || new Set()).add(season.year);
               const list = (tally[owner] = tally[owner] || {});
-              lineup(season, entry, db, null).forEach((p) => {
+              lineup(season, entry, db).forEach((p) => {
                 if (!p.starter) return;
                 const t = (list[p.id] = list[p.id] || { id: p.id, name: p.name, pos: p.pos, nfl: p.nfl, starts: 0, years: {} });
                 t.starts++;
@@ -922,7 +903,7 @@
               wk[a] = [b, pointsOf(ea), pointsOf(eb), label(a, b)];
               wk[b] = [a, pointsOf(eb), pointsOf(ea), label(b, a)];
               [[a, ea], [b, eb]].forEach(([teamId, entry]) => {
-                lineup(season, entry, db, null).forEach((p) => {
+                lineup(season, entry, db).forEach((p) => {
                   if (!byId.has(p.id)) byId.set(p.id, { id: p.id, n: p.name, p: p.pos, h: p.pos === "DST" ? null : p.id, r: [] });
                   byId.get(p.id).r.push([season.year, week, teamId, p.slot, p.pts, null, p.nfl]);
                 });
@@ -1079,6 +1060,6 @@
     url, recent, remember, forget, savedUser, saveUser,
     dressHeader, fillSeasonMenu, requireLeague, showStatus,
     compareTeams, seedOrder, roundName, gameName, placeName, roundWeeks,
-    ordinal, esc, club, param: (k) => params.get(k), leagueId: pageLeague,
+    ordinal, esc, club, clubStyle, param: (k) => params.get(k), leagueId: pageLeague,
   };
 })();

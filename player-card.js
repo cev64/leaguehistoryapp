@@ -8,9 +8,6 @@
    week's matchups the first time it is needed. Styles are injected here so
    every page gets the same card without carrying a copy of them. */
 (function () {
-  const NFL_LOGOS = new Set(["ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE", "DAL", "DEN", "DET",
-    "GB", "HOU", "IND", "JAX", "KC", "LAC", "LAR", "LV", "MIA", "MIN", "NE", "NO", "NYG", "NYJ", "PHI", "PIT",
-    "SEA", "SF", "TB", "TEN", "WSH"]);
   /* Each club's primary colour for the card's header, which carries white
      text: the same table the box scores use, except Pittsburgh's gold, too
      light for white on it, gives way to its black. */
@@ -165,12 +162,14 @@
   }
   .pc-photo > img.pc-face { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: top; opacity: 0; transition: opacity .3s ease; }
   .pc-photo > img.pc-face.loaded { opacity: 1; }
-  .pc-photo > img.pc-club-big { width: 70%; height: 70%; object-fit: contain; }
+  .pc-photo > .pc-club-big {
+    width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center;
+    background: #e7ebef; color: #4b5866; font-size: 22px; font-weight: 900; letter-spacing: .04em;
+  }
   .pc-photo .pc-club {
     position: absolute; right: -5px; bottom: -2px; width: 34px; height: 34px; border-radius: 50%;
     background: #fff; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.25);
   }
-  .pc-photo .pc-club img { width: 25px; height: 19px; object-fit: contain; }
   .pc-id { position: relative; z-index: 1; min-width: 0; }
   .pc-id h2 { margin: 0; font-size: 26px; line-height: 1.05; letter-spacing: -.02em; }
   .pc-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -487,7 +486,6 @@
     .pc-hero { padding: 18px 50px 14px 12px; gap: 12px; }
     .pc-photo { width: 56px; height: 56px; box-shadow: 0 0 0 3px rgba(255,255,255,.25); }
     .pc-photo .pc-club { width: 24px; height: 24px; right: -4px; }
-    .pc-photo .pc-club img { width: 18px; height: 14px; }
     .pc-id h2 { font-size: 18px; }
     .pc-tags { margin-top: 6px; gap: 4px; }
     .pc-tag { font-size: 9px; padding: 2px 7px; }
@@ -596,10 +594,14 @@
     return loading;
   }
 
-  function nfl(abbr, cls = "pc-nfl") {
-    return NFL_LOGOS.has(abbr)
-      ? `<img class="${cls}" src="nfl-logos/${abbr}.png" alt="${abbr}" title="${abbr}">`
-      : `<span class="pc-chip">${abbr || "FA"}</span>`;
+  // An NFL club: its abbreviation on its colour, free agents in grey.
+  const clubStyle = (abbr) => (window.League ? window.League.clubStyle(abbr) : "");
+  function nfl(abbr) {
+    return `<span class="pc-chip" style="${clubStyle(abbr)}" title="${abbr || "FA"}">${abbr || "FA"}</span>`;
+  }
+  // A defence has no photo, so its club fills the circle instead.
+  function bigClub(abbr) {
+    return abbr && abbr !== "FA" ? `<span class="pc-club-big" style="${clubStyle(abbr)}">${abbr}</span>` : "";
   }
 
   // A fantasy team's mark: the manager's Sleeper avatar where there is one,
@@ -755,7 +757,7 @@
     const isDst = p.p === "DST";
     const photo = !isDst && p.h
       ? `<img class="pc-face" src="https://sleepercdn.com/content/nfl/players/thumb/${p.h}.jpg" alt="">`
-      : NFL_LOGOS.has(s.lastClub) ? `<img class="pc-club-big" src="nfl-logos/${s.lastClub}.png" alt="">` : "";
+      : bigClub(s.lastClub);
     const perStart = s.starts.length ? s.total / s.starts.length : 0;
     const top = s.best[0];
     const bestPts = Math.max(1, ...s.starts.map((r) => r.pts));
@@ -922,7 +924,7 @@
       if (face.complete && face.naturalWidth) shown(); else face.addEventListener("load", shown);
     }
     if (face) face.addEventListener("error", () => {
-      face.outerHTML = NFL_LOGOS.has(s.lastClub) ? `<img class="pc-club-big" src="nfl-logos/${s.lastClub}.png" alt="">` : "";
+      face.outerHTML = bigClub(s.lastClub);
     });
 
     // The shading is on the player's own scale: his best start is the darkest.

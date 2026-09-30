@@ -44,15 +44,20 @@ that model.
   team that moved on as the "winner" of each game, so the site reads the two
   differently; final places, last place and the trophy room's cellar all come
   from that.
-- **Box scores** come from the weekly matchups, with each player's projection
-  priced with the league's own scoring settings and his NFL club that week.
+- **Box scores** come from the weekly matchups: every starter and bench
+  player with his points, and his NFL club as a coloured chip.
 - **Clinch flags** (z, x, e) are only shown once they are mathematically
   certain.
 
 A finished season never changes, so its data is kept in the browser
 (IndexedDB) for a month; a season in progress is re-read every few minutes.
-Sleeper's player list (about 2.6 MB) is fetched the first time a box score,
-a roster or the player search needs a name, and kept for a day.
+Player names come from `data/players.json`, the site's own slim copy of
+Sleeper's players file (about 430 KB, 130 KB compressed). Sleeper asks that
+that file be fetched at most once a day and kept on your side, so visitors
+never ask Sleeper for it: a GitHub Action (`.github/workflows/update-players.yml`)
+refreshes it every morning at 12:00 UTC and commits it when anything changed.
+Scheduled Actions only run on the repository's default branch; "Run workflow"
+on the Actions tab runs it by hand.
 
 ## Hosting
 
@@ -71,10 +76,20 @@ returning visitors keep the old copy.
 
 ## Tools
 
+- `tools/update-players.py` refreshes `data/players.json` from Sleeper (the
+  daily Action runs it; standard library only).
 - `tools/build-icons.py` rebuilds every icon from `icons/crest-master.png`
   (needs Pillow).
 - `tools/check-scripts.mjs` parses every page's inline script without running
   it (needs Node), to catch a syntax error before it ships.
 
-NFL team logos are in `nfl-logos/`; player photos and league and team avatars
-come from Sleeper's image server.
+## Sleeper
+
+This site is independent: not affiliated with or endorsed by Sleeper, and
+every page says so. It uses only Sleeper's documented, read-only public API
+(`api.sleeper.app/v1`), which Sleeper offers free for non-commercial use;
+anything commercial (ads, a paid tier) needs Sleeper's permission first.
+Each visitor's browser makes its own requests, cached as above, well under
+Sleeper's limit of 1,000 a minute. Player photos and league and team avatars
+come from Sleeper's image server. No NFL or Sleeper logos are used: clubs are
+shown as their abbreviations.

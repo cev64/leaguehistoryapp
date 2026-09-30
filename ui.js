@@ -247,7 +247,7 @@
       });
     }
     input.addEventListener("input", run);
-    // a photo that can't load (offline, say) gives way to the player's club logo
+    // a photo that can't load (offline, say) gives way to the player's club chip
     list.addEventListener("error", (e) => {
       const img = e.target;
       if (!img || img.tagName !== "IMG" || !img.dataset.club) return;

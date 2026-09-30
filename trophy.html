@@ -739,6 +739,14 @@
       display: none;
     }
     #loader.failed .doorway-exit { display: inline-block; }
+    .doorway-fine {
+      margin: 6px 0 0;
+      max-width: 36ch;
+      font-size: 10px;
+      line-height: 1.5;
+      color: var(--dim);
+      opacity: .7;
+    }
     .doorway-exit:hover { background: linear-gradient(180deg, rgba(242,193,74,.34), rgba(242,193,74,.14)); }
 
     .loading-dots { display: inline-flex; gap: 5px; }
@@ -858,6 +866,7 @@
         <p id="loaderNote">Championships, the managers who won them, the records nobody has beaten, and the seats at the very bottom of the table.</p>
         <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
         <a class="doorway-exit" id="loaderExit" href="alltime.html">← Back to All-Time</a>
+        <p class="doorway-fine">Not affiliated with or endorsed by Sleeper. League data from the Sleeper API.</p>
       </div>
     </div>
   </div>

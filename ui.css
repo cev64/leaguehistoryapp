@@ -224,7 +224,6 @@ button, summary, [role="tab"] { touch-action: manipulation; }
 .player-result:focus-visible { outline: 2px solid var(--blue, #1769e0); outline-offset: 1px; }
 .pr-photo { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #eef1f4; }
 .pr-photo img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-.pr-photo img.pr-logo { width: 72%; height: 72%; object-fit: contain; }
 .pr-who { min-width: 0; }
 .player-result strong { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player-result small { display: block; color: var(--muted, #637083); font-size: 11px; font-weight: 600; }
