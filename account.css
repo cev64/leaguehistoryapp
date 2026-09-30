@@ -323,7 +323,7 @@ html.lh-gated { overflow: hidden; }
                   phone       tablet / desktop   wide content (≥ 970px)
      .ad-top      320 × 100   728 × 90           970 × 90
      .ad-mid      300 × 250   728 × 90           970 × 90
-     .ad-bottom   300 × 600   728 × 90           970 × 250
+     .ad-bottom   300 × 250   728 × 90           970 × 250
      .ad-rect     300 × 250   300 × 250          300 × 250
      .ad-sidebar  (desktop sidebar only)  300 × 250, or 300 × 600 on a
                   screen at least 980px tall
@@ -334,6 +334,10 @@ html.lh-gated { overflow: hidden; }
 
    .ad-mid slots are placed by account.js between the blocks of whatever a
    [data-ad-feed] panel is showing (the season page's views).
+
+   On a phone, account.js also holds each page's ads to 25% of its height
+   (the Better Ads limit is 30%): a slot that would go over is left out
+   (.ad-off), whole, never shrunk.
    Pro members never see them: html.lh-no-ads hides every one.
    --------------------------------------------------------------- */
 .ad-wrap {
@@ -376,8 +380,8 @@ html.lh-gated { overflow: hidden; }
   .ad-top .ad-ph-size::after { content: "320 × 100"; }
   .ad-mid .ad-slot { width: 300px; height: 250px; }
   .ad-mid .ad-ph-size::after { content: "300 × 250"; }
-  .ad-bottom .ad-slot { width: 300px; height: 600px; }
-  .ad-bottom .ad-ph-size::after { content: "300 × 600"; }
+  .ad-bottom .ad-slot { width: 300px; height: 250px; }
+  .ad-bottom .ad-ph-size::after { content: "300 × 250"; }
 }
 /* Every slot fits inside the page's content on a phone 350px or wider. On
    the smallest phones (320px) the content is narrower than a 320-wide unit,
@@ -412,4 +416,4 @@ html.lh-gated { overflow: hidden; }
 }
 .ad-dark .ad-ph { color: rgba(219, 229, 238, .45); }
 
-html.lh-no-ads .ad-wrap { display: none !important; }
+html.lh-no-ads .ad-wrap, .ad-wrap.ad-off { display: none !important; }
