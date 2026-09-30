@@ -27,14 +27,14 @@ window.ACCOUNT_CONFIG = {
 
   PLANS: {
     free: { name: "Free", price: "$0", leagues: 1, ads: true },
-    pro: { name: "Pro", price: "$10/month", leagues: Infinity, ads: false }
+    pro: { name: "Pro", price: "$5/month", leagues: Infinity, ads: false }
   },
 
   // How long a free account's synced league is locked in before it can be
   // swapped for another: one change a month.
   SWAP_DAYS: 30,
 
-  // Stripe. A Payment Link for the $10/month Pro price (Stripe ▸ Payment
+  // Stripe. A Payment Link for the $5/month Pro price (Stripe ▸ Payment
   // Links), and the customer portal link (Stripe ▸ Settings ▸ Billing ▸
   // Customer portal) for managing or cancelling. The account page adds
   // client_reference_id=<user id> and the email to the payment link, which

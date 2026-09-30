@@ -81,7 +81,7 @@ Visitors sign in to open a league. Two plans:
 | Plan | Price | Leagues | Ads |
 | --- | --- | --- | --- |
 | Free | $0 | 1, swappable once every 30 days | Yes |
-| Pro | $10/month | Unlimited, add or remove any time | No |
+| Pro | $5/month | Unlimited, add or remove any time | No |
 
 A league is synced by its whole history (every season's league id), so the
 new league Sleeper creates when a league renews is still the same league and
@@ -115,7 +115,7 @@ Going live:
    reset emails land there). Turn on Google under Providers if wanted, and
    set `GOOGLE_SIGN_IN: true`.
 3. Put the project URL and anon key in `account-config.js`.
-4. Stripe: a $10/month recurring price, a Payment Link for it and the
+4. Stripe: a $5/month recurring price, a Payment Link for it and the
    customer portal. Put both links in `account-config.js`.
 5. Deploy the webhook (`supabase functions deploy stripe-webhook
    --no-verify-jwt`), set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,

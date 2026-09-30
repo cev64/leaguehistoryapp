@@ -20,6 +20,10 @@
 /* Reserve the scrollbar's space on every view, so switching between a long
    one and a short one never nudges the layout sideways. */
 html { scrollbar-gutter: stable; }
+/* A phone never scrolls sideways, not even the few pixels a stray shadow or
+   a wide unit would buy it. `clip` rather than `hidden`: it makes no scroll
+   box, so the pinned header and the season capsule keep sticking. */
+body { overflow-x: clip; }
 body { -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
 /* no grey flash on tap in mobile browsers; :active below gives feedback instead */
 html, button, a, summary, select, [role="tab"] { -webkit-tap-highlight-color: transparent; }

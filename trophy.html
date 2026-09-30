@@ -148,7 +148,9 @@
     /* The corner slot takes taps; the sheet's inherits the sheet's, so a closed
        sheet's slot never sits invisibly over the nameplate. */
     #hud .ad-wrap { pointer-events: auto; }
-    #loader .ad-wrap { margin: 0; }
+    /* Centred on the doorway even when a 300-wide unit is wider than its
+       text column (the smallest phones). */
+    #loader .ad-wrap { margin: 0 calc((100% - 300px) / 2); }
     /* On a big screen the hall's bottom-left corner is empty floor: one more
        slot lives there, clear of the plate and the wing tabs in the middle.
        Anywhere smaller it would sit on them, so it isn't shown. */
@@ -562,6 +564,8 @@
       #stage.focused #sheet { transform: translateY(0); }
       #hint { bottom: calc(var(--pad-bottom) + 190px); font-size: 10.5px; }
     }
+    /* The smallest phones: tighter, so the pill clears both edges. */
+    @media (max-width: 340px) { #hint { padding: 7px 11px; letter-spacing: .03em; } }
 
     .sheet-head {
       position: relative;

@@ -9,7 +9,7 @@
 
    The plans:
      Free   one league, with ads; the league can be swapped once a month
-     Pro    $10 a month: unlimited leagues, no ads
+     Pro    $5 a month: unlimited leagues, no ads
 
    What pages see (window.Account):
      Account.ready            resolves once the session is known
@@ -32,7 +32,7 @@
   const SWAP_DAYS = Number(CFG.SWAP_DAYS) || 30;
   const PLANS = CFG.PLANS || {
     free: { name: "Free", price: "$0", leagues: 1, ads: true },
-    pro: { name: "Pro", price: "$10/month", leagues: Infinity, ads: false },
+    pro: { name: "Pro", price: "$5/month", leagues: Infinity, ads: false },
   };
   const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
 
