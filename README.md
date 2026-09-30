@@ -6,11 +6,11 @@ playoff picture and brackets, an all-time record book with a history for
 every manager, a player card for everyone who has been on a roster, and a 3D
 trophy room.
 
-Anyone can use it. Enter a Sleeper username on the front page, pick one of
-your leagues, and the site reads that league and every season before it
-straight from Sleeper. There is no account, no password and no server: the
-site is static files, and everything it shows comes from Sleeper's public API
-in the visitor's own browser.
+Enter a Sleeper username on the front page, pick one of your leagues, sign
+in, and the site reads that league and every season before it straight from
+Sleeper. The site is static files: everything it shows comes from Sleeper's
+public API in the visitor's own browser, and the only server is Supabase,
+for accounts (see [Accounts, plans and ads](#accounts-plans-and-ads)).
 
 ## Pages
 
@@ -73,6 +73,68 @@ and open <http://localhost:8765>.
 The site is also an installable app (`manifest.webmanifest`, `sw.js`). Bump
 `CACHE_VERSION` in `sw.js` whenever a file in its precache list changes, or
 returning visitors keep the old copy.
+
+## Accounts, plans and ads
+
+Visitors sign in to open a league. Two plans:
+
+| Plan | Price | Leagues | Ads |
+| --- | --- | --- | --- |
+| Free | $0 | 1, swappable once every 30 days | Yes |
+| Pro | $10/month | Unlimited, add or remove any time | No |
+
+A league is synced by its whole history (every season's league id), so the
+new league Sleeper creates when a league renews is still the same league and
+never costs a swap.
+
+- `account-config.js` — the settings: Supabase keys, plan names and
+  prices, the swap window, Stripe links and the ad network.
+- `account.js` / `account.css` — the header's account button and profile
+  menu, the sign-in dialog (email and password, password reset, optional
+  Google), the account panel (leagues, plan, profile), the league gate and
+  the ad slots. `League.load` waits on `Account.admit(model)`, so every
+  league page is gated in one place.
+- `supabase/migrations/` — the `profiles`, `synced_leagues` and
+  `league_changes` tables with row-level security, and `sync_league()` /
+  `unsync_league()`, which enforce the free plan's one league and 30-day
+  swap on the server.
+- `supabase/functions/stripe-webhook/` — sets a profile's plan from Stripe's
+  subscription events. Nothing else can write a plan.
+
+Until `SUPABASE_URL` and `SUPABASE_ANON_KEY` are filled in, accounts run in
+**preview mode**: everything works, but accounts are kept in the browser
+and the account panel has switches to try Pro and skip the swap lock.
+Setting `REQUIRE_ACCOUNT: false` turns the gate off and opens every league.
+
+Going live:
+
+1. Create a Supabase project and run the migration (`supabase db push`, or
+   paste it into the SQL editor).
+2. Supabase ▸ Authentication ▸ URL configuration: set the site URL and add
+   the site's `index.html` to the redirect URLs (confirmation and password
+   reset emails land there). Turn on Google under Providers if wanted, and
+   set `GOOGLE_SIGN_IN: true`.
+3. Put the project URL and anon key in `account-config.js`.
+4. Stripe: a $10/month recurring price, a Payment Link for it and the
+   customer portal. Put both links in `account-config.js`.
+5. Deploy the webhook (`supabase functions deploy stripe-webhook
+   --no-verify-jwt`), set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
+   and point a Stripe webhook at it for `checkout.session.completed` and
+   `customer.subscription.*`.
+6. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
+   config.
+
+The gate is a paywall in the browser: Sleeper's data is public, so it keeps
+honest visitors honest rather than locking anything away.
+
+Ad slots are fixed-size boxes written into each page, so nothing moves when
+an ad loads: 300 × 250 in the desktop sidebar, a 728 × 90 banner (320 × 100
+on phones) at the top of each page and 728 × 90 (300 × 250 on phones) at the
+foot, two 300 × 250 in each manager's history, and in the trophy room one in
+the loading screen, one in the exhibit sheet and one in the hall's corner on
+large screens. With `ADS.provider` unset they show labelled placeholders;
+set it to `"adsense"` with a publisher id and a unit id per slot name (the
+`data-ad` attribute) to serve ads. Pro members see none.
 
 ## Tools
 

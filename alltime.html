@@ -1613,6 +1613,9 @@
   </style>
   <link rel="stylesheet" href="ui.css" />
   <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="account.css" />
+  <script src="account-config.js"></script>
+  <script src="account.js"></script>
   <script src="ui.js"></script>
 </head>
 <body>
@@ -1641,6 +1644,7 @@
         <h1>All-Time</h1>
       </div>
     </div>
+    <div class="ad-wrap ad-sidebar" data-ad="alltime-sidebar"><div class="ad-slot"></div></div>
   </section>
 
   <!-- The player search: a pill that pins under the header and floats as
@@ -1658,6 +1662,7 @@
   </nav>
 
   <main>
+    <div class="ad-wrap ad-top" data-ad="alltime-top"><div class="ad-slot"></div></div>
     <div class="page-toolbar">
       <div class="page-title">
         <h2 id="pageTitle">Record Book</h2>
@@ -1731,6 +1736,7 @@
       </div>
     </section>
 
+    <div class="ad-wrap ad-bottom" data-ad="alltime-bottom"><div class="ad-slot"></div></div>
   </main>
 
   <footer class="footer">
@@ -2315,6 +2321,7 @@
           <div class="schedule-heading"><h3>Season History</h3></div>
           <div class="schedule-list">${seasonRows(profile)}</div>
         </section>
+        <div class="ad-wrap ad-rect" data-ad="profile-mid"><div class="ad-slot"></div></div>
         <section class="schedule-section">
           <div class="schedule-heading"><h3>Regular-Season Wins</h3></div>
           <div class="schedule-list chart-wrap">${renderWinsChart(profile)}</div>
@@ -2356,7 +2363,8 @@
               </table>
             </div>
           </div>
-        </section>`;
+        </section>
+        <div class="ad-wrap ad-rect" data-ad="profile-bottom"><div class="ad-slot"></div></div>`;
 
       renderH2H(profile);
       renderStarters(ownerId);

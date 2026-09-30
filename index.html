@@ -1756,6 +1756,9 @@
   </style>
   <link rel="stylesheet" href="ui.css" />
   <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="account.css" />
+  <script src="account-config.js"></script>
+  <script src="account.js"></script>
   <script src="sleeper.js"></script>
 </head>
 <body>
@@ -1779,9 +1782,11 @@
         <p>Every season your league has played on Sleeper: standings, box scores, brackets, the all-time record book and a trophy room.</p>
       </div>
     </div>
+    <div class="ad-wrap ad-sidebar" data-ad="home-sidebar"><div class="ad-slot"></div></div>
   </section>
 
   <main>
+    <div class="ad-wrap ad-top" data-ad="home-top"><div class="ad-slot"></div></div>
     <div class="page-toolbar">
       <div class="page-title">
         <h2 id="pageTitle">Your Leagues</h2>
@@ -1789,6 +1794,15 @@
     </div>
 
     <div class="signin-stack">
+      <!-- A signed-in member's own leagues (account.js fills it). -->
+      <article class="card" id="syncedCard" hidden>
+        <div class="card-head">
+          <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 10.9l-3.4 1.8.7-3.8-2.8-2.7 3.8-.5z"/></svg></span>My leagues</h3>
+          <span data-synced-meta></span>
+        </div>
+        <div class="league-list"></div>
+      </article>
+
       <article class="card" id="recentCard" hidden>
         <div class="card-head">
           <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.4"/><path d="M8 4.8V8l2.2 1.4"/></svg></span>Recently opened</h3>
@@ -1832,6 +1846,8 @@
         </div>
       </article>
     </div>
+
+    <div class="ad-wrap ad-bottom" data-ad="home-bottom"><div class="ad-slot"></div></div>
   </main>
 
   <footer class="footer">

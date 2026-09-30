@@ -458,7 +458,7 @@ export function buildLockerWall(room, locker, { narrow = false, aspect = 1.2 } =
         object = buildLeagueTrophy({
           year: entry.year,
           color: accent,
-          // Without an ownerId the plaque between the columns falls back to the
+          // Without an ownerId the crest on the bowl falls back to the
           // manager's emoji, which is what every locker trophy was wearing.
           ownerId: locker.ownerId,
           icon: locker.icon,

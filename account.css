@@ -1,0 +1,382 @@
+/* Accounts and ads (account.js): the header button, profile menu, sign-in
+   dialog, account panel, the league gate, and every ad slot.
+
+   Linked after design.css on every page. The trophy room links it too; the
+   rules that only make sense in a page header are scoped to .topbar. */
+
+:root {
+  --acct-navy: #071827;
+  --acct-navy-2: #102b43;
+  --acct-ink: #0b1f3f;
+  --acct-ink-2: #475467;
+  --acct-ink-3: #8a94a6;
+  --acct-line: #e4e7ec;
+  --acct-blue: #1769e0;
+  --acct-gold: #f6b73c;
+  --acct-red: #d71920;
+  --acct-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* ---------------------------------------------------------------
+   Header button
+   --------------------------------------------------------------- */
+.acct-button {
+  display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  height: 38px; padding: 0 12px 0 4px; margin: 0;
+  border: 1px solid rgba(255, 255, 255, .16); border-radius: 999px;
+  background: rgba(255, 255, 255, .06); color: #fff;
+  font: 800 13px/1 var(--font-body, Inter, system-ui, sans-serif); cursor: pointer; white-space: nowrap;
+  transition: background-color .18s var(--acct-ease), border-color .18s var(--acct-ease), transform .18s var(--acct-ease);
+}
+.acct-button:hover { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .3); }
+.acct-button:active { transform: scale(.96); }
+.acct-button:focus-visible { outline: 2px solid var(--acct-gold); outline-offset: 2px; }
+/* Signed in, it is just the avatar. */
+.acct-button:not(:has(.acct-button-label)) { padding: 0; width: 38px; justify-content: center; border-radius: 50%; }
+.acct-button:not(:has(.acct-button-label)) .acct-avatar { width: 32px; height: 32px; }
+
+.acct-avatar {
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(145deg, #2a67c9, #173f7e); color: #fff;
+  font: 800 12.5px/1 var(--font-body, Inter, system-ui, sans-serif); letter-spacing: .02em;
+}
+.acct-avatar svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; }
+.acct-avatar-empty { background: rgba(255, 255, 255, .1); }
+.acct-avatar.is-pro, .acct-button.is-pro .acct-avatar { box-shadow: 0 0 0 2px var(--acct-navy), 0 0 0 3.5px var(--acct-gold); }
+.acct-avatar-lg { width: 48px; height: 48px; font-size: 17px; }
+
+/* Across the top: last in the row. The front page has nothing else there. */
+.topbar-inner > .brand + .acct-button { margin-left: auto; }
+@media (max-width: 700px) {
+  .topbar .acct-button { height: 34px; }
+  .topbar .acct-button:not(:has(.acct-button-label)) { width: 34px; }
+  .topbar .acct-button:not(:has(.acct-button-label)) .acct-avatar { width: 28px; height: 28px; font-size: 11.5px; }
+  /* Signed out on a phone: the icon alone. */
+  .topbar-inner:has(.topbar-trophy) .acct-button-label { display: none; }
+  .topbar-inner:has(.topbar-trophy) .acct-button:has(.acct-button-label) { width: 34px; padding: 0; justify-content: center; border-radius: 50%; }
+}
+/* A phone's header row now carries the account button too: the trophy
+   room shrinks to its cup a little sooner than it used to. */
+@media (max-width: 520px) {
+  .topbar-inner:has(.acct-button) .topbar-trophy { font-size: 0; gap: 0; padding: 6px 8px; }
+  .topbar-inner:has(.acct-button) .topbar-trophy span { font-size: 14px; }
+}
+/* In the desktop sidebar: beside the Trophy Room button, under the menu. */
+@media (min-width: 1200px) {
+  .topbar .acct-button { grid-column: 2; grid-row: 2; justify-self: end; }
+  .topbar-inner:has(.acct-button) .topbar-trophy { grid-column: 1; }
+  .topbar-inner:not(:has(.topbar-trophy)) .acct-button { grid-row: 1; }
+}
+
+/* ---------------------------------------------------------------
+   Profile menu
+   --------------------------------------------------------------- */
+.acct-menu {
+  position: fixed; z-index: 250; display: none;
+  padding: 6px; border-radius: 16px;
+  background: rgba(10, 30, 48, .985); color: #fff;
+  -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, .14);
+  box-shadow: 0 18px 44px rgba(3, 12, 22, .45), 0 2px 8px rgba(3, 12, 22, .25);
+  font-family: var(--font-body, Inter, system-ui, sans-serif);
+}
+.acct-menu.open { display: block; animation: acctPop .24s var(--acct-ease) both; }
+@keyframes acctPop { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+.acct-menu-head { display: flex; align-items: center; gap: 10px; padding: 10px 10px 12px; }
+.acct-menu-who { display: grid; min-width: 0; flex: 1; }
+.acct-menu-who strong { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-menu-who span { font-size: 12px; color: rgba(219, 229, 238, .7); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-plan-badge {
+  flex: 0 0 auto; padding: 4px 8px; border-radius: 999px;
+  background: rgba(255, 255, 255, .1); color: #dbe5ee;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+}
+.acct-plan-badge.is-pro { background: rgba(246, 183, 60, .18); color: #f6c35a; }
+.acct-menu-label {
+  padding: 8px 10px 4px; color: rgba(219, 229, 238, .55);
+  font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+}
+.acct-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 38px;
+  padding: 0 10px; border: 0; border-radius: 9px; background: transparent;
+  color: #dbe5ee; font: 700 13.5px/1.2 inherit; text-align: left; text-decoration: none; cursor: pointer;
+}
+.acct-menu-item:hover, .acct-menu-item:focus-visible { background: rgba(255, 255, 255, .09); color: #fff; outline: none; }
+.acct-menu-league img { width: 22px; height: 22px; border-radius: 6px; object-fit: cover; }
+.acct-menu-league span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-menu-league.is-locked { opacity: .5; }
+.acct-dot { width: 22px; text-align: center; }
+.acct-menu-upgrade { justify-content: space-between; color: #f6c35a; }
+.acct-menu-upgrade span:last-child { color: rgba(246, 195, 90, .7); font-size: 12px; font-weight: 600; }
+.acct-menu-sep { height: 1px; margin: 5px 8px; background: rgba(255, 255, 255, .1); }
+@media (pointer: coarse) { .acct-menu-item { min-height: 44px; font-size: 14.5px; } }
+
+/* ---------------------------------------------------------------
+   Buttons, fields
+   --------------------------------------------------------------- */
+.acct-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border-radius: 12px;
+  border: 1px solid var(--acct-line); background: #fff; color: var(--acct-ink);
+  font: 800 14px/1 var(--font-body, Inter, system-ui, sans-serif); text-decoration: none; cursor: pointer;
+  transition: background-color .15s var(--acct-ease), border-color .15s var(--acct-ease), transform .15s var(--acct-ease), opacity .15s;
+}
+.acct-btn:hover { border-color: #c5ccd6; background: #f7f8fa; }
+.acct-btn:active { transform: scale(.97); }
+.acct-btn:focus-visible { outline: 2px solid var(--acct-blue); outline-offset: 2px; }
+.acct-btn:disabled { opacity: .5; cursor: default; transform: none; }
+.acct-btn-primary { background: var(--acct-navy); border-color: var(--acct-navy); color: #fff; }
+.acct-btn-primary:hover { background: var(--acct-navy-2); border-color: var(--acct-navy-2); }
+.acct-btn-wide { width: 100%; }
+.acct-btn-small { min-height: 34px; padding: 0 12px; border-radius: 9px; font-size: 12.5px; }
+.acct-btn-quiet { background: transparent; }
+.acct-btn.is-busy { position: relative; color: transparent !important; }
+.acct-btn.is-busy::after {
+  content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .35); border-top-color: #fff; animation: acctSpin .7s linear infinite;
+}
+.acct-btn:not(.acct-btn-primary).is-busy::after { border-color: rgba(11, 31, 63, .2); border-top-color: var(--acct-ink); }
+@keyframes acctSpin { to { transform: rotate(360deg); } }
+.acct-btn-google { width: 100%; }
+.acct-btn-google svg { width: 18px; height: 18px; }
+.acct-link {
+  display: inline; padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--acct-blue); font: 600 13px/1.4 var(--font-body, Inter, system-ui, sans-serif);
+  text-decoration: underline; text-decoration-color: rgba(23, 105, 224, .35); text-underline-offset: 3px;
+}
+
+.acct-form { display: grid; gap: 12px; }
+.acct-field { display: grid; gap: 6px; }
+.acct-field > span { color: var(--acct-ink-2); font-size: 12.5px; font-weight: 700; }
+.acct-field input {
+  width: 100%; height: 44px; padding: 0 13px; border-radius: 11px;
+  border: 1px solid var(--line-2, #d5dae1); background: #fff; color: var(--acct-ink);
+  font: 500 15px/1 var(--font-body, Inter, system-ui, sans-serif);
+  transition: border-color .15s, box-shadow .15s;
+}
+.acct-field input:focus { outline: none; border-color: var(--acct-blue); box-shadow: 0 0 0 3px rgba(23, 105, 224, .16); }
+.acct-error { margin: 0; padding: 9px 11px; border-radius: 10px; background: #fff1f1; color: #b4141a; font-size: 13px; font-weight: 600; }
+.acct-reason { margin: 0 0 16px; color: var(--acct-ink-2); font-size: 14px; line-height: 1.5; }
+.acct-muted { margin: 10px 0; color: var(--acct-ink-3); font-size: 12.5px; line-height: 1.5; }
+.acct-preview-note {
+  margin: 16px 0 0; padding: 8px 10px; border-radius: 9px;
+  background: #fff8e8; color: #8a5b00; font-size: 11.5px; font-weight: 600; line-height: 1.4; text-align: center;
+}
+.acct-or { display: flex; align-items: center; gap: 10px; margin: 12px 0; color: var(--acct-ink-3); font-size: 12px; }
+.acct-or::before, .acct-or::after { content: ""; flex: 1; height: 1px; background: var(--acct-line); }
+
+/* ---------------------------------------------------------------
+   Sign-in dialog, confirm box
+   --------------------------------------------------------------- */
+.acct-modal { position: fixed; inset: 0; z-index: 300; display: none; place-items: center; padding: 16px; }
+.acct-modal.open { display: grid; }
+.acct-confirm { z-index: 320; }
+.acct-modal-backdrop { position: absolute; inset: 0; background: rgba(7, 24, 39, .55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.acct-modal-card {
+  position: relative; width: min(420px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto;
+  padding: 26px 24px 22px; border-radius: 20px; background: #fff; color: var(--acct-ink);
+  box-shadow: 0 30px 80px rgba(3, 12, 22, .35);
+  font-family: var(--font-body, Inter, system-ui, sans-serif);
+  animation: acctPop .26s var(--acct-ease) both;
+}
+.acct-modal-card h2 {
+  margin: 0 0 8px; font: 700 28px/1 var(--font-display, "Barlow Condensed", sans-serif);
+  text-transform: uppercase; letter-spacing: .02em; color: var(--acct-ink);
+}
+.acct-close {
+  position: absolute; top: 12px; right: 12px; width: 34px; height: 34px;
+  border: 0; border-radius: 50%; background: #f2f4f7; color: var(--acct-ink-2);
+  font-size: 20px; line-height: 1; cursor: pointer;
+}
+.acct-close:hover { background: #e7eaef; color: var(--acct-ink); }
+.acct-tabs { display: flex; gap: 2px; padding: 3px; margin: 0 40px 20px 0; border-radius: 12px; background: #eef1f5; }
+.acct-tabs button {
+  flex: 1; height: 34px; border: 0; border-radius: 9px; background: transparent;
+  color: var(--acct-ink-2); font: 700 13px/1 var(--font-body, Inter, system-ui, sans-serif); cursor: pointer;
+}
+.acct-tabs button[aria-selected="true"] { background: #fff; color: var(--acct-ink); box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+.acct-form .acct-link { justify-self: center; margin-top: 2px; }
+.acct-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.acct-confirm .acct-modal-card h2 { font-size: 24px; }
+html.lh-modal-open, html.lh-panel-open { overflow: hidden; }
+
+/* ---------------------------------------------------------------
+   Account panel
+   --------------------------------------------------------------- */
+.acct-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 260;
+  width: min(420px, 100vw); display: flex; flex-direction: column;
+  background: #f7f8fa; color: var(--acct-ink);
+  box-shadow: -20px 0 60px rgba(3, 12, 22, .25);
+  transform: translateX(104%); visibility: hidden;
+  transition: transform .38s var(--acct-ease), visibility 0s linear .38s;
+  font-family: var(--font-body, Inter, system-ui, sans-serif);
+}
+.acct-panel-backdrop {
+  position: fixed; inset: 0; z-index: 255; background: rgba(7, 24, 39, .45);
+  opacity: 0; pointer-events: none; transition: opacity .3s var(--acct-ease);
+}
+html.lh-panel-open .acct-panel { transform: none; visibility: visible; transition: transform .38s var(--acct-ease); }
+html.lh-panel-open .acct-panel-backdrop { opacity: 1; pointer-events: auto; }
+.acct-panel-head {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: calc(22px + env(safe-area-inset-top)) 60px 20px 20px;
+  background: var(--acct-navy); color: #fff; border-bottom: 4px solid var(--acct-red);
+}
+.acct-panel-head .acct-close { top: calc(18px + env(safe-area-inset-top)); background: rgba(255, 255, 255, .1); color: #fff; }
+.acct-panel-head .acct-avatar.is-pro { box-shadow: 0 0 0 2px var(--acct-navy), 0 0 0 4px var(--acct-gold); }
+.acct-panel-body { flex: 1; overflow-y: auto; padding: 8px 16px calc(24px + env(safe-area-inset-bottom)); overscroll-behavior: contain; }
+.acct-panel-body section { margin-top: 12px; padding: 16px; border-radius: 14px; background: #fff; border: 1px solid var(--acct-line); scroll-margin-top: 12px; }
+.acct-panel-body section:last-child { background: transparent; border: 0; padding: 0; }
+.acct-panel-body h3 {
+  display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 12px;
+  font: 700 20px/1 var(--font-display, "Barlow Condensed", sans-serif); text-transform: uppercase; letter-spacing: .03em;
+}
+.acct-panel-body h3 span { color: var(--acct-ink-3); font: 600 12px/1 var(--font-body, Inter, sans-serif); text-transform: none; letter-spacing: 0; }
+.acct-leagues { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.acct-league { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px; background: #f7f8fa; }
+.acct-league img, .acct-league-mark { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 10px; object-fit: cover; display: grid; place-items: center; background: #e9edf2; }
+.acct-league-copy { display: grid; min-width: 0; flex: 1; gap: 2px; }
+.acct-league-copy strong { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-league-copy span { color: var(--acct-ink-3); font-size: 11.5px; line-height: 1.35; }
+.acct-league-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.acct-league.is-locked { opacity: .65; }
+.acct-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.acct-plan { padding: 12px; border-radius: 12px; border: 1px solid var(--acct-line); background: #fff; }
+.acct-plan.is-current { border-color: var(--acct-blue); box-shadow: 0 0 0 1px var(--acct-blue) inset; }
+.acct-plan-pro { background: linear-gradient(160deg, #fffaf0, #fff); }
+.acct-plan-pro.is-current { border-color: #d49a1f; box-shadow: 0 0 0 1px #d49a1f inset; }
+.acct-plan-name { display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 13px; }
+.acct-plan-name em { font-style: normal; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--acct-blue); }
+.acct-plan-pro .acct-plan-name em { color: #b07a0c; }
+.acct-plan-price { margin: 4px 0 8px; font: 700 22px/1 var(--font-display, "Barlow Condensed", sans-serif); }
+.acct-plan ul { margin: 0; padding: 0 0 0 16px; color: var(--acct-ink-2); font-size: 12px; line-height: 1.6; }
+.acct-preview-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--acct-line); }
+.acct-preview-tools > span { width: 100%; color: #8a5b00; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.acct-profile-form { gap: 10px; }
+.acct-profile-form .acct-btn { justify-self: start; }
+
+/* ---------------------------------------------------------------
+   The league gate
+   --------------------------------------------------------------- */
+.acct-gate {
+  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px;
+  background: rgba(7, 24, 39, .6);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2); backdrop-filter: blur(10px) saturate(1.2);
+  animation: acctFade .3s var(--acct-ease) both;
+}
+@keyframes acctFade { from { opacity: 0; } }
+.acct-gate-card {
+  width: min(460px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto;
+  padding: 28px 26px 22px; border-radius: 22px; background: #fff; color: var(--acct-ink); text-align: center;
+  border-top: 4px solid var(--acct-red);
+  box-shadow: 0 30px 80px rgba(3, 12, 22, .4);
+  font-family: var(--font-body, Inter, system-ui, sans-serif);
+  animation: acctPop .32s var(--acct-ease) both;
+}
+.acct-gate-league {
+  display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 14px;
+  border-radius: 18px; background: var(--acct-navy); font-size: 28px; overflow: hidden;
+  box-shadow: 0 0 0 4px #fff, 0 0 0 5px var(--acct-line);
+}
+.acct-gate-league img { width: 100%; height: 100%; object-fit: cover; }
+.acct-gate-card h2 {
+  margin: 0 0 10px; font: 700 30px/1 var(--font-display, "Barlow Condensed", sans-serif);
+  text-transform: uppercase; letter-spacing: .02em; color: var(--acct-ink); overflow-wrap: anywhere;
+}
+.acct-gate-card p { margin: 0 0 16px; color: var(--acct-ink-2); font-size: 14px; line-height: 1.55; }
+.acct-gate-card p b { color: var(--acct-ink); }
+.acct-gate-card .acct-gate-error { padding: 9px 11px; border-radius: 10px; background: #fff1f1; color: #b4141a; font-weight: 600; font-size: 13px; }
+.acct-gate-card .acct-preview-note { margin: 16px 0 0; color: #8a5b00; font-size: 11.5px; line-height: 1.4; }
+.acct-gate-actions { display: grid; gap: 8px; }
+.acct-gate-foot { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 18px; margin-top: 16px; }
+html.lh-gated { overflow: hidden; }
+
+/* ---------------------------------------------------------------
+   Toast
+   --------------------------------------------------------------- */
+.acct-toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 400;
+  max-width: calc(100vw - 32px); padding: 11px 16px; border-radius: 12px;
+  background: var(--acct-navy); color: #fff; font: 600 13.5px/1.35 var(--font-body, Inter, system-ui, sans-serif);
+  box-shadow: 0 12px 30px rgba(3, 12, 22, .35);
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  transition: transform .3s var(--acct-ease), opacity .3s var(--acct-ease);
+}
+.acct-toast.show { transform: translate(-50%, 0); opacity: 1; }
+/* Above the season page's bottom bar on a phone. */
+@media (max-width: 760px) { body:has(#seasonNav) .acct-toast { bottom: calc(150px + env(safe-area-inset-bottom)); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .acct-menu.open, .acct-modal-card, .acct-gate, .acct-gate-card { animation: none; }
+  .acct-panel, .acct-toast { transition: none; }
+}
+
+/* ---------------------------------------------------------------
+   Ad slots
+
+   Each slot is a box of one exact size, reserved in the page before any ad
+   loads, so an ad arriving (or not) never moves anything. Sizes are the
+   standard IAB units:
+     .ad-sidebar   300 × 250   desktop sidebar only (≥ 1200px)
+     .ad-top       728 × 90    on a tablet or desktop, 320 × 100 on a phone
+     .ad-bottom    728 × 90    on a tablet or desktop, 300 × 250 on a phone
+     .ad-rect      300 × 250   everywhere
+   Pro members never see them: html.lh-no-ads hides every one.
+   --------------------------------------------------------------- */
+.ad-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  margin: 24px 0; contain: layout;
+}
+.ad-wrap::before {
+  content: "Advertisement"; color: var(--acct-ink-3);
+  font: 700 9.5px/1 var(--font-body, Inter, system-ui, sans-serif); letter-spacing: .16em; text-transform: uppercase;
+}
+.ad-slot {
+  position: relative; flex: 0 0 auto; box-sizing: border-box; overflow: hidden;
+  display: grid; place-items: center; border-radius: 8px;
+  border: 1px dashed #c6cfda;
+  background: repeating-linear-gradient(135deg, rgba(11, 31, 63, .025) 0 10px, rgba(11, 31, 63, .05) 10px 20px), #f7f9fb;
+}
+.ad-slot:has(ins) { border: 0; background: transparent; }
+.ad-ph { display: grid; justify-items: center; gap: 4px; color: #98a2b3; }
+.ad-ph-mark { padding: 3px 6px; border: 1px solid currentColor; border-radius: 4px; font: 800 10px/1 var(--font-body, Inter, sans-serif); letter-spacing: .12em; }
+.ad-ph-size { font: 600 11px/1 var(--font-body, Inter, sans-serif); letter-spacing: .04em; }
+
+.ad-top .ad-slot, .ad-bottom .ad-slot { width: 728px; height: 90px; }
+.ad-top .ad-ph-size::after, .ad-bottom .ad-ph-size::after { content: "728 × 90"; }
+.ad-rect .ad-slot, .ad-sidebar .ad-slot { width: 300px; height: 250px; }
+.ad-rect .ad-ph-size::after, .ad-sidebar .ad-ph-size::after { content: "300 × 250"; }
+.ad-top { margin-top: 4px; }
+
+@media (max-width: 767px) {
+  /* Out to the edges of the screen, so a 320-wide unit fits a 320-wide phone. */
+  main .ad-wrap { margin-left: -16px; margin-right: -16px; }
+  .ad-top .ad-slot { width: 320px; height: 100px; }
+  .ad-top .ad-ph-size::after { content: "320 × 100"; }
+  .ad-bottom .ad-slot { width: 300px; height: 250px; }
+  .ad-bottom .ad-ph-size::after { content: "300 × 250"; }
+}
+
+/* The desktop sidebar's slot, on the navy. */
+.ad-sidebar { display: none; }
+@media (min-width: 1200px) {
+  .hero .ad-sidebar { display: flex; margin: 0 20px 28px; }
+  .ad-sidebar::before { color: rgba(219, 229, 238, .45); }
+  .ad-sidebar .ad-slot {
+    border-color: rgba(255, 255, 255, .16);
+    background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .02) 0 10px, rgba(255, 255, 255, .045) 10px 20px), rgba(255, 255, 255, .03);
+  }
+  .ad-sidebar .ad-ph { color: rgba(219, 229, 238, .45); }
+}
+
+/* The trophy room's slots sit on its dark glass. */
+.ad-dark::before { color: rgba(219, 229, 238, .45); }
+.ad-dark .ad-slot {
+  border-color: rgba(255, 255, 255, .16);
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .02) 0 10px, rgba(255, 255, 255, .045) 10px 20px), rgba(255, 255, 255, .03);
+}
+.ad-dark .ad-ph { color: rgba(219, 229, 238, .45); }
+
+html.lh-no-ads .ad-wrap { display: none !important; }

@@ -12,7 +12,7 @@
 import * as THREE from "three";
 import {
   crestTexture, marbleTexture, mix, nameplateTexture, pennantTexture, recordFaceTexture,
-  teamFlagTexture, teamPlaqueTexture, woodTexture, yearPlateTexture
+  teamFlagTexture, woodTexture, yearPlateTexture
 } from "./textures.js";
 
 const TAU = Math.PI * 2;
@@ -52,15 +52,12 @@ export function initMaterials({ envMap, quality }) {
     goldDark: metal(0x8a6420, 0.38),
     brass: metal(0xd8b46a, 0.28),
     silver: metal(0xd6dde6, 0.16),
-    // The league trophy's own three materials: mirror chrome for the cup and
-    // its fittings, anodised blue for the columns, and the glossy black of the
-    // base and shelf.
-    chrome: metal(0xeef3f8, 0.05),
-    columnBlue: new THREE.MeshStandardMaterial({
-      color: 0x2f63e8, metalness: 0.5, roughness: 0.2,
-      emissive: 0x102a72, emissiveIntensity: 0.5,
-      envMap, envMapIntensity: 1.2
-    }),
+    // The league trophy's own two materials: a warm gold a touch rougher than
+    // the hall's mirror gold, so the broad bowl reads as gold rather than as
+    // a reflection of the room, and the glossy black of its plinth.
+    // A little emissive warmth keeps the underside of the bowl, which faces
+    // the dark floor, from going brown.
+    trophyGold: metal(0xf6bd42, 0.2, { envMapIntensity: 2.0, emissive: 0x6a4300, emissiveIntensity: 0.35 }),
     trophyBlack: new THREE.MeshStandardMaterial({
       color: 0x0d1117, metalness: 0.45, roughness: 0.3, envMap, envMapIntensity: 1.1
     }),
@@ -322,179 +319,128 @@ export function buildPedestal(item, { height = 1.1 } = {}) {
 
 /* ------------------------------------------------------------------ trophies */
 
-/* The championship cup: lathed foot, stem and bowl, two swept handles, a domed
-   lid and a football finial. The team crest is mounted on the front of the bowl. */
-/* The league's own trophy, measured off a photograph of it.
+/* The league trophy: a plain gold cup, drawn after the 🏆 the rest of the site
+   uses for a title. Bottom to top: a black stepped plinth carrying the year on
+   an engraved plate, a gold collar, then one lathed piece of gold — a flared
+   foot, a stem with a knop, and a deep bowl with a rolled lip — with a big ear
+   handle on either side. The champion's crest is mounted on the front of the
+   bowl.
 
-   Bottom to top: a stepped hexagonal base carrying a printed plate, three blue
-   columns rising from it, a hexagonal shelf across their tops, and a chrome
-   loving cup with scroll handles standing on that. A plaque hangs between the
-   columns on a small silver bracket.
-
-   The two printed inserts are the league's to fill: the plaque takes the
-   champion's crest, the base plate takes the year.
-
-   Everything is built at the proportions in the photo, in units where the
-   whole trophy stands a shade under two metres tall in hall scale. The parts
-   that never vary — base, columns, shelf, cup — are cut once and shared by all
-   six trophies; only the two inserts differ. */
+   It stands a shade under two metres in hall scale, the height the hall and
+   the lockers were laid out around. The parts that never vary are cut once and
+   shared by every trophy; only the plate and the crest differ. */
 
 const TROPHY = {
-  baseRadius: 0.45,
-  baseTop: 0.533,
-  columnTop: 1.19,
-  shelfTop: 1.242,
-  columnX: 0.245,
-  columnZ: -0.08
+  plinthTop: 0.08,
+  blockTop: 0.48,
+  collarTop: 0.54,
+  blockDepth: 0.54,
+  // The cup's own profile is drawn at a convenient size and stretched up by
+  // this much, so it can be read (and tuned) as round numbers.
+  stretch: 1.2
 };
 
 const trophyParts = {};
 function leagueTrophyParts() {
   if (trophyParts.cup) return trophyParts;
+  const k = TROPHY.stretch;
 
-  // The cup, lathed in one piece: a flat foot, a plain cylinder, a trumpet up
-  // through a knop, then the bowl. The tail of the list walks back down the
-  // inside so the cup is hollow when you look into it.
+  // Foot, stem, knop and bowl in one lathe. The tail of the list walks back
+  // down the inside, so the cup is hollow when you look into it.
   trophyParts.cup = lathe([
-    [0.000, 0.000], [0.118, 0.000], [0.121, 0.016], [0.112, 0.030],
-    [0.092, 0.044], [0.087, 0.055], [0.085, 0.140], [0.082, 0.198],
-    [0.090, 0.207], [0.082, 0.217], [0.062, 0.250], [0.041, 0.286],
-    [0.031, 0.320], [0.030, 0.358], [0.046, 0.384], [0.055, 0.406],
-    [0.044, 0.430], [0.033, 0.449], [0.049, 0.470], [0.076, 0.496],
-    [0.098, 0.520], [0.104, 0.534], [0.100, 0.546], [0.110, 0.560],
-    [0.120, 0.596], [0.132, 0.640], [0.143, 0.684], [0.150, 0.712],
-    [0.153, 0.722], [0.150, 0.729], [0.141, 0.726], [0.134, 0.694],
-    [0.118, 0.624], [0.096, 0.560], [0.072, 0.522], [0.000, 0.510]
-  ], 56);
+    [0.000, 0.000], [0.200, 0.000], [0.206, 0.018], [0.194, 0.038],
+    [0.150, 0.058], [0.108, 0.086], [0.080, 0.125], [0.064, 0.190],
+    [0.058, 0.290], [0.080, 0.315], [0.092, 0.340], [0.080, 0.365],
+    [0.056, 0.385], [0.052, 0.430], [0.070, 0.462], [0.122, 0.500],
+    [0.198, 0.560], [0.262, 0.640], [0.302, 0.740], [0.326, 0.860],
+    [0.340, 0.980], [0.350, 1.080], [0.362, 1.130], [0.378, 1.150],
+    [0.383, 1.165], [0.374, 1.178], [0.356, 1.170], [0.340, 1.100],
+    [0.328, 0.990], [0.310, 0.870], [0.282, 0.760], [0.232, 0.670],
+    [0.150, 0.600], [0.000, 0.575]
+  ].map(([x, y]) => [x, y * k]), 64);
 
-  // One handle, swept so its ends finish inside the bowl wall at both heights.
+  // One ear handle, leaving the bowl just under the lip and swinging wide
+  // before it tucks back in low on the bowl. Both ends finish inside the wall.
   trophyParts.handle = new THREE.TubeGeometry(
     new THREE.CatmullRomCurve3([
-      [0.124, 0.700], [0.180, 0.727], [0.226, 0.712], [0.248, 0.656],
-      [0.236, 0.590], [0.186, 0.546], [0.092, 0.528]
-    ].map(([x, y]) => new THREE.Vector3(x, y, 0))),
-    30, 0.011, 8, false
+      [0.320, 1.070], [0.420, 1.110], [0.520, 1.080], [0.570, 0.990],
+      [0.555, 0.880], [0.480, 0.790], [0.370, 0.735], [0.270, 0.690]
+    ].map(([x, y]) => new THREE.Vector3(x, y * k, 0))),
+    48, 0.026, 12, false
   );
-  trophyParts.scroll = new THREE.TorusGeometry(0.030, 0.008, 8, 22);
+  // A little ball where each handle leaves the rim, the way the emoji's do.
+  trophyParts.handleCap = new THREE.SphereGeometry(0.036, 16, 12);
 
-  trophyParts.column = new THREE.CylinderGeometry(0.037, 0.039, TROPHY.columnTop - TROPHY.baseTop, 20);
-  trophyParts.shelf = new THREE.CylinderGeometry(0.37, 0.372, TROPHY.shelfTop - TROPHY.columnTop, 6);
-  trophyParts.shelfLip = new THREE.CylinderGeometry(0.378, 0.378, 0.012, 6);
-  trophyParts.peg = new THREE.CylinderGeometry(0.010, 0.014, 0.032, 10);
+  trophyParts.lip = new THREE.TorusGeometry(0.379, 0.013, 10, 72);
 
-  trophyParts.baseStepLow = new THREE.CylinderGeometry(0.500, 0.503, 0.070, 6);
-  trophyParts.baseStepMid = new THREE.CylinderGeometry(0.474, 0.478, 0.058, 6);
-  trophyParts.baseBlock = new THREE.CylinderGeometry(TROPHY.baseRadius, TROPHY.baseRadius, 0.405, 6);
-
-  trophyParts.plaqueFrame = roundedBox(0.300, 0.468, 0.030, 0.012);
-  trophyParts.plaqueInsert = new THREE.PlaneGeometry(0.238, 0.404);
-  trophyParts.bracket = new THREE.CylinderGeometry(0.030, 0.070, 0.069, 16);
-  trophyParts.bracketCollar = new THREE.TorusGeometry(0.034, 0.008, 8, 20);
-  trophyParts.basePlate = new THREE.PlaneGeometry(0.405, 0.182);
+  trophyParts.plinth = roundedBox(0.82, TROPHY.plinthTop, 0.66, 0.03);
+  trophyParts.block = roundedBox(0.68, TROPHY.blockTop - TROPHY.plinthTop, TROPHY.blockDepth, 0.035);
+  trophyParts.band = roundedBox(0.70, 0.026, TROPHY.blockDepth + 0.02, 0.012);
+  trophyParts.collar = roundedBox(0.50, TROPHY.collarTop - TROPHY.blockTop, 0.40, 0.02);
+  // The year plate keeps the texture's own aspect ratio (1024 × 460).
+  trophyParts.plate = new THREE.PlaneGeometry(0.46, 0.46 * 0.449);
+  trophyParts.plateFrame = roundedBox(0.50, 0.46 * 0.449 + 0.04, 0.014, 0.012);
 
   return trophyParts;
 }
 
 export function buildLeagueTrophy(item) {
   const parts = leagueTrophyParts();
+  const k = TROPHY.stretch;
   const group = new THREE.Group();
-  // A hexagon from a six-sided cylinder puts a corner toward the viewer;
-  // a sixth of a turn puts a flat face there instead, as the real base has.
-  const flatFront = Math.PI / 6;
 
-  /* ------------------------------------------------------------------ base */
-  const stepLow = new THREE.Mesh(parts.baseStepLow, shared.trophyBlack);
-  stepLow.position.y = 0.035;
-  const stepMid = new THREE.Mesh(parts.baseStepMid, shared.trophyBlack);
-  stepMid.position.y = 0.099;
-  const block = new THREE.Mesh(parts.baseBlock, shared.trophyBlack);
-  block.position.y = 0.330;
+  /* ---------------------------------------------------------------- plinth */
+  const plinth = new THREE.Mesh(parts.plinth, shared.trophyBlack);
+  plinth.position.y = TROPHY.plinthTop / 2;
+  const block = new THREE.Mesh(parts.block, shared.trophyBlack);
+  block.position.y = (TROPHY.plinthTop + TROPHY.blockTop) / 2;
   block.castShadow = true;
-  [stepLow, stepMid, block].forEach((mesh) => { mesh.rotation.y = flatFront; });
+  const band = new THREE.Mesh(parts.band, shared.trophyGold);
+  band.position.y = TROPHY.blockTop - 0.013;
+  const collar = new THREE.Mesh(parts.collar, shared.trophyGold);
+  collar.position.y = (TROPHY.blockTop + TROPHY.collarTop) / 2;
 
-  // The base plate, on the flat face the viewer is standing in front of.
-  const basePlate = new THREE.Mesh(parts.basePlate, new THREE.MeshStandardMaterial({
+  // The year, on a gold-framed plate across the front of the block.
+  const plateY = (TROPHY.plinthTop + TROPHY.blockTop) / 2 - 0.01;
+  const plateFrame = new THREE.Mesh(parts.plateFrame, shared.trophyGold);
+  plateFrame.position.set(0, plateY, TROPHY.blockDepth / 2 + 0.004);
+  const plate = new THREE.Mesh(parts.plate, new THREE.MeshStandardMaterial({
     map: yearPlateTexture({ year: item.year, color: item.color }),
     metalness: 0.3,
     roughness: 0.34,
     envMap: shared.envMap,
     envMapIntensity: 0.9
   }));
-  basePlate.position.set(0, 0.290, TROPHY.baseRadius * Math.cos(Math.PI / 6) + 0.004);
+  plate.position.set(0, plateY, TROPHY.blockDepth / 2 + 0.013);
 
-  /* --------------------------------------------------------------- columns */
-  const columns = new THREE.Group();
-  for (const x of [-TROPHY.columnX, 0, TROPHY.columnX]) {
-    const column = new THREE.Mesh(parts.column, shared.columnBlue);
-    column.position.set(x, (TROPHY.baseTop + TROPHY.columnTop) / 2, TROPHY.columnZ);
-    column.castShadow = true;
-    columns.add(column);
-  }
-
-  /* ----------------------------------------------------------------- shelf */
-  const shelf = new THREE.Mesh(parts.shelf, shared.trophyBlack);
-  shelf.position.y = (TROPHY.columnTop + TROPHY.shelfTop) / 2;
-  shelf.rotation.y = flatFront;
-  shelf.castShadow = true;
-  const shelfLip = new THREE.Mesh(parts.shelfLip, shared.trophyBlack);
-  shelfLip.position.y = TROPHY.columnTop + 0.008;
-  shelfLip.rotation.y = flatFront;
-
-  const pegs = new THREE.Group();
-  for (const x of [-0.235, 0.235]) {
-    const peg = new THREE.Mesh(parts.peg, shared.chrome);
-    peg.position.set(x, TROPHY.shelfTop + 0.016, 0.155);
-    pegs.add(peg);
-  }
-
-  /* ------------------------------------------------------- the cup on top */
+  /* ------------------------------------------------------------------ cup */
   const cup = new THREE.Group();
-  cup.position.y = TROPHY.shelfTop;
-  const bowl = new THREE.Mesh(parts.cup, shared.chrome);
+  cup.position.y = TROPHY.collarTop;
+  const bowl = new THREE.Mesh(parts.cup, shared.trophyGold);
   bowl.castShadow = true;
-  cup.add(bowl);
+  const lip = new THREE.Mesh(parts.lip, shared.trophyGold);
+  lip.rotation.x = Math.PI / 2;
+  lip.position.y = 1.165 * k;
+  cup.add(bowl, lip);
 
   for (const side of [1, -1]) {
-    const handle = new THREE.Mesh(parts.handle, shared.chrome);
+    const handle = new THREE.Mesh(parts.handle, shared.trophyGold);
     handle.scale.x = side;
     handle.castShadow = true;
-    // The curl where the handle meets the rim, which is most of what makes
-    // these read as the ornate handles on the real cup rather than wire.
-    const scroll = new THREE.Mesh(parts.scroll, shared.chrome);
-    scroll.position.set(side * 0.222, 0.714, 0);
-    scroll.rotation.set(0, 0, side * 0.5);
-    scroll.scale.set(1, 0.72, 0.5);
-    cup.add(handle, scroll);
+    const cap = new THREE.Mesh(parts.handleCap, shared.trophyGold);
+    cap.position.set(side * 0.372, 1.095 * k, 0);
+    cup.add(handle, cap);
   }
 
-  /* ------------------------------------------- the plaque between columns */
-  const plaque = new THREE.Group();
-  const frame = new THREE.Mesh(parts.plaqueFrame, shared.trophyBlack);
-  frame.castShadow = true;
-  const insert = new THREE.Mesh(parts.plaqueInsert, new THREE.MeshStandardMaterial({
-    map: teamPlaqueTexture({ icon: item.icon, color: item.color, label: item.subtitle, ownerId: item.ownerId }),
-    metalness: 0.25,
-    roughness: 0.38,
-    envMap: shared.envMap,
-    envMapIntensity: 0.85
-  }));
-  insert.position.z = 0.017;
-  plaque.add(frame, insert);
-  plaque.position.set(0, 0.828, 0.115);
+  // The champion's crest on the front of the bowl, at its widest calm stretch.
+  const crest = crestDisc(item, { radius: 0.15, thickness: 0.045, metal: shared.trophyGold });
+  crest.position.set(0, 0.86 * k, 0.334);
+  crest.rotation.x = 0.12;
+  cup.add(crest);
 
-  const bracket = new THREE.Mesh(parts.bracket, shared.chrome);
-  bracket.position.set(0, 0.5675, 0.115);
-  const bracketCollar = new THREE.Mesh(parts.bracketCollar, shared.chrome);
-  bracketCollar.rotation.x = Math.PI / 2;
-  bracketCollar.position.set(0, 0.598, 0.115);
+  group.add(plinth, block, band, collar, plateFrame, plate, cup);
 
-  group.add(
-    stepLow, stepMid, block, basePlate,
-    columns, shelf, shelfLip, pegs,
-    bracket, bracketCollar, plaque, cup
-  );
-
-  // The 2020 trophy is a ghost: the title is on the record, the season is not.
+  // A title whose season was lost is a ghost: on the record, not on the shelf.
   if (item.lost) {
     group.traverse((child) => {
       if (!child.isMesh) return;
@@ -504,14 +450,14 @@ export function buildLeagueTrophy(item) {
     });
   }
 
-  // It has a front — a plate and a plaque both meant to be read — so it holds
+  // It has a front — a plate and a crest both meant to be read — so it holds
   // still in the hall the way the record plaques do.
   group.userData.faceForward = true;
   group.userData.spin = [];
   group.userData.glints = [
-    new THREE.Vector3(0.13, 1.90, 0.10),
-    new THREE.Vector3(-0.08, 1.65, 0.09),
-    new THREE.Vector3(0.245, 0.90, -0.04)
+    new THREE.Vector3(0.26, TROPHY.collarTop + 1.12 * k, 0.26),
+    new THREE.Vector3(-0.5, TROPHY.collarTop + 1.0 * k, 0.05),
+    new THREE.Vector3(0.18, TROPHY.collarTop + 0.7 * k, 0.24)
   ];
   return group;
 }
