@@ -134,20 +134,29 @@ an ad loads. Each slot's size is set by the screen it's drawn on:
 | --- | --- | --- | --- |
 | Top of every page | 320 × 100 | 728 × 90 | 970 × 90 |
 | Mid-page (every season view, the record book, the front page) | 300 × 250 | 728 × 90 | 970 × 90 |
-| Foot of every page | 300 × 600 | 728 × 90 | 970 × 250 |
+| Foot of every page | 300 × 250 | 728 × 90 | 970 × 250 |
 | Desktop sidebar | — | 300 × 250 (300 × 600 on screens 980px+ tall) | |
 | Manager history drawer (two) | 300 × 250 | 300 × 250 | |
 
+On phones, ads are held to 25% of each page's height (the Better Ads
+Standards, which Chrome enforces for every ad network, allow 30%): a slot
+that would go over is left out whole, so a short page shows fewer. Ads on a
+league page load only once the visitor is let past the sign-in gate.
+
 The trophy room has a bar along the bottom of the screen that is always in
-view, in the hall and in the lockers: 320 × 100 on phones (320 × 50 turned
-sideways), 728 × 90 on tablets and desktop. The 3D room is drawn in the space
-above it, so it never covers an exhibit or a control. There is also a
-300 × 250 in the loading screen, one in the exhibit sheet, and one in the
-hall's corner on large screens.
+view: 320 × 100 on phones (320 × 50 turned sideways), 728 × 90 on tablets
+and desktop, with the 3D room drawn in the space above it. **AdSense doesn't
+allow a custom sticky ad on phones, or one wider than 300px on desktop**, so
+with `ADS.provider: "adsense"` the bar is left out and the room takes the
+full screen; turn on Google's own Anchor ad in AdSense for a phone ad there.
+A network that allows sticky mobile units (most Google Ad Manager partners)
+can keep the bar. The hall also has a 300 × 250 in the exhibit sheet and one
+in its corner on large screens.
 
 With `ADS.provider` unset the slots show labelled placeholders; set it to
 `"adsense"` with a publisher id and a unit id per slot name (the `data-ad`
-attribute) to serve ads. Pro members see none.
+attribute) to serve ads, using fixed-size display units, not responsive
+ones. Pro members see none.
 
 ## Tools
 

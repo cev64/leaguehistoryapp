@@ -53,6 +53,10 @@
   const CACHE_KEY = "lh-account";
   const hint = store.get(CACHE_KEY);
   document.documentElement.classList.toggle("lh-no-ads", Boolean(hint && hint.plan === "pro"));
+  // AdSense allows no custom sticky ads on phones and none wider than 300px
+  // on desktop, so pages that would otherwise pin one (the trophy hall's ad
+  // bar) leave it out under AdSense.
+  document.documentElement.classList.toggle("lh-ads-adsense", Boolean(CFG.ADS && CFG.ADS.provider === "adsense"));
 
   /* ------------------------------------------------------------ errors */
 
@@ -327,7 +331,7 @@
     drawButtons();
     drawPanel();
     drawSyncedCard();
-    if (document.body) placeFeeds();
+    if (document.body) { placeFeeds(); budgetAds(); }
     fillAds();
     listeners.forEach((fn) => { try { fn(api); } catch (err) { console.error(err); } });
   }
@@ -356,6 +360,9 @@
      back up. */
   let admitted = null;
   const relock = () => { if (admitted && REQUIRE) location.reload(); };
+  // A league page under the gate: its ads wait until the page is let in, so
+  // none is ever served behind the sign-in screen.
+  const GATED_PAGE = REQUIRE && /[?&]league=/.test(location.search);
 
   async function signOut() {
     closeMenu();
@@ -444,6 +451,8 @@
         if (verdict.refresh) backend.sync(league).then(refresh).catch(() => {});
         admitted = league;
         closeGate();
+        budgetAds();
+        fillAds();
         return;
       }
       if (verdict.kind === "pro-add") {
@@ -1046,9 +1055,12 @@
   let adsenseLoaded = false;
   function fillAds() {
     const on = !(state.user && isPro());
-    if (!on) return;
+    if (!on || (GATED_PAGE && !admitted)) return;
     const ads = CFG.ADS || {};
     document.querySelectorAll(".ad-slot:not([data-filled])").forEach((slot) => {
+      // Only a slot that is on screen: one in a view not being shown, or
+      // held back by the density budget, is filled when it is shown.
+      if (!slot.getClientRects().length) return;
       const wrap = slot.closest("[data-ad]");
       const name = wrap ? wrap.dataset.ad : "";
       const unit = ads.units && ads.units[name];
@@ -1068,6 +1080,36 @@
         slot.innerHTML = `<span class="ad-ph"><span class="ad-ph-mark">AD</span><span class="ad-ph-size"></span></span>`;
       }
     });
+  }
+
+  /* Ad density on phones. The Better Ads Standards, which Chrome enforces
+     for every ad network by filtering a site's ads altogether, allow ads to
+     take at most 30% of a mobile page's height. Each page (and the team
+     history drawer, which scrolls on its own) is held to 25%: its content is
+     measured with every slot out, then slots go back in — top banner, then
+     the mid-page one, then the one at the foot — while they fit. A short
+     page simply shows fewer. Runs with the other slot work, before paint, so
+     a slot is never seen to vanish; a slot is only ever in or out, never
+     resized. Desktops have no density rule. */
+  const PHONE = matchMedia("(max-width: 767px)");
+  const DENSITY = 0.25;
+  const rank = (el) => (el.classList.contains("ad-top") ? 0 : el.classList.contains("ad-bottom") ? 2 : 1);
+  function budgetAds() {
+    const scopes = [[document.documentElement, [...document.querySelectorAll("main .ad-wrap")]],
+      ...[...document.querySelectorAll(".drawer-body")].map((el) => [el, [...el.querySelectorAll(".ad-wrap")]])];
+    for (const [root, slots] of scopes) {
+      if (!slots.length) continue;
+      if (!PHONE.matches) { slots.forEach((el) => el.classList.remove("ad-off")); continue; }
+      slots.forEach((el) => el.classList.add("ad-off"));
+      let room = root.scrollHeight * DENSITY / (1 - DENSITY);
+      slots.sort((a, b) => rank(a) - rank(b)).forEach((el) => {
+        el.classList.remove("ad-off");
+        if (!el.getClientRects().length) return; // in a view not on screen
+        const height = el.getBoundingClientRect().height;
+        if (height <= room) room -= height;
+        else el.classList.add("ad-off");
+      });
+    }
   }
 
   /* ------------------------------------------------------------ small parts */
@@ -1146,6 +1188,7 @@
   function start() {
     drawButtons();
     placeFeeds();
+    budgetAds();
     fillAds();
     drawSyncedCard();
     // Anything a page writes later (a redrawn season view, the team history
@@ -1153,8 +1196,22 @@
     // runs before the next paint, so nothing is seen to move.
     new MutationObserver(() => {
       placeFeeds();
+      budgetAds();
       if (document.querySelector(".ad-slot:not([data-filled])")) fillAds();
     }).observe(document.body, { childList: true, subtree: true });
+    // The budget follows the page's height, which also changes without any
+    // new content: a phone turned on its side, fonts and images settling, a
+    // table re-sorting. Rechecked on the next frame whenever the page resizes.
+    // Settling the budget can resize it again, but only once: a second pass
+    // measures the same content and changes nothing.
+    let queued = false;
+    const rebudget = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; budgetAds(); fillAds(); });
+    };
+    addEventListener("resize", rebudget);
+    if (window.ResizeObserver) new ResizeObserver(rebudget).observe(document.body);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
