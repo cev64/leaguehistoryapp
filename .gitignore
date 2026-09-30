@@ -1,0 +1,6 @@
+# Where tools/boxscores/fetch-season.py drops the export before it goes
+# to Drive.
+season_*.json
+
+# Python bytecode from tools/boxscores/fetch-season.py
+__pycache__/

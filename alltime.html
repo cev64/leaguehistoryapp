@@ -1,0 +1,2489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A Sleeper fantasy football league's record book: all-time standings, champions, last places and every manager's history." />
+  <title>League History · All-Time</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#071827" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="League History" />
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <script src="sleeper.js"></script>
+  <script src="pwa.js" defer></script>
+  <script src="player-card.js" defer></script>
+  <style>
+    /* Moving between pages crossfades where the browser supports it. */
+    @view-transition { navigation: auto; }
+
+    :root {
+      --ink: #0b1726;
+      --muted: #637083;
+      --line: #dce3eb;
+      --surface: #ffffff;
+      --surface-2: #f5f7fa;
+      --page: #eef2f6;
+      --navy: #071827;
+      --navy-2: #102b43;
+      --blue: #1769e0;
+      --blue-2: #0f56bd;
+      --red: #d71920;
+      --gold: #f6b73c;
+      --green: #16834a;
+      --shadow: 0 12px 30px rgba(7, 24, 39, 0.10);
+      --radius: 18px;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        var(--page);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+    }
+    button,
+    select {
+      font: inherit;
+    }
+    button {
+      cursor: pointer;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(7, 24, 39, .96);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #fff;
+    }
+    .topbar-inner {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand {
+      color: inherit;
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+    .brand-mark img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .brand-copy {
+      min-width: 0;
+    }
+    .brand-kicker {
+      display: block;
+      font-size: 10px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #9eb0c1;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+    .brand-title {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+    .year-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #c9d5df;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .year-control select {
+      appearance: none;
+      color: #fff;
+      background: #16324a;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 10px;
+      padding: 10px 38px 10px 14px;
+      font-weight: 800;
+      outline: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, #fff 50%),
+        linear-gradient(135deg, #fff 50%, transparent 50%);
+      background-position: calc(100% - 16px) 16px, calc(100% - 11px) 16px;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+    }
+    .hero {
+      color: #fff;
+      border-bottom: 4px solid var(--red);
+    }
+    .hero-inner {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 36px 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(330px, 430px);
+      gap: 32px;
+      align-items: center;
+    }
+    .eyebrow {
+      color: #9fc4ff;
+      text-transform: uppercase;
+      letter-spacing: .19em;
+      font-size: 11px;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+    .hero h1 {
+      font-size: clamp(54px, 8vw, 92px);
+      line-height: .9;
+      letter-spacing: -.06em;
+      margin: 0;
+      max-width: 760px;
+    }
+    main {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 30px 0 70px;
+    }
+    .page-toolbar {
+      margin: 28px 0 18px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .page-title h2 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -.04em;
+    }
+    .page-title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .view-tabs {
+      display: inline-flex;
+      gap: 4px;
+      background: #e4e9ef;
+      padding: 4px;
+      border-radius: 12px;
+      flex-wrap: wrap;
+    }
+    .view-tab {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 14px;
+      color: #536174;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 800;
+      transition: .18s ease;
+    }
+    .view-tab:hover {
+      color: var(--ink);
+    }
+    .view-tab.active {
+      color: #fff;
+      background: var(--navy-2);
+      box-shadow: 0 5px 14px rgba(7,24,39,.18);
+    }
+    .view-panel {
+      display: none;
+    }
+    .view-panel.active {
+      display: block;
+      animation: panelIn .2s ease;
+    }
+    @keyframes panelIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 19px 20px;
+      background: #fbfcfd;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-head h3 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 18px;
+      letter-spacing: -.025em;
+    }
+    .division-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 8px;
+      background: var(--navy);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .chip-icon {
+      width: 16px;
+      height: 16px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .division-chip:has(.chip-icon) {
+      padding: 0;
+      width: 28px;
+    }
+    .card-head > span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 555px;
+    }
+    th {
+      color: #6b7788;
+      font-size: 10px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      font-weight: 900;
+      padding: 12px 14px;
+      text-align: right;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfd;
+      white-space: nowrap;
+    }
+    th:first-child,
+    th:nth-child(2) {
+      text-align: left;
+    }
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid #edf0f3;
+      font-size: 13px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    tbody tr {
+      transition: background .15s ease;
+    }
+    tbody tr:hover {
+      background: #f5f8fb;
+    }
+    td:first-child,
+    td:nth-child(2) {
+      text-align: left;
+    }
+    .rank {
+      color: #7a8796;
+      font-weight: 900;
+      width: 36px;
+    }
+    .team-cell {
+      min-width: 250px;
+      white-space: normal;
+    }
+    .team-cell .team-button {
+      min-width: 0;
+    }
+    .team-cell .team-meta {
+      min-width: 0;
+    }
+    .team-cell .team-name {
+      overflow-wrap: anywhere;
+    }
+    .team-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--blue-2);
+      font-weight: 800;
+      text-align: left;
+    }
+    .team-button:hover .team-name {
+      text-decoration: underline;
+    }
+    .team-badge {
+      width: 34px;
+      height: 34px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 10px;
+      font-size: 17px;
+      color: #fff;
+      background: var(--team-color, var(--navy-2));
+      border: 2px solid rgba(255,255,255,.5);
+      box-shadow: 0 0 0 1px rgba(7,24,39,.12), inset 0 -8px 14px rgba(0,0,0,.13);
+      flex: 0 0 auto;
+    }
+    .team-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .team-name {
+      color: var(--blue-2);
+      font-size: 13px;
+    }
+    .owner {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .record {
+      font-weight: 900;
+    }
+    .positive {
+      color: var(--green);
+    }
+    .negative {
+      color: #c92929;
+    }
+    .muted {
+      color: var(--muted);
+    }
+    .sort-button {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 5px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-transform: inherit;
+      letter-spacing: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .sort-button:hover,
+    .sort-button.active {
+      color: var(--blue-2);
+    }
+    .sort-indicator {
+      min-width: 10px;
+      font-size: 11px;
+      line-height: 1;
+      color: var(--red);
+    }
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      background: rgba(4, 14, 23, .64);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s ease;
+      backdrop-filter: blur(3px);
+    }
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .team-drawer {
+      position: fixed;
+      z-index: 80;
+      top: 0;
+      right: 0;
+      width: min(680px, 100%);
+      height: 100dvh;
+      background: #f6f8fa;
+      box-shadow: -25px 0 65px rgba(0,0,0,.25);
+      transform: translateX(104%);
+      transition: transform .26s cubic-bezier(.2,.8,.2,1);
+      display: flex;
+      flex-direction: column;
+    }
+    .team-drawer.open {
+      transform: translateX(0);
+    }
+    @media (min-width: 761px) {
+      .team-drawer {
+        left: 0;
+        right: auto;
+        transform: translateX(-104%);
+        box-shadow: 25px 0 65px rgba(0,0,0,.25);
+      }
+      .team-drawer.open {
+        transform: translateX(0);
+      }
+    }
+    .drawer-hero {
+      padding: 22px;
+      color: #fff;
+      background: var(--drawer-color, var(--navy-2));
+      position: relative;
+      overflow: hidden;
+    }
+    .drawer-hero::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      right: -120px;
+      top: -110px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.08);
+    }
+    .drawer-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 2;
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      border-radius: 10px;
+      font-size: 22px;
+      line-height: 1;
+    }
+    .drawer-team {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding-right: 46px;
+    }
+    .drawer-team .team-badge {
+      width: 58px;
+      height: 58px;
+      font-size: 28px;
+    }
+    .drawer-team h2 {
+      margin: 0 0 4px;
+      font-size: 25px;
+      letter-spacing: -.04em;
+    }
+    .drawer-team p {
+      margin: 0;
+      color: rgba(255,255,255,.72);
+      font-size: 13px;
+    }
+    .drawer-year {
+      display: inline-block;
+      margin-bottom: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.16);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .drawer-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .drawer-stat {
+      background: rgba(255,255,255,.09);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .drawer-stat small {
+      display: block;
+      color: rgba(255,255,255,.63);
+      font-size: 8px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      font-weight: 900;
+      margin-bottom: 5px;
+    }
+    .drawer-stat strong {
+      font-size: 14px;
+    }
+    .drawer-stats-body {
+      display: none;
+    }
+    .drawer-body {
+      flex: 1;
+      overflow: auto;
+      padding: 18px;
+    }
+    .schedule-section {
+      margin-bottom: 20px;
+    }
+    .schedule-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 2px 10px;
+    }
+    .schedule-heading h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+    .schedule-heading span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .schedule-list {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .schedule-row {
+      display: grid;
+      grid-template-columns: 54px 34px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border-bottom: 1px solid #edf0f3;
+    }
+    .schedule-row:last-child {
+      border-bottom: 0;
+    }
+    .schedule-week {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .result-pill {
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 1000;
+      color: #fff;
+    }
+    .result-pill.win {
+      background: var(--green);
+    }
+    .result-pill.loss {
+      background: #c73535;
+    }
+    .result-pill.bye {
+      background: #8693a1;
+    }
+    .schedule-opponent {
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .schedule-opponent strong {
+      text-decoration: underline dotted rgba(23, 105, 224, .55) 1.5px;
+      text-underline-offset: 3px;
+    }
+    @media (hover: hover) {
+      .schedule-opponent:hover strong {
+        color: var(--blue);
+        text-decoration-style: solid;
+        text-decoration-color: var(--blue);
+      }
+    }
+    .schedule-opponent strong {
+      display: block;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .schedule-opponent span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .schedule-score {
+      text-align: right;
+      font-size: 12px;
+    }
+    .schedule-score strong {
+      display: block;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+    .schedule-score span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .mobile-stat-strip,
+    .mobile-sort-control {
+      display: none;
+    }
+    .mobile-stat-strip {
+      margin-top: 5px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 3px;
+    }
+    .mobile-stat {
+      min-width: 0;
+      padding: 3px 2px;
+      border-radius: 5px;
+      background: #f3f6f9;
+      text-align: center;
+    }
+    .mobile-stat small {
+      display: block;
+      color: #7a8796;
+      font-size: 7px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+    .mobile-stat strong {
+      display: block;
+      margin-top: 2px;
+      color: var(--ink);
+      font-size: 9px;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .mobile-sort-control {
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .mobile-sort-control select {
+      min-width: 112px;
+      border: 1px solid #ccd5df;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 7px 28px 7px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .mobile-sort-direction {
+      width: 30px;
+      height: 30px;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid #ccd5df;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 1000;
+      cursor: pointer;
+    }
+    .mobile-sort-direction:hover,
+    .mobile-sort-direction:focus-visible {
+      border-color: var(--blue);
+      color: var(--blue-2);
+    }
+    @media (max-width: 900px) {
+      .hero-inner {
+        grid-template-columns: 1fr;
+      }
+      .page-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .view-tabs {
+        align-self: stretch;
+      }
+      .view-tab {
+        flex: 1;
+      }
+    }
+    @media (max-width: 700px) {
+      .topbar-inner,
+      .hero-inner,
+      main {
+        width: min(100% - 12px, 1220px);
+      }
+      .topbar-inner {
+        min-height: 56px;
+      }
+      .brand-kicker {
+        display: none;
+      }
+      .brand-title {
+        font-size: 15px;
+      }
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+      }
+      .year-control > span {
+        display: none;
+      }
+      .year-control select {
+        padding: 7px 27px 7px 9px;
+        font-size: 12px;
+      }
+      .hero-inner {
+        padding: 20px 0 18px;
+        gap: 12px;
+      }
+      .hero h1 {
+        font-size: 38px;
+      }
+      .page-toolbar {
+        margin: 15px 0 9px;
+        gap: 8px;
+      }
+      .page-title h2 {
+        font-size: 21px;
+      }
+      .page-title p {
+        margin-top: 3px;
+        font-size: 10px;
+      }
+      .card {
+        border-radius: 12px;
+        box-shadow: 0 5px 16px rgba(7,24,39,.07);
+      }
+      .card-head {
+        padding: 11px 12px;
+      }
+      .card-head h3 {
+        font-size: 15px;
+      }
+      .card-head > span {
+        font-size: 9px;
+      }
+      .division-chip {
+        min-width: 23px;
+        height: 23px;
+        border-radius: 6px;
+        font-size: 9px;
+      }
+      td.team-cell .team-button {
+        flex: 0 1 auto;
+        width: auto;
+        max-width: 100%;
+        min-width: 0;
+      }
+      td.team-cell .team-button .team-meta {
+        min-width: 0;
+      }
+      td.team-cell .team-button .team-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      td.team-cell .mobile-stat-strip {
+        flex: 1 0 100%;
+      }
+      .team-button {
+        width: 100%;
+        gap: 6px;
+      }
+      .team-badge {
+        width: 27px;
+        height: 27px;
+        border-radius: 7px;
+        font-size: 13px;
+      }
+      .team-meta {
+        min-width: 0;
+        gap: 0;
+      }
+      .team-name {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        color: var(--blue-2);
+        font-size: 10.5px;
+        line-height: 1.1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .owner {
+        font-size: 8.5px;
+        line-height: 1.15;
+      }
+      .mobile-stat-strip {
+        display: grid;
+      }
+      .mobile-sort-control {
+        display: inline-flex;
+        margin-left: auto;
+      }
+      .drawer-stats {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+      }
+      .drawer-stat {
+        padding: 7px 4px;
+      }
+      .drawer-stat small {
+        font-size: 7px;
+      }
+      .drawer-stat strong {
+        font-size: 11px;
+      }
+      .schedule-row {
+        grid-template-columns: 42px 23px minmax(0, 1fr) auto;
+        gap: 5px;
+        padding: 7px;
+      }
+      .schedule-week {
+        font-size: 8px;
+      }
+      .result-pill {
+        width: 21px;
+        height: 21px;
+        font-size: 8px;
+      }
+      .schedule-opponent strong {
+        font-size: 10px;
+      }
+      .schedule-opponent span {
+        font-size: 8px;
+      }
+      .schedule-score {
+        font-size: 9px;
+      }
+      .schedule-score strong {
+        font-size: 10px;
+      }
+      .drawer-hero,
+      .drawer-body {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      .team-drawer {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto;
+        max-height: 92dvh;
+        border-radius: 16px 16px 0 0;
+        overflow: hidden;
+        transform: translateY(104%);
+      }
+      .team-drawer.open {
+        transform: none;
+      }
+      .drawer-body {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+      .drawer-hero {
+        flex: 0 0 auto;
+        padding-top: 14px;
+        padding-bottom: 14px;
+        transition: padding .2s ease;
+      }
+      .drawer-close {
+        top: 10px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        font-size: 18px;
+        border-radius: 8px;
+      }
+      .drawer-team .team-badge,
+      .drawer-team h2 {
+        transition: width .2s ease, height .2s ease, font-size .2s ease;
+      }
+      .drawer-team .team-badge {
+        width: 48px;
+        height: 48px;
+      }
+      .drawer-team h2 {
+        font-size: 21px;
+      }
+      .drawer-hero .drawer-stats {
+        display: none;
+      }
+      .drawer-stats-body {
+        display: grid;
+        margin: 0 0 14px;
+      }
+      .drawer-stats-body .drawer-stat {
+        background: var(--drawer-color, var(--navy-2));
+        border-color: transparent;
+        color: #fff;
+      }
+      .drawer-year,
+      .drawer-team p {
+        max-height: 34px;
+        overflow: hidden;
+        transition: max-height .28s ease, opacity .2s ease, margin .28s ease, padding .28s ease;
+      }
+      .team-drawer.compact .drawer-hero {
+        padding-top: 8px;
+        padding-bottom: 8px;
+      }
+      .team-drawer.compact .drawer-team p,
+      .team-drawer.compact .drawer-year {
+        max-height: 0;
+        opacity: 0;
+        margin: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+      .team-drawer.compact .drawer-team .team-badge {
+        width: 34px;
+        height: 34px;
+      }
+      .team-drawer.compact .drawer-team h2 {
+        font-size: 16px;
+        margin: 0;
+      }
+    }
+    .hero + main .page-toolbar {
+      margin-top: 0;
+    }
+    @media (max-width: 700px) {
+      .hero + main .page-toolbar {
+        margin-top: 0;
+      }
+    }
+    body {
+      background:
+        repeating-linear-gradient(90deg, transparent 0 149px, rgba(11,23,38,.045) 149px 150px),
+        repeating-linear-gradient(90deg, transparent 0 29px, rgba(11,23,38,.018) 29px 30px),
+        #f0f4f9;
+    }
+    .card {
+      border-color: rgba(15,34,55,.09);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.85),
+        0 1px 2px rgba(10,22,38,.05),
+        0 22px 46px -26px rgba(10,22,38,.42);
+    }
+    .card-head {
+      position: relative;
+      background: #fafcfe;
+    }
+    .card-head::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 2px;
+      background: rgba(23,105,224,.35);
+      opacity: .75;
+    }
+    .division-chip {
+      background: var(--blue);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.22),
+        0 6px 14px -5px rgba(23,105,224,.6);
+    }
+    th {
+      background: #f6f9fc;
+    }
+    tbody tr {
+      transition: background .18s ease, box-shadow .18s ease;
+    }
+    tbody tr:hover {
+      background: rgba(23,105,224,.05);
+      box-shadow: inset 3px 0 0 rgba(23,105,224,.6);
+    }
+    .team-badge {
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.35),
+        0 6px 14px -6px rgba(7,24,39,.55);
+    }
+    .view-tabs {
+      background: rgba(12,28,45,.06);
+      border-radius: 999px;
+      box-shadow: inset 0 1px 2px rgba(7,24,39,.08);
+    }
+    .view-tab {
+      border-radius: 999px;
+      transition: color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+    .view-tab.active {
+      background: var(--navy-2);
+      box-shadow: 0 8px 18px -7px rgba(7,24,39,.7), inset 0 1px 0 rgba(255,255,255,.12);
+    }
+    @keyframes v4Sheen {
+      0%, 15% { background-position: -120% 0; }
+      55%, 100% { background-position: 140% 0; }
+    }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255,255,255,.075) 28px 30px) 0 34% / 100% 7px no-repeat,
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255,255,255,.075) 28px 30px) 0 68% / 100% 7px no-repeat,
+        repeating-linear-gradient(90deg, transparent 0 149px, rgba(255,255,255,.055) 149px 150px),
+        repeating-linear-gradient(90deg, transparent 0 29px, rgba(255,255,255,.022) 29px 30px),
+        rgba(7, 24, 39, .98);
+    }
+    .hero::before {
+      content: "🏈";
+      position: absolute;
+      right: -26px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-24deg);
+      font-size: 150px;
+      line-height: 1;
+      opacity: .055;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+    }
+    .team-button {
+      transition: transform .15s ease;
+    }
+    .team-name {
+      transition: color .15s ease;
+    }
+    .page-title h2 {
+      position: relative;
+      padding-left: 15px;
+    }
+    .page-title h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .12em;
+      bottom: .12em;
+      width: 5px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+    .live-hero .hero-inner {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+      align-items: stretch;
+      padding: 26px 20px 30px;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    .live-status {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      padding: 5px 12px 5px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .22);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 0 rgba(215, 25, 32, .7);
+      animation: livePulse 2.2s infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot {
+        animation: none;
+      }
+    }
+    .live-status h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.04;
+      letter-spacing: -.02em;
+    }
+    .live-status p {
+      margin: 0;
+      max-width: 40ch;
+      color: rgba(255, 255, 255, .72);
+      font-size: 14.5px;
+      line-height: 1.45;
+    }
+    .hero-brief {
+      background: rgba(255, 255, 255, .07);
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 16px;
+      padding: 17px 19px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      min-width: 0;
+    }
+    .brief-label {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .55);
+    }
+    .brief-narrative {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, .86);
+    }
+    .brief-narrative strong {
+      color: #fff;
+      font-weight: 800;
+    }
+    .brief-headlines {
+      list-style: none;
+      margin: 0;
+      padding: 13px 0 0;
+      border-top: 1px solid rgba(255, 255, 255, .13);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .brief-headlines li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 13px;
+      line-height: 1.42;
+      color: rgba(255, 255, 255, .8);
+    }
+    .brief-headlines li::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 5px;
+      height: 5px;
+      margin-top: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+    .brief-headlines li > span {
+      min-width: 0;
+    }
+    .brief-headlines strong {
+      color: #fff;
+      font-weight: 800;
+    }
+    .week-rail-wrap {
+      width: min(1220px, calc(100% - 32px));
+      margin: 22px auto 0;
+    }
+    .week-rail-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .week-rail-head strong {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .week-rail-head span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .week-rail {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 6px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      scrollbar-width: thin;
+    }
+    .view-select-wrap {
+      display: none;
+    }
+    @media (max-width: 700px) {
+      .week-rail {
+        display: none;
+      }
+      .view-tabs {
+        display: none;
+      }
+      .view-select-wrap {
+        display: block;
+        position: relative;
+        width: 100%;
+      }
+      .view-select-wrap::after {
+        content: "";
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        width: 9px;
+        height: 9px;
+        margin-top: -6px;
+        border-right: 2.5px solid rgba(255, 255, 255, .8);
+        border-bottom: 2.5px solid rgba(255, 255, 255, .8);
+        transform: rotate(45deg);
+        pointer-events: none;
+      }
+      #viewSelect {
+        width: 100%;
+        appearance: none;
+        -webkit-appearance: none;
+        background: var(--navy);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 14px;
+        padding: 13px 42px 13px 16px;
+        font-size: 15px;
+        font-weight: 800;
+        box-shadow: var(--shadow);
+      }
+      #viewSelect:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+    }
+    @media (max-width: 900px) {
+      .live-hero .hero-inner {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .hero-brief {
+        order: 2;
+      }
+    }
+    @media (max-width: 560px) {
+      .live-hero .hero-inner {
+        padding: 20px 14px 24px;
+        gap: 14px;
+      }
+      .hero-brief {
+        padding: 14px 15px;
+        gap: 11px;
+      }
+      .brief-narrative {
+        font-size: 13.5px;
+      }
+      .brief-headlines li {
+        font-size: 12.5px;
+      }
+    }
+    .team-badge:has(.team-logo) {
+      background: #fff;
+      box-shadow: inset 0 0 0 1.5px var(--team-color, #667);
+    }
+    .team-badge .team-logo {
+      width: 82%;
+      height: 82%;
+      object-fit: contain;
+      display: block;
+      margin: auto;
+    }
+
+    /* ================================================================
+       All-time page. Everything above is the season pages' own styling
+       (shared with season.html), so the header, hero, tabs, cards, tables
+       and team panel look and size exactly as they do on a season page.
+       What follows is only what this page has and they do not.
+       ================================================================ */
+
+    .home-hero h1 { margin: 0; }
+
+
+    .division-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+    /* Titles and last places wear the same tints as the season pages'
+       winners and losers brackets. */
+    .champions-card .card-head { background: #fffae9; border-bottom-color: #ead58b; }
+    .losers-card .card-head { background: #fffbfb; border-bottom-color: #efc9c6; }
+    .champions-card .division-chip { background: #b8860b; }
+    .losers-card .division-chip { background: #a62f2b; }
+    .titles-table { min-width: 0; }
+    .standings-section { margin-top: 18px; }
+    @media (max-width: 700px) { .standings-section { margin-top: 9px; } }
+    .title-count { font-weight: 900; }
+    .title-years { color: var(--muted); }
+
+    /* ---- Team history panel: the season pages' team drawer ---- */
+    .drawer-body .schedule-list + .schedule-list { margin-top: 10px; }
+    .schedule-list > .table-wrap table { min-width: 520px; }
+    .schedule-list th, .schedule-list td { padding-left: 12px; padding-right: 12px; }
+    .schedule-list td { font-size: 12px; padding-top: 10px; padding-bottom: 10px; }
+    .schedule-list .team-badge { width: 28px; height: 28px; border-radius: 8px; }
+    .schedule-list .team-name { font-size: 12px; }
+    .schedule-list .owner { font-size: 10px; }
+
+    /* Highlights: a tinted tile each, its emoji large in the corner. */
+    .hl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .hl-tile {
+      --hl-bg: #f1f4f8; --hl-line: #d3dbe5; --hl-ink: #102b43; --hl-chip: #102b43;
+      position: relative; overflow: hidden; min-width: 0; min-height: 98px;
+      display: flex; flex-direction: column;
+      padding: 12px 12px 11px;
+      border: 1px solid var(--hl-line); border-radius: 14px;
+      background: linear-gradient(145deg, #fff 0%, var(--hl-bg) 100%);
+    }
+    .hl-icon {
+      position: absolute; right: -8px; bottom: -14px;
+      font-size: 58px; line-height: 1; opacity: .2; transform: rotate(-12deg);
+      pointer-events: none;
+    }
+    .hl-label { position: relative; color: var(--hl-ink); font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .hl-value { position: relative; margin-top: 6px; color: var(--ink); font-size: 20px; font-weight: 900; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+    .hl-meta { position: relative; margin-top: auto; padding-top: 4px; color: var(--muted); font-size: 10px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hl-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 1px; }
+    .hl-chips span { padding: 3px 8px; border-radius: 999px; background: var(--hl-chip); color: #fff; font-size: 11px; font-weight: 900; letter-spacing: .02em; }
+    .hl-gold   { --hl-bg: #fff4cf; --hl-line: #ead58b; --hl-ink: #8a6500; --hl-chip: #c99a1c; }
+    .hl-red    { --hl-bg: #ffe9e7; --hl-line: #efc9c6; --hl-ink: #a62f2b; --hl-chip: #c73535; }
+    .hl-green  { --hl-bg: #e3f5ea; --hl-line: #bfe3cc; --hl-ink: #16834a; --hl-chip: #16834a; }
+    .hl-fire   { --hl-bg: #ffe8d9; --hl-line: #f6cfb0; --hl-ink: #b4540f; --hl-chip: #b4540f; }
+    .hl-blue   { --hl-bg: #e2eeff; --hl-line: #c5dafb; --hl-ink: #0f56bd; --hl-chip: #0f56bd; }
+    .hl-purple { --hl-bg: #ece6ff; --hl-line: #d6cdf7; --hl-ink: #5b3fb8; --hl-chip: #5b3fb8; }
+    .hl-navy   { --hl-bg: #e6ebf2; --hl-line: #d3dbe5; --hl-ink: #102b43; --hl-chip: #102b43; }
+
+    /* Season history rows: the schedule row, with the finish in the pill. */
+    .season-row { color: inherit; text-decoration: none; transition: background .15s ease; }
+    @media (hover: hover) {
+      .season-row:hover { background: #f5f8fb; }
+      .season-row:hover .schedule-opponent strong { color: var(--blue); text-decoration-style: solid; text-decoration-color: var(--blue); }
+    }
+    .result-pill.place-1 { background: #c99a1c; }
+    .result-pill.place-2 { background: #8a97a6; }
+    .result-pill.place-3 { background: #b0703a; }
+    .result-pill.place-last { background: #c73535; }
+    .result-pill.place-mid { background: #d5dce4; color: #4b5866; }
+    /* The season still being played: a red dot, as on the live season page. */
+    .result-pill.place-live { background: #fdecec; }
+    .result-pill.place-live::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 3px rgba(215, 25, 32, .18); }
+
+    .chart-wrap { padding: 10px 10px 4px; }
+    .wins-chart { display: block; width: 100%; height: auto; }
+
+    /* Most-started players: the drawer's roster rows, one cell per season. */
+    .starters-row {
+      display: grid;
+      grid-template-columns: 22px 28px minmax(0, 1fr) var(--year-cols) 50px;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 12px;
+      border-top: 1px solid #edf0f3;
+      font-variant-numeric: tabular-nums;
+    }
+    .starters-row:first-child { border-top: 0; }
+    .starters-row.header {
+      padding-top: 8px; padding-bottom: 8px;
+      background: #f6f8fa; color: #788696;
+      font-size: 8px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
+    }
+    .starters-rank { color: var(--muted); font-size: 11px; font-weight: 900; text-align: center; }
+    .starters-logo { width: 28px; height: 20px; object-fit: contain; }
+    .starters-chip {
+      display: inline-block; width: 28px; padding: 3px 0; border-radius: 4px;
+      background: #e7ebef; color: #4b5866; font-size: 8px; font-weight: 900; text-align: center;
+    }
+    .starters-name { min-width: 0; }
+    .starters-name strong { display: block; overflow: hidden; color: var(--ink); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .starters-name small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .03em; }
+    .starters-years { display: grid; grid-template-columns: repeat(var(--year-count), 1fr); gap: 4px; text-align: center; }
+    .starters-year {
+      height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      border-radius: 6px; font-size: 9.5px; font-weight: 900; line-height: 1;
+    }
+    .starters-year img { width: 24px; height: 16px; object-fit: contain; }
+    .starters-year .starters-chip { width: 24px; padding: 2px 0; font-size: 7px; }
+    .starters-year.on { background: color-mix(in srgb, var(--team-color) calc(var(--fill) * 100%), #fff); color: var(--ink); }
+    .starters-year.off { background: #f1f4f7; color: #c3ccd5; }
+    .starters-total { text-align: right; }
+    .starters-total strong { display: block; color: var(--ink); font-size: 13px; line-height: 1; }
+    .starters-total small { color: var(--muted); font-size: 8px; }
+    .empty-state { padding: 24px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    @media (max-width: 700px) {
+      .division-grid { grid-template-columns: 1fr; gap: 9px; }
+      .titles-table th, .titles-table td { padding-left: 8px; padding-right: 8px; }
+      .titles-table td { font-size: 11px; }
+      .titles-table .team-button { width: auto; }
+      .titles-table .team-cell { min-width: 0; width: 100%; }
+      .titles-table .team-name { max-width: 150px; }
+
+      /* Standings rows collapse as the season pages' do: rank and team, with
+         every figure in a strip underneath. */
+      .compact-table .table-wrap { overflow: visible; }
+      .compact-table table, .compact-table tbody { display: block; width: 100%; min-width: 0; }
+      .compact-table thead { display: none; }
+      .compact-table tbody tr {
+        display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center;
+        padding: 7px 8px; border-bottom: 1px solid #edf0f3;
+      }
+      .compact-table tbody tr:last-child { border-bottom: 0; }
+      .compact-table td { padding: 0; border: 0; text-align: left; white-space: normal; }
+      .compact-table td.rank { grid-column: 1; color: #738090; font-size: 11px; text-align: center; }
+      .compact-table td.team-cell { grid-column: 2; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; }
+      .compact-table td:not(.rank):not(.team-cell) { display: none; }
+
+      .hl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+      .hl-tile { min-height: 82px; padding: 9px 10px; border-radius: 12px; }
+      .hl-icon { font-size: 46px; }
+      .hl-label { font-size: 8px; }
+      .hl-value { margin-top: 4px; font-size: 16px; }
+      .hl-meta { font-size: 9px; }
+      .hl-chips span { padding: 2px 7px; font-size: 10px; }
+      .schedule-list > .table-wrap { overflow: visible; }
+      .schedule-list > .table-wrap table,
+      .schedule-list > .table-wrap tbody { display: block; width: 100%; min-width: 0; }
+      .schedule-list > .table-wrap thead { display: none; }
+      .schedule-list > .table-wrap tbody tr { display: block; padding: 7px; border-bottom: 1px solid #edf0f3; }
+      .schedule-list > .table-wrap tbody tr:last-child { border-bottom: 0; }
+      .schedule-list > .table-wrap td { display: none; padding: 0; border: 0; white-space: normal; }
+      .schedule-list > .table-wrap td.team-cell { display: block; }
+      .schedule-list .team-badge { width: 23px; height: 23px; border-radius: 6px; }
+      .schedule-list .team-name { font-size: 10px; }
+      .schedule-list .owner { font-size: 8px; }
+      .starters-row {
+        grid-template-columns: 16px 20px minmax(0, 1fr) var(--year-cols-sm) 30px;
+        gap: 5px; padding: 6px 7px;
+      }
+      .starters-row.header { font-size: 7px; }
+      .starters-rank { font-size: 9px; }
+      .starters-logo { width: 20px; height: 15px; }
+      .starters-name strong { font-size: 10px; }
+      .starters-name small { font-size: 8px; }
+      .starters-years { gap: 2px; }
+      .starters-year { height: 28px; border-radius: 4px; font-size: 8px; }
+      .starters-year img { width: 17px; height: 12px; }
+      .starters-total strong { font-size: 10px; }
+      .starters-total small { font-size: 7px; }
+    }
+  
+    /* Sortable headers line up with their column: numbers sit right, so
+       their headers do too. */
+    th .sort-button { justify-content: flex-end; }
+    th:first-child .sort-button, th:nth-child(2) .sort-button { justify-content: flex-start; }
+    th .sort-indicator:empty { display: none; }
+  
+    /* ---- Desktop: the navy header becomes a sidebar ----------------------
+       On a wide screen the top bar and the hero stack into one navy column
+       fixed down the left, with the red stripe on its edge, so the page's
+       own content (week rail, tabs, tables) starts at the very top on the
+       right. Narrower screens keep the header across the top. */
+    @media (min-width: 1200px) {
+      :root { --side: 340px; --topbar-h: 76px; }
+      body { padding-left: var(--side); }
+      .topbar {
+        position: fixed; top: 0; left: 0; bottom: auto; width: var(--side);
+        border-right: 4px solid var(--red);
+      }
+      .topbar-inner { width: auto; min-height: var(--topbar-h); padding: 0 18px 0 20px; gap: 10px; }
+      .topbar .year-control > span { display: none; }
+      .topbar .brand-title { font-size: 17px; }
+      html body .hero {
+        position: fixed; top: var(--topbar-h); bottom: 0; left: 0; z-index: 30;
+        width: var(--side); overflow-y: auto; overscroll-behavior: contain;
+        border-bottom: 0; border-right: 4px solid var(--red);
+        scrollbar-width: none;
+      }
+      html body .hero::-webkit-scrollbar { display: none; }
+      html body .hero .hero-inner,
+      html body .hero .hero-inner.outcome-grid,
+      html body .live-hero .hero-inner {
+        width: auto; margin: 0; padding: 26px 20px 28px;
+        display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start;
+      }
+      html body .hero-brief { width: auto; max-width: none; justify-self: stretch; }
+      html body .live-status h1 { font-size: 38px; }
+      .week-rail-wrap,
+      main { width: min(1220px, calc(100% - 48px)); }
+      .week-rail-wrap { margin-top: 24px; }
+      main { padding-top: 22px; }
+      main > .page-toolbar:first-child { margin-top: 0; }
+      .topbar .brand-kicker { white-space: nowrap; letter-spacing: .16em; }
+      /* Every week still fits beside the sidebar. */
+      .week-rail { gap: 2px; }
+      .week-pill { padding: 9px 6px; }
+      /* Division tables sit two across in less room: let them fit it. */
+      .division-grid table { min-width: 0; }
+      .division-grid th, .division-grid td { padding-left: 7px; padding-right: 7px; }
+      .division-grid .team-cell { min-width: 0; }
+    }
+    /* Beside the sidebar on a smaller desktop, the division tables take a
+       row each rather than squeeze two across. */
+    @media (min-width: 1200px) and (max-width: 1439px) {
+      .division-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+  
+    /* Trophy Room: always in the header, between the brand and the season
+       menu; in the desktop sidebar it sits under the menu. */
+    .topbar-trophy {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto;
+      padding: 9px 13px;
+      border: 1px solid rgba(246, 183, 60, .45); border-radius: 10px;
+      background: rgba(246, 183, 60, .12);
+      color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap;
+      transition: background .18s ease, border-color .18s ease;
+    }
+    .topbar-trophy:hover { background: rgba(246, 183, 60, .22); border-color: rgba(246, 183, 60, .7); }
+    .topbar-trophy + .year-control { margin-left: 0; }
+    @media (max-width: 700px) {
+      .topbar-inner { gap: 8px; }
+      .topbar-trophy { padding: 6px 9px; gap: 5px; font-size: 11.5px; border-radius: 9px; }
+    }
+    @media (max-width: 374px) {
+      .topbar-trophy { font-size: 0; gap: 0; padding: 6px 8px; }
+      .topbar-trophy span { font-size: 14px; }
+    }
+    @media (min-width: 1200px) {
+      :root { --topbar-h: 124px; }
+      .topbar-inner {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto;
+        align-content: center; row-gap: 12px; column-gap: 10px; padding-top: 14px; padding-bottom: 14px;
+      }
+      .topbar .brand { grid-column: 1; grid-row: 1; }
+      .topbar .year-control { grid-column: 2; grid-row: 1; }
+      .topbar-trophy { grid-column: 1 / -1; grid-row: 2; margin: 0; justify-content: center; }
+    }
+  </style>
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script src="ui.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="League History home">
+        <div class="brand-mark"><img src="icons/crest.png" alt="" width="46" height="46" /></div>
+        <div class="brand-copy">
+          <span class="brand-kicker">Fantasy Football</span>
+          <span class="brand-title">League History</span>
+        </div>
+      </a>
+
+      <a class="topbar-trophy" href="trophy.html"><span aria-hidden="true">🏆</span>Trophy Room</a>
+      <label class="year-control">
+        <span>Season</span>
+        <select id="pageSelect" aria-label="Choose season"></select>
+      </label>
+    </div>
+  </header>
+
+  <section class="hero live-hero home-hero">
+    <div class="hero-inner">
+      <div class="live-status">
+        <span class="live-badge" id="heroBadge"></span>
+        <h1>All-Time</h1>
+      </div>
+    </div>
+  </section>
+
+  <!-- The player search: a pill that pins under the header and floats as
+       frosted glass, with results dropping out of it (ui.js, UI.findPill). -->
+  <nav class="season-nav find-pill" id="findPill" aria-label="Player search">
+    <div class="sn-cap">
+      <div class="sn-find-bar" role="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <input id="playerSearch" type="search" autocomplete="off" spellcheck="false" autocapitalize="words" enterkeyhint="search"
+          placeholder="Search any player" aria-label="Search players" aria-controls="playerResults" />
+        <button type="button" class="sn-clear" aria-label="Clear search" hidden><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+      <div class="sn-drop"><div><div class="player-results" id="playerResults" role="listbox" aria-label="Players"></div></div></div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="page-toolbar">
+      <div class="page-title">
+        <h2 id="pageTitle">Record Book</h2>
+      </div>
+    </div>
+
+    <div id="pageStatus"></div>
+
+    <section id="titles" class="titles-section">
+      <div class="division-grid">
+        <div class="card champions-card">
+          <div class="card-head">
+            <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2.8h6v3.4a3 3 0 0 1-6 0zM5 4H2.8v.9A2.2 2.2 0 0 0 5 7.1M11 4h2.2v.9A2.2 2.2 0 0 1 11 7.1M8 9.2v2.4M5.6 13.2h4.8"/></svg></span>Champions</h3>
+          </div>
+          <div class="table-wrap">
+            <table class="titles-table">
+              <thead><tr><th>Rk</th><th>Team</th><th>Titles</th><th>Years</th></tr></thead>
+              <tbody id="championBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card losers-card">
+          <div class="card-head">
+            <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.4v7.2M5.1 6.7 8 9.6l2.9-2.9M3.2 13.2h9.6"/></svg></span>Last Places</h3>
+          </div>
+          <div class="table-wrap">
+            <table class="titles-table">
+              <thead><tr><th>Rk</th><th>Team</th><th>Last</th><th>Years</th></tr></thead>
+              <tbody id="loserBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="standings" class="standings-section">
+      <div class="card compact-table">
+        <div class="card-head">
+          <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 4.3h10.4M2.8 8h7.2M2.8 11.7h4"/></svg></span>Standings</h3>
+          <div class="mobile-sort-control">
+            <label for="allTimeMobileSort">Sort</label>
+            <select id="allTimeMobileSort" aria-label="Sort all-time standings">
+              <option value="wins">Record</option>
+              <option value="pct">Win Percentage</option>
+              <option value="pf">Points For</option>
+              <option value="pa">Points Against</option>
+              <option value="pfg">PF per Game</option>
+              <option value="diff">Point Differential</option>
+              <option value="team">Team</option>
+            </select>
+            <button type="button" class="mobile-sort-direction" id="allTimeMobileDirection" data-mobile-direction="allTime" aria-label="Sort descending">↓</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th>Rk</th>
+                <th><button class="sort-button" data-table="allTime" data-sort="team">Team <span class="sort-indicator"></span></button></th>
+                <th><button class="sort-button active" data-table="allTime" data-sort="wins">Record <span class="sort-indicator">↓</span></button></th>
+                <th><button class="sort-button" data-table="allTime" data-sort="pct">PCT <span class="sort-indicator"></span></button></th>
+                <th><button class="sort-button" data-table="allTime" data-sort="pf">PF <span class="sort-indicator"></span></button></th>
+                <th><button class="sort-button" data-table="allTime" data-sort="pa">PA <span class="sort-indicator"></span></button></th>
+                <th><button class="sort-button" data-table="allTime" data-sort="pfg">PF/G <span class="sort-indicator"></span></button></th>
+                <th><button class="sort-button" data-table="allTime" data-sort="diff">Diff <span class="sort-indicator"></span></button></th>
+              </tr>
+            </thead>
+            <tbody id="allTimeBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="drawer-backdrop profile-backdrop" id="profileBackdrop"></div>
+  <aside class="team-drawer profile-panel" id="profilePanel" aria-hidden="true" aria-label="Team history">
+    <div class="drawer-hero" id="profileHero">
+      <button class="drawer-close" id="closeProfile" aria-label="Close team history">×</button>
+      <div class="drawer-team">
+        <span class="team-badge" id="profileBadge"></span>
+        <div>
+          <span class="drawer-year">All-time</span>
+          <h2 id="profileName"></h2>
+          <p id="profileOwner"></p>
+        </div>
+      </div>
+      <div class="drawer-stats" id="profileStats"></div>
+    </div>
+    <div class="drawer-body" id="profileBody"></div>
+  </aside>
+
+  <script>
+    /* The league's whole record, read from Sleeper (sleeper.js): every
+       season it has played, with the one in progress counted as far as it
+       has gone. alltime.html?league=<id>#owner=<manager> opens straight
+       into that manager's history. */
+    (function boot() {
+      const leagueId = League.requireLeague();
+      if (!leagueId) return;
+      const status = document.getElementById("pageStatus");
+      document.getElementById("titles").hidden = true;
+      document.getElementById("standings").hidden = true;
+      League.showStatus(status, { title: "Loading the record book", copy: "Reading every season from Sleeper&hellip;" });
+      League.load(leagueId, {
+        onProgress: (done, total) => {
+          if (total > 1) League.showStatus(status, { title: "Loading the record book", copy: `Reading season ${Math.min(done + 1, total)} of ${total} from Sleeper&hellip;` });
+        },
+      }).then((model) => {
+        status.innerHTML = "";
+        document.getElementById("titles").hidden = false;
+        document.getElementById("standings").hidden = false;
+        League.remember({ id: leagueId, name: model.name, avatar: model.avatar, season: model.current.year });
+        recordBook(model);
+      }).catch((error) => {
+        League.showStatus(status, { title: "This league couldn't be loaded", copy: League.esc(error.message || "Sleeper didn't answer."), error: true });
+      });
+    })();
+
+    function recordBook(model) {
+    window.TEAM_LOGOS = model.logos;
+    League.dressHeader(model, "home");
+    document.title = `${model.name} · All-Time`;
+    const LEAGUE_DATA = model.leagueData();
+    const esc = League.esc;
+
+    const fmt = (value) => Number(value).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    const pct = (wins, losses) => {
+      const games = wins + losses;
+      return games ? (wins / games).toFixed(3).replace(/^0/, "") : ".000";
+    };
+
+    const ordinal = (n) => {
+      const mod100 = n % 100;
+      if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+      if (n % 10 === 1) return `${n}st`;
+      if (n % 10 === 2) return `${n}nd`;
+      if (n % 10 === 3) return `${n}rd`;
+      return `${n}th`;
+    };
+
+    /* A team's mark for a badge: the manager's Sleeper avatar where there
+       is one, otherwise the first character of the team's name. */
+    const teamMark = (team) => {
+      const src = team && team.ownerId && window.TEAM_LOGOS && window.TEAM_LOGOS[team.ownerId];
+      return src ? `<img class="team-logo" src="${src}" alt="">` : esc((team && team.icon) || "");
+    };
+
+    /* `seasons` is every season the league has played; the one being played
+       is marked `live`. A live season adds its games, records and scores,
+       but no finish: nobody has won or lost it yet. */
+    function createProfiles(seasons) {
+      const profiles = {};
+
+      Object.entries(LEAGUE_DATA.owners).forEach(([ownerId, owner]) => {
+        profiles[ownerId] = {
+          ownerId,
+          ...owner,
+          seasons: [],
+          wins: 0,
+          losses: 0,
+          pf: 0,
+          pa: 0,
+          championshipYears: [],
+          lastPlaceYears: [],
+          finishes: {},
+          highestWeek: null,
+          bestSeason: null,
+          playoffWins: 0,
+          playoffLosses: 0,
+          streak: { run: 0, best: null },
+          biggestWin: null,
+          h2h: {}
+        };
+      });
+
+      const addH2H = (ownerId, opponentId, pfValue, paValue) => {
+        if (!profiles[ownerId] || !profiles[opponentId]) return;
+        if (!profiles[ownerId].h2h[opponentId]) {
+          profiles[ownerId].h2h[opponentId] = {
+            opponentId,
+            wins: 0,
+            losses: 0,
+            pf: 0,
+            pa: 0,
+            games: 0
+          };
+        }
+
+        const row = profiles[ownerId].h2h[opponentId];
+        row.games += 1;
+        row.pf += pfValue;
+        row.pa += paValue;
+        if (pfValue > paValue) row.wins += 1;
+        else row.losses += 1;
+      };
+
+      const recordGame = (season, game, label = "Regular Season") => {
+        const aTeam = season.teams[game.a];
+        const bTeam = season.teams[game.b];
+        const aOwner = aTeam.ownerId;
+        const bOwner = bTeam.ownerId;
+
+        addH2H(aOwner, bOwner, game.aScore, game.bScore);
+        addH2H(bOwner, aOwner, game.bScore, game.aScore);
+
+        // Win streaks run across seasons and through the playoffs; a loss or
+        // a tie ends one. Games arrive in order, season by season, week by week.
+        [[aOwner, game.aScore, game.bScore, bOwner], [bOwner, game.bScore, game.aScore, aOwner]].forEach(([id, mine, theirs, opp]) => {
+          const p = profiles[id];
+          if (!p) return;
+          if (mine > theirs) {
+            p.streak.run += 1;
+            if (p.streak.run === 1) p.streak.from = season.year;
+            if (!p.streak.best || p.streak.run > p.streak.best.length) {
+              p.streak.best = { length: p.streak.run, fromYear: p.streak.from, toYear: season.year };
+            }
+            if (!p.biggestWin || mine - theirs > p.biggestWin.margin) {
+              p.biggestWin = { margin: mine - theirs, year: season.year, week: game.week, opponentId: opp };
+            }
+          } else {
+            p.streak.run = 0;
+          }
+        });
+
+        [
+          { ownerId: aOwner, team: aTeam, opponentId: bOwner, points: game.aScore },
+          { ownerId: bOwner, team: bTeam, opponentId: aOwner, points: game.bScore }
+        ].forEach((entry) => {
+          if (!profiles[entry.ownerId]) return;
+          const current = profiles[entry.ownerId].highestWeek;
+          if (!current || entry.points > current.points) {
+            profiles[entry.ownerId].highestWeek = {
+              year: season.year,
+              week: game.week,
+              points: entry.points,
+              teamName: entry.team.name,
+              opponentId: entry.opponentId,
+              label
+            };
+          }
+        });
+      };
+
+      [...seasons]
+        .sort((a, b) => a.year - b.year)
+        .forEach((season) => {
+          Object.entries(season.teams).forEach(([teamId, team]) => {
+            const profile = profiles[team.ownerId];
+            if (!profile || team.excludeFromHome) return;
+            profile.seasons.push({
+              year: season.year,
+              teamId,
+              teamName: team.name,
+              wins: team.wins,
+              losses: team.losses,
+              pf: team.pf,
+              pa: team.pa,
+              finalRank: team.finalRank,
+              live: Boolean(season.live)
+            });
+            profile.wins += team.wins;
+            profile.losses += team.losses;
+            profile.pf += team.pf;
+            profile.pa += team.pa;
+            if (season.live) return;
+            profile.finishes[season.year] = team.finalRank;
+
+            if (team.finalRank === 1) profile.championshipYears.push(season.year);
+            if (team.officialLastPlace || team.finalRank === Object.keys(season.teams).length) profile.lastPlaceYears.push(season.year);
+
+            if (!profile.bestSeason || team.pf > profile.bestSeason.points) {
+              profile.bestSeason = {
+                year: season.year,
+                points: team.pf,
+                teamName: team.name
+              };
+            }
+          });
+
+          [...season.regularGames].sort((a, b) => a.week - b.week).forEach((game) => recordGame(season, game));
+
+          // A season still being played counts its regular season; its
+          // playoff games count once it is finished.
+          (season.live ? [] : season.postseasonGames).forEach((game) => {
+            recordGame(season, game, game.label);
+
+            // Playoff record: the winner's bracket games on the road to the
+            // title, not the placement games around it.
+            if (game.titlePath) {
+              const aOwner = season.teams[game.a].ownerId;
+              const bOwner = season.teams[game.b].ownerId;
+
+              if (game.aScore > game.bScore) {
+                if (profiles[aOwner]) profiles[aOwner].playoffWins += 1;
+                if (profiles[bOwner]) profiles[bOwner].playoffLosses += 1;
+              } else {
+                if (profiles[bOwner]) profiles[bOwner].playoffWins += 1;
+                if (profiles[aOwner]) profiles[aOwner].playoffLosses += 1;
+              }
+            }
+          });
+        });
+
+      Object.values(profiles).forEach((profile) => {
+        profile.seasons.sort((a, b) => a.year - b.year);
+        profile.diff = profile.pf - profile.pa;
+        profile.games = profile.wins + profile.losses;
+        profile.pct = profile.games ? profile.wins / profile.games : 0;
+        profile.pfg = profile.games ? profile.pf / profile.games : 0;
+        const finishes = Object.values(profile.finishes).filter(Boolean);
+        profile.bestFinish = finishes.length ? Math.min(...finishes) : null;
+        profile.worstFinish = finishes.length ? Math.max(...finishes) : null;
+
+        Object.values(profile.h2h).forEach((row) => {
+          row.diff = row.pf - row.pa;
+          row.pct = row.games ? row.wins / row.games : 0;
+        });
+      });
+
+      return profiles;
+    }
+
+    let profiles = {};
+    let profileList = [];
+    const liveSeason = LEAGUE_DATA.seasons.find((season) => season.live && season.throughWeek) || null;
+
+    function buildProfiles() {
+      profiles = createProfiles(LEAGUE_DATA.seasons);
+      // Managers only on record for a season that has not started yet.
+      Object.keys(profiles).forEach((id) => { if (!profiles[id].seasons.length) delete profiles[id]; });
+      profileList = Object.values(profiles);
+    }
+    buildProfiles();
+
+    const signed = (value) => `${value >= 0 ? "+" : ""}${fmt(value)}`;
+
+    function teamButton(profile) {
+      return `
+        <button class="team-button" data-owner="${profile.ownerId}" aria-label="Open ${esc(profile.currentTeam)} history">
+          <span class="team-badge" style="--team-color:${profile.color}">${teamMark(profile)}</span>
+          <span class="team-meta"><span class="team-name">${esc(profile.currentTeam)}</span><span class="owner">${esc(profile.name)}</span></span>
+        </button>`;
+    }
+
+    /* Hero badge: how far the record runs. While a season is being played
+       it says which week the totals include. */
+    function renderHero() {
+      const finished = LEAGUE_DATA.seasons.filter((season) => !season.live).length;
+      document.getElementById("heroBadge").textContent = liveSeason
+        ? `Through ${liveSeason.year} · Week ${liveSeason.throughWeek}`
+        : `${finished} season${finished === 1 ? "" : "s"}`;
+    }
+
+    function renderTitleTable(bodyId, yearsOf, mark) {
+      const rows = profileList
+        .filter((profile) => yearsOf(profile).length)
+        .sort((a, b) => yearsOf(b).length - yearsOf(a).length || Math.max(...yearsOf(b)) - Math.max(...yearsOf(a)));
+      document.getElementById(bodyId).innerHTML = rows.map((profile, index) => `
+        <tr>
+          <td class="rank">${index + 1}</td>
+          <td class="team-cell">${teamButton(profile)}</td>
+          <td class="title-count">${mark.repeat(yearsOf(profile).length)} ${yearsOf(profile).length}</td>
+          <td class="title-years">${yearsOf(profile).join(", ")}</td>
+        </tr>`).join("");
+    }
+
+    /* ---- All-time standings ---- */
+    const allTimeDefaults = { team: "asc", wins: "desc", pct: "desc", pf: "desc", pa: "asc", diff: "desc", pfg: "desc" };
+    let allTimeSort = { key: "wins", direction: "desc" };
+
+    function allTimeValue(profile, key) {
+      if (key === "team") return profile.currentTeam.toLowerCase();
+      return profile[key];
+    }
+
+    function sortRows(rows, state, valueFn) {
+      return [...rows].sort((a, b) => {
+        const aValue = valueFn(a, state.key);
+        const bValue = valueFn(b, state.key);
+        const comparison = typeof aValue === "string" ? aValue.localeCompare(bValue) : aValue - bValue;
+        if (comparison !== 0) return state.direction === "asc" ? comparison : -comparison;
+        return b.wins - a.wins || b.pf - a.pf;
+      });
+    }
+
+    function markSort(table, state, selectId, directionId) {
+      document.querySelectorAll(`[data-table="${table}"]`).forEach((button) => {
+        const active = button.dataset.sort === state.key;
+        button.classList.toggle("active", active);
+        button.querySelector(".sort-indicator").textContent = active ? (state.direction === "asc" ? "↑" : "↓") : "";
+      });
+      const select = document.getElementById(selectId);
+      if (select) select.value = state.key;
+      const direction = document.getElementById(directionId);
+      if (direction) {
+        direction.textContent = state.direction === "asc" ? "↑" : "↓";
+        direction.setAttribute("aria-label", state.direction === "asc" ? "Sort ascending" : "Sort descending");
+      }
+    }
+
+    function renderAllTime() {
+      const rows = sortRows(profileList, allTimeSort, allTimeValue);
+      document.getElementById("allTimeBody").innerHTML = rows.map((profile, index) => `
+        <tr>
+          <td class="rank">${index + 1}</td>
+          <td class="team-cell">
+            ${teamButton(profile)}
+            <div class="mobile-stat-strip" aria-label="${profile.currentTeam} all-time statistics">
+              <span class="mobile-stat"><small>W–L</small><strong>${profile.wins}–${profile.losses}</strong></span>
+              <span class="mobile-stat"><small>PCT</small><strong>${pct(profile.wins, profile.losses)}</strong></span>
+              <span class="mobile-stat"><small>PF</small><strong>${fmt(profile.pf)}</strong></span>
+              <span class="mobile-stat"><small>PA</small><strong>${fmt(profile.pa)}</strong></span>
+              <span class="mobile-stat"><small>Diff</small><strong class="${profile.diff >= 0 ? "positive" : "negative"}">${signed(profile.diff)}</strong></span>
+            </div>
+          </td>
+          <td class="record">${profile.wins}–${profile.losses}</td>
+          <td>${pct(profile.wins, profile.losses)}</td>
+          <td>${fmt(profile.pf)}</td>
+          <td>${fmt(profile.pa)}</td>
+          <td>${profile.pfg.toFixed(1)}</td>
+          <td class="${profile.diff >= 0 ? "positive" : "negative"}">${signed(profile.diff)}</td>
+        </tr>`).join("");
+      markSort("allTime", allTimeSort, "allTimeMobileSort", "allTimeMobileDirection");
+    }
+
+
+    function renderWinsChart(profile) {
+      // Finished seasons only: a season in progress would read as a slump.
+      const seasons = profile.seasons.filter((season) => !season.live);
+      const width = 620;
+      const height = 220;
+      const left = 54;
+      const right = 592;
+      const top = 24;
+      const bottom = 174;
+      // The chart's height is the longest regular season on record (a
+      // league that plays the weekly median counts two games a week).
+      const maxWins = Math.max(1, ...LEAGUE_DATA.seasons.flatMap((season) =>
+        Object.values(season.teams).map((team) => team.wins + team.losses + (team.ties || 0))));
+      const x = (index) => seasons.length === 1
+        ? (left + right) / 2
+        : left + (index * (right - left) / (seasons.length - 1));
+      const y = (wins) => bottom - (wins / maxWins) * (bottom - top);
+      const points = seasons.map((season, index) => `${x(index)},${y(season.wins)}`).join(" ");
+      const ticks = [0, Math.round(maxWins / 2), maxWins];
+
+      return `
+        <svg class="wins-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Regular season wins by year">
+          ${ticks.map((tick) => `
+            <line x1="${left}" y1="${y(tick)}" x2="${right}" y2="${y(tick)}" stroke="#e3e8ed" stroke-width="1" />
+            <text x="${left - 13}" y="${y(tick) + 4}" text-anchor="end" fill="#7b8998" font-size="11" font-weight="700">${tick}</text>
+          `).join("")}
+          <line x1="${left}" y1="${bottom}" x2="${right}" y2="${bottom}" stroke="#bec8d2" stroke-width="1.3" />
+          <polyline points="${points}" fill="none" stroke="${profile.color}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+          ${seasons.map((season, index) => `
+            <circle cx="${x(index)}" cy="${y(season.wins)}" r="7" fill="#fff" stroke="${profile.color}" stroke-width="4" />
+            <text x="${x(index)}" y="${y(season.wins) - 15}" text-anchor="middle" fill="#172b42" font-size="14" font-weight="900">${season.wins}</text>
+            <text x="${x(index)}" y="${bottom + 28}" text-anchor="middle" fill="#68788a" font-size="12" font-weight="800">${season.year}</text>
+          `).join("")}
+        </svg>
+      `;
+    }
+
+    /* Most-started players are summed from every season's lineups by
+       sleeper.js the first time a profile opens, and kept for the visit. */
+    const NFL_LOGOS = new Set(["ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE", "DAL", "DEN", "DET",
+      "GB", "HOU", "IND", "JAX", "KC", "LAC", "LAR", "LV", "MIA", "MIN", "NE", "NO", "NYG", "NYJ", "PHI", "PIT",
+      "SEA", "SF", "TB", "TEN", "WSH"]);
+
+    /* Player search: PlayerCard (player-card.js) owns the data, the search
+       and the card; ui.js (UI.findPill) draws the pill and its results. */
+    function setupPlayerSearch() {
+      if (window.UI && window.UI.findPill) window.UI.findPill("#findPill");
+    }
+
+    let startersPromise = null;
+
+    function loadStarters() {
+      if (!startersPromise) startersPromise = model.starters().catch(() => null);
+      return startersPromise;
+    }
+
+    function nflMark(abbr) {
+      if (NFL_LOGOS.has(abbr)) {
+        return `<img class="starters-logo" src="nfl-logos/${abbr}.png" alt="${abbr}" title="${abbr}" loading="lazy" decoding="async">`;
+      }
+      return `<span class="starters-chip">${abbr || "FA"}</span>`;
+    }
+
+    function renderStarters(ownerId) {
+      loadStarters().then((data) => {
+        const body = document.getElementById("startersBody");
+        if (!body || activeOwnerId !== ownerId) return;
+        const entry = data && data.owners[ownerId];
+        if (!entry || !entry.players.length) {
+          body.innerHTML = `<div class="empty-state">${data ? "No box scores for this manager yet." : "Lineups could not be loaded."}</div>`;
+          return;
+        }
+
+        const years = entry.seasons;
+        const most = Math.max(...entry.players.flatMap((p) => Object.values(p.years).map((y) => y[0])));
+        const cols = `--year-count:${years.length};--year-cols:${years.length * 42}px;--year-cols-sm:${years.length * 25}px`;
+
+        body.innerHTML = `
+          <div class="starters-row header" style="${cols}">
+            <span class="starters-rank">#</span><span></span><span>Player</span>
+            <span class="starters-years">${years.map((y) => `<span>’${String(y).slice(2)}</span>`).join("")}</span>
+            <span class="starters-total">Starts</span>
+          </div>
+          ${entry.players.map((p, i) => `
+            <div class="starters-row" style="${cols}">
+              <span class="starters-rank">${i + 1}</span>
+              ${nflMark(p.nfl)}
+              <span class="starters-name" data-player="${encodeURIComponent(p.id)}" tabindex="0" role="button"><strong title="${esc(p.name)}">${esc(p.name)}</strong><small>${esc(p.pos)}</small></span>
+              <span class="starters-years">${years.map((y) => {
+                if (!p.years[y]) return `<span class="starters-year off" title="${y}: no starts">·</span>`;
+                // [starts, club, ...]: every club he started for that season,
+                // most starts first; the cell shows the first.
+                const [n, ...clubs] = p.years[y];
+                const fill = .1 + .3 * (n / most);
+                return `<span class="starters-year on" style="--fill:${fill.toFixed(2)}" title="${y}: ${n} start${n === 1 ? "" : "s"} · ${clubs.join(" / ")}">${nflMark(clubs[0])}${n}</span>`;
+              }).join("")}</span>
+              <span class="starters-total"><strong>${p.starts}</strong></span>
+            </div>`).join("")}
+        `;
+      });
+    }
+
+
+    /* =================================================================
+       TEAM HISTORY: the season pages' team drawer, across every season.
+       ================================================================= */
+
+    const panel = document.getElementById("profilePanel");
+    const panelBody = document.getElementById("profileBody");
+    const panelBackdrop = document.getElementById("profileBackdrop");
+    let activeOwnerId = null;
+    let h2hSort = { key: "pct", direction: "desc" };
+    const h2hDefaults = { team: "asc", wins: "desc", pct: "desc", pf: "desc", pa: "asc", diff: "desc" };
+
+    function h2hValue(row, key) {
+      if (!profiles[row.opponentId]) return "";
+      if (key === "team") return profiles[row.opponentId].currentTeam.toLowerCase();
+      return row[key];
+    }
+
+    const yearsAtFinish = (profile, rank) =>
+      profile.seasons.filter((season) => season.finalRank === rank).map((season) => season.year);
+
+    /* Highlights: a tile each, in the colour of what it marks. */
+    function highlightTiles(profile) {
+      const tile = (kind, icon, label, value, meta) => `
+        <div class="hl-tile hl-${kind}">
+          <span class="hl-icon" aria-hidden="true">${icon}</span>
+          <span class="hl-label">${label}</span>
+          <span class="hl-value">${value}</span>
+          ${meta ? `<span class="hl-meta">${meta}</span>` : ""}
+        </div>`;
+      const chips = (years) => `<span class="hl-chips">${years.map((y) => `<span>${y}</span>`).join("")}</span>`;
+      const finishYears = (rank) => yearsAtFinish(profile, rank).join(", ");
+      const week = profile.highestWeek;
+      const win = profile.biggestWin;
+      const streak = profile.streak.best;
+      const best = profile.seasons.filter((season) => !season.live)
+        .reduce((top, season) => (!top || season.wins > top.wins || (season.wins === top.wins && season.pf > top.pf) ? season : top), null);
+
+      return [
+        profile.championshipYears.length
+          ? tile("gold", "🏆", profile.championshipYears.length === 1 ? "Champion" : `${profile.championshipYears.length}× Champion`, chips(profile.championshipYears))
+          : profile.bestFinish ? tile("gold", "🏅", "Best finish", ordinal(profile.bestFinish), finishYears(profile.bestFinish)) : "",
+        profile.lastPlaceYears.length
+          ? tile("red", "💩", profile.lastPlaceYears.length === 1 ? "Last place" : `${profile.lastPlaceYears.length}× Last place`, chips(profile.lastPlaceYears))
+          : profile.worstFinish ? tile("green", "🛡️", "Never last", `Low: ${ordinal(profile.worstFinish)}`, finishYears(profile.worstFinish)) : "",
+        week ? tile("fire", "🔥", "Biggest week", fmt(week.points), `Week ${week.week} · ${week.year}`) : "",
+        win ? tile("blue", "💥", "Biggest win", `+${fmt(win.margin)}`, `vs ${profiles[win.opponentId] ? esc(profiles[win.opponentId].currentTeam) : ""} · ${win.year}`) : "",
+        streak ? tile("purple", "📈", "Longest win streak", `${streak.length} straight`, streak.fromYear === streak.toYear ? streak.toYear : `${streak.fromYear}–${String(streak.toYear).slice(2)}`) : "",
+        best ? tile("navy", "⭐", "Best season", `${best.wins}–${best.losses}`, `${best.year} · ${fmt(best.pf)} pts`) : ""
+      ].join("");
+    }
+
+    function seasonRows(profile) {
+      return [...profile.seasons].reverse().map((season) => {
+        const finished = LEAGUE_DATA.seasons.find((s) => s.year === season.year);
+        const size = finished ? Object.keys(finished.teams).length : 0;
+        const place = season.live ? "place-live"
+          : season.finalRank <= 3 ? `place-${season.finalRank}`
+          : season.finalRank === size ? "place-last" : "place-mid";
+        return `<a class="schedule-row season-row season-link" href="${League.url("season", { season: season.year, team: season.teamId })}"
+            aria-label="${esc(season.teamName)}, ${season.year}: open that season">
+          <span class="schedule-week">${season.year}</span>
+          <span class="result-pill ${place}" ${season.live ? 'title="In progress"' : ""}>${season.live ? "" : season.finalRank}</span>
+          <span class="schedule-opponent"><strong>${esc(season.teamName)}</strong></span>
+          <span class="schedule-score"><strong>${season.wins}–${season.losses}</strong></span>
+        </a>`;
+      }).join("");
+    }
+
+    function renderH2H(profile) {
+      const rows = sortRows(Object.values(profile.h2h).filter((row) => profiles[row.opponentId]), h2hSort, h2hValue);
+      document.getElementById("h2hBody").innerHTML = rows.map((row) => {
+        const opponent = profiles[row.opponentId];
+        return `
+          <tr>
+            <td class="team-cell">
+              ${teamButton(opponent)}
+              <div class="mobile-stat-strip">
+                <span class="mobile-stat"><small>W–L</small><strong>${row.wins}–${row.losses}</strong></span>
+                <span class="mobile-stat"><small>PCT</small><strong>${pct(row.wins, row.losses)}</strong></span>
+                <span class="mobile-stat"><small>PF</small><strong>${fmt(row.pf)}</strong></span>
+                <span class="mobile-stat"><small>PA</small><strong>${fmt(row.pa)}</strong></span>
+                <span class="mobile-stat"><small>Diff</small><strong class="${row.diff >= 0 ? "positive" : "negative"}">${signed(row.diff)}</strong></span>
+              </div>
+            </td>
+            <td class="record">${row.wins}–${row.losses}</td>
+            <td>${pct(row.wins, row.losses)}</td>
+            <td>${fmt(row.pf)}</td>
+            <td>${fmt(row.pa)}</td>
+            <td class="${row.diff >= 0 ? "positive" : "negative"}">${signed(row.diff)}</td>
+          </tr>`;
+      }).join("");
+      markSort("h2h", h2hSort, "h2hMobileSort", "h2hMobileDirection");
+    }
+
+    function openProfile(ownerId, options = {}) {
+      const profile = profiles[ownerId];
+      if (!profile) return;
+      activeOwnerId = ownerId;
+      h2hSort = { key: "pct", direction: "desc" };
+
+      document.getElementById("profileHero").style.setProperty("--drawer-color", profile.color);
+      panel.style.setProperty("--drawer-color", profile.color);
+      const badge = document.getElementById("profileBadge");
+      badge.style.setProperty("--team-color", profile.color);
+      badge.innerHTML = teamMark(profile);
+      document.getElementById("profileName").textContent = profile.currentTeam;
+      document.getElementById("profileOwner").textContent =
+        `${profile.name} · ${profile.seasons.length} season${profile.seasons.length === 1 ? "" : "s"}`;
+      document.getElementById("profileStats").innerHTML = `
+        <div class="drawer-stat"><small>Record</small><strong>${profile.wins}–${profile.losses}</strong></div>
+        <div class="drawer-stat"><small>Playoffs</small><strong>${profile.playoffWins}–${profile.playoffLosses}</strong></div>
+        <div class="drawer-stat"><small>Titles</small><strong>${profile.championshipYears.length}</strong></div>
+        <div class="drawer-stat"><small>Last Places</small><strong>${profile.lastPlaceYears.length}</strong></div>`;
+
+      panelBody.innerHTML = `
+        <div class="drawer-stats drawer-stats-body">${document.getElementById("profileStats").innerHTML}</div>
+        <section class="schedule-section">
+          <div class="schedule-heading"><h3>Highlights</h3></div>
+          <div class="hl-grid">${highlightTiles(profile)}</div>
+        </section>
+        <section class="schedule-section">
+          <div class="schedule-heading"><h3>Season History</h3></div>
+          <div class="schedule-list">${seasonRows(profile)}</div>
+        </section>
+        <section class="schedule-section">
+          <div class="schedule-heading"><h3>Regular-Season Wins</h3></div>
+          <div class="schedule-list chart-wrap">${renderWinsChart(profile)}</div>
+        </section>
+        <section class="schedule-section" style="--team-color:${profile.color}">
+          <div class="schedule-heading"><h3>Most-Started Players</h3></div>
+          <div class="schedule-list" id="startersBody"><div class="empty-state">Loading lineups…</div></div>
+        </section>
+        <section class="schedule-section h2h-card">
+          <div class="schedule-heading">
+            <h3>Head-to-Head</h3>
+            <div class="mobile-sort-control">
+              <label for="h2hMobileSort">Sort</label>
+              <select id="h2hMobileSort" aria-label="Sort head-to-head records">
+                <option value="wins">Record</option>
+                <option value="pct">Win Percentage</option>
+                <option value="pf">Points For</option>
+                <option value="pa">Points Against</option>
+                <option value="diff">Point Differential</option>
+                <option value="team">Opponent</option>
+              </select>
+              <button type="button" class="mobile-sort-direction" id="h2hMobileDirection" data-mobile-direction="h2h" aria-label="Sort descending">↓</button>
+            </div>
+          </div>
+          <div class="schedule-list">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th><button class="sort-button" data-table="h2h" data-sort="team">Opponent <span class="sort-indicator"></span></button></th>
+                    <th><button class="sort-button" data-table="h2h" data-sort="wins">Record <span class="sort-indicator"></span></button></th>
+                    <th><button class="sort-button" data-table="h2h" data-sort="pct">PCT <span class="sort-indicator"></span></button></th>
+                    <th><button class="sort-button" data-table="h2h" data-sort="pf">PF <span class="sort-indicator"></span></button></th>
+                    <th><button class="sort-button" data-table="h2h" data-sort="pa">PA <span class="sort-indicator"></span></button></th>
+                    <th><button class="sort-button" data-table="h2h" data-sort="diff">Diff <span class="sort-indicator"></span></button></th>
+                  </tr>
+                </thead>
+                <tbody id="h2hBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>`;
+
+      renderH2H(profile);
+      renderStarters(ownerId);
+
+      panel.classList.remove("compact");
+      if (options.scrollToTop || !panel.classList.contains("open")) panelBody.scrollTop = 0;
+      panel.classList.add("open");
+      panelBackdrop.classList.add("open");
+      panel.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      document.getElementById("closeProfile").focus({ preventScroll: true });
+    }
+
+    function closeProfile() {
+      panel.classList.remove("open");
+      panelBackdrop.classList.remove("open");
+      panel.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      activeOwnerId = null;
+    }
+
+    document.addEventListener("click", (event) => {
+      const team = event.target.closest("[data-owner]");
+      if (team) {
+        openProfile(team.dataset.owner, { scrollToTop: Boolean(team.closest(".h2h-card")) });
+        return;
+      }
+
+      const directionButton = event.target.closest("[data-mobile-direction]");
+      if (directionButton) {
+        if (directionButton.dataset.mobileDirection === "allTime") {
+          allTimeSort.direction = allTimeSort.direction === "asc" ? "desc" : "asc";
+          renderAllTime();
+        } else if (activeOwnerId) {
+          h2hSort.direction = h2hSort.direction === "asc" ? "desc" : "asc";
+          renderH2H(profiles[activeOwnerId]);
+        }
+        return;
+      }
+
+      const sortButton = event.target.closest(".sort-button");
+      if (!sortButton) return;
+      const key = sortButton.dataset.sort;
+      if (sortButton.dataset.table === "allTime") {
+        allTimeSort = allTimeSort.key === key
+          ? { key, direction: allTimeSort.direction === "asc" ? "desc" : "asc" }
+          : { key, direction: allTimeDefaults[key] };
+        renderAllTime();
+      } else if (sortButton.dataset.table === "h2h" && activeOwnerId) {
+        h2hSort = h2hSort.key === key
+          ? { key, direction: h2hSort.direction === "asc" ? "desc" : "asc" }
+          : { key, direction: h2hDefaults[key] };
+        renderH2H(profiles[activeOwnerId]);
+      }
+    });
+
+    document.addEventListener("change", (event) => {
+      if (event.target.id === "allTimeMobileSort") {
+        allTimeSort = { key: event.target.value, direction: allTimeDefaults[event.target.value] };
+        renderAllTime();
+      } else if (event.target.id === "h2hMobileSort" && activeOwnerId) {
+        h2hSort = { key: event.target.value, direction: h2hDefaults[event.target.value] };
+        renderH2H(profiles[activeOwnerId]);
+      }
+    });
+
+    document.getElementById("closeProfile").addEventListener("click", closeProfile);
+    panelBackdrop.addEventListener("click", closeProfile);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeProfile();
+    });
+
+
+    /* alltime.html#owner=<id> opens straight into that manager's history. The
+       trophy room links back this way, and it makes any history shareable. */
+    function openFromHash() {
+      const match = location.hash.match(/^#owner=(.+)$/);
+      if (!match) return;
+      const ownerId = decodeURIComponent(match[1]);
+      if (profiles[ownerId]) openProfile(ownerId, { scrollToTop: true });
+    }
+    window.addEventListener("hashchange", openFromHash);
+
+    /* Leaving for a season's team page: the panel slides away (left on a
+       desktop, down on a phone) before the page changes, and the team drawer
+       slides in on arrival, so the jump reads as a move, not a reload. */
+    document.addEventListener("click", (event) => {
+      const link = event.target.closest && event.target.closest(".season-link");
+      if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+      event.preventDefault();
+      const phone = window.innerWidth <= 700;
+      const exit = panel.animate(
+        [{ opacity: 1, transform: "none" }, { opacity: 0, transform: phone ? "translateY(60px)" : "translateX(-40px)" }],
+        { duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 220, easing: "cubic-bezier(.4, 0, 1, 1)", fill: "forwards" });
+      panelBackdrop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: "forwards" });
+      exit.onfinish = () => { window.location.href = link.href; };
+    });
+    // Coming back (the browser may restore this page as it was left), undo the exit.
+    window.addEventListener("pageshow", () => {
+      [panel, panelBackdrop].forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+    });
+
+    /* On a phone the header shrinks to a slim bar once the body scrolls, as on
+       a season page. Only when there is room to scroll well past the switch:
+       otherwise the taller body would pull the scroll back and toggle it. */
+    panelBody.addEventListener("scroll", () => {
+      const y = panelBody.scrollTop;
+      if (y > 60 && panelBody.scrollHeight - panelBody.clientHeight > 160) panel.classList.add("compact");
+      else if (y < 10) panel.classList.remove("compact");
+    }, { passive: true });
+
+    function renderAll() {
+      renderHero();
+      renderTitleTable("championBody", (p) => p.championshipYears, "🏆");
+      renderTitleTable("loserBody", (p) => p.lastPlaceYears, "💩");
+      renderAllTime();
+    }
+
+    renderAll();
+    setupPlayerSearch();
+    openFromHash();
+    }
+  </script>
+</body>
+</html>

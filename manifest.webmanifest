@@ -1,0 +1,48 @@
+{
+  "id": "./",
+  "name": "League History for Sleeper",
+  "short_name": "League History",
+  "description": "Every season of your Sleeper fantasy football league: results, standings, box scores, brackets, the all-time record book and a 3D trophy room.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "theme_color": "#071827",
+  "background_color": "#071827",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "sports",
+    "entertainment"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
