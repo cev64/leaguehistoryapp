@@ -45,13 +45,60 @@ button, summary, [role="tab"] { touch-action: manipulation; }
 .topbar-trophy { transition: background-color .2s var(--ease), border-color .2s var(--ease), transform .18s var(--ease); }
 .topbar-trophy:active { transform: scale(.96); }
 .year-control select { transition: background-color .2s var(--ease), border-color .2s var(--ease), transform .18s var(--ease); }
-/* Its open list is drawn by the browser. Without these, Chrome on Windows
-   paints that list in the light scheme: a white frame around the navy
-   options, spilling past them. */
+/* If the script never runs, the browser's own list opens; these keep it navy. */
 .year-control select { color-scheme: dark; }
 .year-control select option { background-color: #16324a; color: #fff; }
 .year-control select:active { transform: scale(.97); }
 @media (hover: hover) { .year-control select:hover { border-color: rgba(255, 255, 255, .32); } }
+
+/* The season menu's own list (UI.seasonMenu in ui.js). The select still
+   shows the season; a clear button over it opens this list instead of the
+   browser's, in the header's navy, with the current season in gold. */
+.ui-menu-host { position: relative; }
+.ui-menu-trigger {
+  position: absolute; inset: 0; z-index: 1;
+  margin: 0; padding: 0; border: 0; border-radius: 10px;
+  background: transparent; color: transparent; font: inherit; cursor: pointer;
+}
+.ui-menu-trigger:focus-visible { outline: none; }
+.ui-menu-host:has(.ui-menu-trigger:focus-visible) select { outline: 2px solid #f6b73c; outline-offset: 2px; }
+.ui-menu-host:has(.ui-menu-trigger:active) select { transform: scale(.97); }
+.ui-menu-host.open select { border-color: rgba(255, 255, 255, .32); background-color: #1b3b57; }
+@media (hover: hover) { .ui-menu-host:has(.ui-menu-trigger:hover) select { border-color: rgba(255, 255, 255, .32); } }
+
+.ui-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+  min-width: max(100%, 136px); max-height: min(60vh, 360px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 5px; border-radius: 12px;
+  background: rgba(10, 30, 48, .985);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, .14);
+  box-shadow: 0 18px 44px rgba(3, 12, 22, .45), 0 2px 8px rgba(3, 12, 22, .25);
+  color: #fff; text-align: left; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .25) transparent;
+  animation: uiPopover .28s var(--ease) both;
+  transform-origin: top right;
+}
+.ui-menu[hidden] { display: none; }
+.ui-menu-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 36px; padding: 0 10px 0 12px; border-radius: 8px;
+  font-size: 13px; font-weight: 800; letter-spacing: .01em; white-space: nowrap;
+  color: #dbe5ee; cursor: pointer; outline: none;
+  transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.ui-menu-item[data-rule="after"] { position: relative; margin-bottom: 9px; }
+.ui-menu-item[data-rule="after"]::after {
+  content: ""; position: absolute; left: 8px; right: 8px; bottom: -5px;
+  height: 1px; background: rgba(255, 255, 255, .1);
+}
+.ui-menu-item:focus, .ui-menu-item:focus-visible { background: rgba(255, 255, 255, .09); color: #fff; }
+.ui-menu-item.on { color: #f6c35a; background: rgba(246, 183, 60, .12); }
+.ui-menu-item.on:focus { background: rgba(246, 183, 60, .2); }
+.ui-menu-item svg { width: 14px; height: 14px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.ui-menu-item:active { background: rgba(255, 255, 255, .14); }
+@media (pointer: coarse) { .ui-menu-item { min-height: 42px; font-size: 14px; } }
+@media (prefers-reduced-motion: reduce) { .ui-menu { animation: none; } }
 .brand { transition: opacity .2s var(--ease), transform .18s var(--ease); }
 .brand:active { transform: scale(.98); }
 

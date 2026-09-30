@@ -1015,6 +1015,8 @@
       const v = select.value;
       location.href = v === "home" ? url("alltime") : url("season", { season: v });
     });
+    // the list that opens is the site's own, not the browser's (ui.js)
+    if (window.UI && window.UI.seasonMenu) window.UI.seasonMenu(select);
   }
 
   /* Brand, links and menu shared by the header of every page: the league's
