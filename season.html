@@ -3932,6 +3932,34 @@
     }
 
 
+
+    /* ---- Front office on the season page ------------------------------
+       What's at stake next week, the week's bench blunder and the recap. */
+    .scenario-list { display: grid; }
+    .scenario-row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 6px 16px; padding: 11px 16px; border-bottom: 1px solid var(--line); align-items: start; }
+    .scenario-row:last-child { border-bottom: 0; }
+    .scenario-team { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13.5px; }
+    .scenario-team strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .scenario-row ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; color: var(--ink-2, #475467); font-size: 13px; line-height: 1.45; }
+    .scenario-note { margin: 0; padding: 10px 16px 14px; color: var(--muted); font-size: 12px; line-height: 1.5; border-top: 1px solid var(--line); }
+    @media (max-width: 700px) {
+      .scenario-row { grid-template-columns: minmax(0, 1fr); padding: 10px 12px; }
+      .scenario-note { padding: 10px 12px 12px; }
+    }
+    .recap-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 16px 14px; border-top: 1px solid var(--line); }
+    .recap-link { color: var(--blue-2); font-size: 13px; font-weight: 700; text-decoration: none; }
+    .recap-link:hover { text-decoration: underline; }
+    .recap-open { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 0; border-radius: 11px; background: var(--navy); color: #fff; font: 800 13px/1 inherit; cursor: pointer; }
+    .recap-open svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .recap-open:disabled { opacity: .6; cursor: progress; }
+    .recap-modal { position: fixed; inset: 0; z-index: 320; display: grid; place-items: center; padding: 16px; }
+    .recap-backdrop { position: absolute; inset: 0; background: rgba(7, 24, 39, .6); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+    .recap-card { position: relative; display: grid; gap: 12px; width: min(460px, 100%); max-height: calc(100dvh - 32px); padding: 14px; border-radius: 20px; background: #fff; box-shadow: 0 30px 80px rgba(3, 12, 22, .4); overflow: auto; }
+    .recap-card img { width: 100%; height: auto; border-radius: 12px; display: block; }
+    .recap-close { position: absolute; top: 20px; right: 20px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .9); font-size: 20px; line-height: 1; cursor: pointer; }
+    .recap-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .recap-btn { flex: 1 1 120px; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px; border-radius: 11px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: 800 13.5px/1 inherit; text-decoration: none; cursor: pointer; }
+    .recap-btn.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
   </style>
   <link rel="stylesheet" href="ui.css" />
   <link rel="stylesheet" href="design.css" />
@@ -3940,6 +3968,7 @@
   <script src="account.js"></script>
   <script src="ui.js"></script>
   <script src="sleeper.js"></script>
+  <script src="insights.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -4367,8 +4396,18 @@
       }
 
       const unit = MEDIAN ? 2 : 1;
-      const minW = (id) => stats[id].score;
-      const maxW = (id) => stats[id].score + gamesLeft(id, week) * unit;
+      return flagsFromBounds(
+        (id) => stats[id].score,
+        (id) => stats[id].score + gamesLeft(id, week) * unit
+      );
+    }
+
+    /* The flags themselves, from the fewest and most wins each team can
+       still finish with. Shared with the playoff scenarios below, which ask
+       the same question of every way next week could go. */
+    function flagsFromBounds(minW, maxW) {
+      const flags = {};
+      const P = PLAYOFF_TEAMS;
       const D = HAS_DIVISIONS ? DIVISION_NAMES.length : 0;
 
       TEAM_IDS.forEach((id) => {
@@ -4445,6 +4484,378 @@
       pictureCache[week] = result;
       return result;
     }
+
+    /* =================================================================
+       WHAT'S AT STAKE: next week's playoff scenarios, in words.
+
+       Every way next week's games could go is played out, and each team is
+       asked the same question the clinch badges ask (flagsFromBounds): is it
+       settled? A team's scenarios are then boiled down to the fewest results
+       that settle it: "clinches with a win", "clinches with a loss if the
+       Dawgs beat MCM22". The median game can't be known in advance, so it is
+       left open, and so is points for: every scenario here settles things
+       outright, whatever the scores.
+       ================================================================= */
+
+    const scenarioCache = {};
+    function playoffScenarios(week) {
+      if (week in scenarioCache) return scenarioCache[week];
+      const W = week + 1;
+      const games = (schedule[W] || []).slice();
+      let out = null;
+      if (HAS_PLAYOFFS && !FINISHED && W <= REGULAR_WEEKS && games.length && games.length <= 12) {
+        const stats = computeStats(week);
+        const now = buildPicture(week).flags;
+        const unit = MEDIAN ? 2 : 1;
+        const left = Object.fromEntries(TEAM_IDS.map((id) => [id, gamesLeft(id, W)]));
+        // outcome bit i set: the first team of game i wins
+        const outcomes = [];
+        for (let mask = 0; mask < (1 << games.length); mask++) {
+          const won = new Set(games.map(([a, b], i) => ((mask >> i) & 1 ? a : b)));
+          const minW = (id) => stats[id].score + (won.has(id) ? 1 : 0);
+          const maxW = (id) => minW(id) + (MEDIAN ? 1 : 0) + left[id] * unit;
+          outcomes.push(flagsFromBounds(minW, maxW));
+        }
+        const literal = (i, bit) => ({ i, bit, winner: bit ? games[i][0] : games[i][1], loser: bit ? games[i][1] : games[i][0] });
+        const holds = (mask, lits) => lits.every((l) => ((mask >> l.i) & 1) === l.bit);
+        const says = (lit) => `${nameOf(lit.winner)} beat${/s$/i.test(teams[lit.winner].name) ? "" : "s"} ${nameOf(lit.loser)}`;
+
+        /* The simplest conditions under which `good` is certain, given the
+           team's own result: nothing more, or one other result (any of
+           several), or two together. */
+        function conditions(masks, good, skip) {
+          if (!masks.length) return null;
+          if (masks.every((m) => good(outcomes[m]))) return [];
+          const lits = [];
+          games.forEach((_, i) => { if (i !== skip) lits.push(literal(i, 1), literal(i, 0)); });
+          const works = (set) => { const hit = masks.filter((m) => holds(m, set)); return hit.length && hit.every((m) => good(outcomes[m])); };
+          const singles = lits.filter((l) => works([l])).map((l) => [l]);
+          if (singles.length) return singles;
+          const pairs = [];
+          for (let a = 0; a < lits.length && pairs.length < 3; a++) {
+            for (let b = a + 1; b < lits.length && pairs.length < 3; b++) {
+              if (lits[a].i !== lits[b].i && works([lits[a], lits[b]])) pairs.push([lits[a], lits[b]]);
+            }
+          }
+          return pairs.length ? pairs : null;
+        }
+        const phrase = (conds) => conds.map((set) => set.map(says).join(" and ")).join(", or ");
+
+        const rows = [];
+        TEAM_IDS.forEach((id) => {
+          const gi = games.findIndex(([a, b]) => a === id || b === id);
+          const all = outcomes.map((_, m) => m);
+          const wins = (m) => (((m >> gi) & 1) === 1) === (games[gi][0] === id);
+          const winMasks = gi < 0 ? [] : all.filter(wins);
+          const lossMasks = gi < 0 ? [] : all.filter((m) => !wins(m));
+          const lines = [];
+          // What settles a goal, without the goal's name: "with a win", ...
+          const goal = (good, already) => {
+            if (already) return null;
+            if (gi < 0) {
+              const c = conditions(all, good, -1);
+              return c ? (c.length ? `if ${phrase(c)}` : "this week, whatever happens") : null;
+            }
+            const w = conditions(winMasks, good, gi);
+            const l = conditions(lossMasks, good, gi);
+            if (w && l && !w.length && !l.length) return "this week, win or lose";
+            const parts = [];
+            if (w) parts.push(w.length ? `with a win if ${phrase(w)}` : "with a win");
+            if (l) parts.push(l.length ? `with a loss if ${phrase(l)}` : "even with a loss");
+            return parts.length ? parts.join(", or ") : null;
+          };
+          const flag = now[id];
+          const top = BYES || HAS_DIVISIONS ? goal((f) => f[id] === "z", flag === "z") : null;
+          const berth = goal((f) => f[id] === "x" || f[id] === "z", flag === "x" || flag === "z");
+          if (top) lines.push(`${BYES ? "Clinches a first-round bye" : "Clinches the division"} ${top}`);
+          // A bye comes with a playoff spot: said once when it's the same result.
+          if (berth && berth !== top) lines.push(`Clinches a playoff spot ${berth}`);
+          // Elimination is about the team's own loss; a win never eliminates.
+          if (!flag && gi >= 0) {
+            const c = conditions(lossMasks, (f) => f[id] === "e", gi);
+            if (c) lines.push(c.length ? `Eliminated with a loss if ${phrase(c)}` : "Eliminated with a loss");
+          } else if (!flag && gi < 0) {
+            const c = conditions(all, (f) => f[id] === "e", -1);
+            if (c) lines.push(c.length ? `Eliminated if ${phrase(c)}` : "Eliminated this week");
+          }
+          if (lines.length) rows.push({ id, lines });
+        });
+        const seedOf = (id) => buildPicture(week).seeds.indexOf(id);
+        rows.sort((a, b) => seedOf(a.id) - seedOf(b.id));
+        out = { week: W, rows };
+      }
+      scenarioCache[week] = out;
+      return out;
+    }
+
+    function scenarioCard(week) {
+      const sc = playoffScenarios(week);
+      if (!sc || !sc.rows.length) return "";
+      return `<article class="card scenario-card">
+        ${cardHead(`What's at stake · Week ${sc.week}`, "shield", "Playoff scenarios")}
+        <div class="scenario-list">${sc.rows.map((r) => `
+          <div class="scenario-row">
+            <span class="scenario-team">${miniTeam(r.id)}<strong>${nameOf(r.id)}</strong></span>
+            <ul>${r.lines.map((l) => `<li>${l}.</li>`).join("")}</ul>
+          </div>`).join("")}
+        </div>
+        <p class="scenario-note">Only results that settle it outright are listed. A tie on record goes to points for${MEDIAN ? ", and the median game is still to be played," : ","} which can't be known in advance, so a team can also get in on points.</p>
+      </article>`;
+    }
+
+    /* =================================================================
+       THE WEEK'S BENCH BLUNDER, and the recap to share it in.
+       ================================================================= */
+
+    const playerName = (db, pid) => esc(db[pid] ? db[pid][0] : `Player ${pid}`);
+
+    // The costliest benching of the week, into its tile in the week's notes.
+    function fillBlunder(week) {
+      const tile = document.querySelector(`[data-blunder-week="${week}"]`);
+      if (!tile || !window.Insights) return;
+      Promise.all([Insights.lineupWeek(model, SEASON, week), League.players()]).then(([lw, db]) => {
+        if (!tile.isConnected) return;
+        const worst = lw && lw.rows.filter((r) => r.blunder && r.blunder.cost > 0).sort((a, b) => b.blunder.cost - a.blunder.cost)[0];
+        if (!worst) { tile.querySelector("strong").textContent = "Every lineup was perfect"; tile.querySelector("span").textContent = ""; return; }
+        const b = worst.blunder;
+        tile.querySelector("strong").innerHTML = `${nameOf(worst.teamId)} benched ${playerName(db, b.benched.pid)}`;
+        tile.querySelector("span").innerHTML = `${fmt(b.benched.pts)} on the bench${b.started ? `, started ${playerName(db, b.started.pid)} (${fmt(b.started.pts)})` : ""}${worst.costGame ? " · cost the game" : ""}`;
+      }).catch(() => { tile.remove(); });
+    }
+
+    /* Everything the recap says about a week, for the image and the text. */
+    async function recapFacts(week) {
+      const games = results[week] || [];
+      const [lw, db, txns] = await Promise.all([
+        window.Insights ? Insights.lineupWeek(model, SEASON, week) : null,
+        League.players(),
+        model.transactions().catch(() => ({})),
+      ]);
+      const scores = [];
+      games.forEach(([a, as, b, bs]) => { scores.push({ id: a, score: as }); scores.push({ id: b, score: bs }); });
+      scores.sort((x, y) => y.score - x.score);
+      const byMargin = games.slice().sort((x, y) => Math.abs(y[1] - y[3]) - Math.abs(x[1] - x[3]));
+      const w = (g) => (g[1] >= g[3] ? [g[0], g[1], g[2], g[3]] : [g[2], g[3], g[0], g[1]]);
+      const plain = (id) => teams[id].name;
+      const facts = [];
+      if (scores.length) facts.push({ label: "High score", main: plain(scores[0].id), sub: fmt(scores[0].score) });
+      if (byMargin.length) {
+        const [wi, ws, li, ls] = w(byMargin[0]);
+        facts.push({ label: "Biggest blowout", main: `${plain(wi)} over ${plain(li)}`, sub: `${fmt(ws)}–${fmt(ls)}` });
+        const [ci, cs, cl, cls] = w(byMargin[byMargin.length - 1]);
+        facts.push({ label: "Closest game", main: `${plain(ci)} over ${plain(cl)}`, sub: `by ${fmt(cs - cls)}` });
+      }
+      const worst = lw && lw.rows.filter((r) => r.blunder && r.blunder.cost > 0).sort((a, b) => b.blunder.cost - a.blunder.cost)[0];
+      if (worst) {
+        const b = worst.blunder;
+        const nm = (pid) => (db[pid] ? db[pid][0] : `Player ${pid}`);
+        facts.push({ label: "Bench blunder", main: `${plain(worst.teamId)} benched ${nm(b.benched.pid)}`, sub: `${fmt(b.benched.pts)} pts on the bench${worst.costGame ? " · cost the game" : ""}` });
+      }
+      const trades = ((txns || {})[SEASON] || []).filter((t) => t.type === "trade" && t.status === "complete" && Number(t.leg) === week);
+      if (trades.length) {
+        const t = trades[trades.length - 1];
+        const ids = (t.roster_ids || []).map((r) => `r${r}`).filter((id) => teams[id]);
+        const got = (id) => Object.entries(t.adds || {}).filter(([, r]) => `r${r}` === id).map(([pid]) => (db[pid] ? db[pid][0] : "a player"));
+        const main = ids.length === 2 ? `${plain(ids[0])} and ${plain(ids[1])}` : ids.map(plain).join(", ");
+        const sub = ids.map((id) => { const g = got(id); return g.length ? `${plain(id)} get ${g.slice(0, 2).join(", ")}${g.length > 2 ? " and more" : ""}` : null; }).filter(Boolean).join(" · ") || "Draft picks changed hands";
+        facts.push({ label: trades.length > 1 ? `Trades (${trades.length})` : "Trade of the week", main, sub });
+      }
+      // Standings after the week, and who moved most.
+      const after = buildPicture(Math.min(week, REGULAR_WEEKS));
+      const before = week > 1 ? buildPicture(Math.min(week - 1, REGULAR_WEEKS)) : null;
+      const top = after.seeds.slice(0, 4).map((id, i) => ({ rank: i + 1, id, name: plain(id), record: after.stats[id].record }));
+      let mover = null;
+      if (before && week <= REGULAR_WEEKS) {
+        after.seeds.forEach((id, i) => {
+          const was = before.seeds.indexOf(id);
+          if (was > i && (!mover || was - i > mover.up)) mover = { id, up: was - i, now: i + 1 };
+        });
+      }
+      // The ones only this site can tell first: the benching and the trade.
+      const order = ["High score", "Bench blunder", "Trade of the week", "Biggest blowout", "Closest game"];
+      facts.sort((a, b) => (order.indexOf(a.label) < 0 ? 2.5 : order.indexOf(a.label)) - (order.indexOf(b.label) < 0 ? 2.5 : order.indexOf(b.label)));
+      return {
+        week, games: games.map(w), facts, top, mover,
+        league: model.name, season: SEASON, playoff: week > REGULAR_WEEKS,
+      };
+    }
+
+    function recapText(f) {
+      const lines = [`${f.league} · Week ${f.week} recap`, ""];
+      f.games.forEach(([wi, ws, li, ls]) => lines.push(`${teams[wi].name} ${fmt(ws)} – ${fmt(ls)} ${teams[li].name}`));
+      lines.push("");
+      f.facts.forEach((x) => lines.push(`${x.label}: ${x.main} (${x.sub})`));
+      if (f.top.length && !f.playoff) {
+        lines.push("", "Standings:");
+        f.top.forEach((t) => lines.push(`${t.rank}. ${t.name} ${t.record}`));
+      }
+      if (f.mover) lines.push(`Biggest climb: ${teams[f.mover.id].name}, up ${f.mover.up} to #${f.mover.now}`);
+      lines.push("", location.href.split("#")[0]);
+      return lines.join("\n");
+    }
+
+    /* The recap as a 1080 × 1350 image, the shape a group chat shows best.
+       Team marks are drawn as their colours and initials, not avatars: an
+       image from another site would make the picture unsaveable. */
+    async function recapImage(f) {
+      const W = 1080, H = 1350, PAD = 72;
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const ctx = c.getContext("2d");
+      if (!ctx.roundRect) ctx.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
+      try { await Promise.all(['700 96px "Barlow Condensed"', '600 30px Inter', '700 30px Inter'].map((x) => document.fonts.load(x))); } catch (err) { /* system fonts */ }
+      const DISPLAY = '"Barlow Condensed", "Arial Narrow", sans-serif';
+      const BODY = 'Inter, "Segoe UI", Roboto, sans-serif';
+      const fit = (text, max, font) => {
+        ctx.font = font;
+        if (ctx.measureText(text).width <= max) return text;
+        let t = text;
+        while (t.length > 1 && ctx.measureText(`${t}…`).width > max) t = t.slice(0, -1);
+        return `${t.trimEnd()}…`;
+      };
+      const txt = (text, x, y, font, color, max = W - PAD * 2, align = "left") => {
+        ctx.textAlign = align;
+        ctx.fillStyle = color;
+        ctx.fillText(fit(String(text), max, font), x, y);
+      };
+
+      // Ground: the site's navy, a lighter wash at the top, the red rule.
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, "#102b43");
+      bg.addColorStop(0.35, "#071827");
+      bg.addColorStop(1, "#050f1a");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#d71920";
+      ctx.fillRect(0, 0, W, 10);
+
+      let y = PAD + 30;
+      txt(f.league.toUpperCase(), PAD, y, `700 30px ${BODY}`, "#f6b73c");
+      y += 92;
+      txt(`WEEK ${f.week} RECAP`, PAD, y, `700 104px ${DISPLAY}`, "#ffffff");
+      y += 46;
+      txt(`${f.season} season${f.playoff ? " · playoffs" : ""}`, PAD, y, `600 28px ${BODY}`, "rgba(219,229,238,.7)");
+      y += 44;
+
+      // Scores, two columns when there are many.
+      const games = f.games.slice(0, 8);
+      const cols = games.length > 4 ? 2 : 1;
+      const colW = (W - PAD * 2 - (cols - 1) * 24) / cols;
+      const rowH = cols === 2 ? 92 : 78;
+      const badge = (id, x, cy, size) => {
+        ctx.fillStyle = teams[id].color || "#304f91";
+        ctx.beginPath();
+        ctx.roundRect(x, cy - size / 2, size, size, size * 0.28);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = `700 ${Math.round(size * 0.5)}px ${BODY}`;
+        ctx.textAlign = "center";
+        ctx.fillText([...teams[id].name.trim()][0] || "?", x + size / 2, cy + size * 0.18);
+      };
+      games.forEach(([wi, ws, li, ls], i) => {
+        const col = cols === 2 ? i % 2 : 0;
+        const row = cols === 2 ? Math.floor(i / 2) : i;
+        const x = PAD + col * (colW + 24);
+        const top = y + row * (rowH + 12);
+        ctx.fillStyle = "rgba(255,255,255,.06)";
+        ctx.beginPath();
+        ctx.roundRect(x, top, colW, rowH, 16);
+        ctx.fill();
+        const line = (id, score, cy, win) => {
+          badge(id, x + 16, cy, 28);
+          txt(teams[id].name, x + 56, cy + 9, `${win ? 700 : 500} 25px ${BODY}`, win ? "#ffffff" : "rgba(219,229,238,.6)", colW - 56 - 110);
+          txt(fmt(score), x + colW - 16, cy + 9, `700 27px ${BODY}`, win ? "#f6b73c" : "rgba(219,229,238,.6)", 110, "right");
+        };
+        line(wi, ws, top + rowH * 0.3, true);
+        line(li, ls, top + rowH * 0.72, false);
+      });
+      y += Math.ceil(games.length / cols) * (rowH + 12) + 26;
+
+      // The week's stories, as long as there's room for them.
+      const footer = H - PAD - 40;
+      const standingsH = !f.playoff && f.top.length ? 64 + f.top.length * 44 : 0;
+      // Two to a row, as many rows as fit above the standings.
+      const factW = (W - PAD * 2 - 24) / 2, factH = 126;
+      for (let i = 0; i < f.facts.length; i += 2) {
+        if (y + factH > footer - standingsH) break;
+        f.facts.slice(i, i + 2).forEach((x, k) => {
+          const fx = PAD + k * (factW + 24);
+          ctx.fillStyle = "rgba(255,255,255,.05)";
+          ctx.beginPath();
+          ctx.roundRect(fx, y, factW, factH - 14, 16);
+          ctx.fill();
+          txt(x.label.toUpperCase(), fx + 20, y + 36, `700 20px ${BODY}`, "#f6b73c", factW - 40);
+          txt(x.main, fx + 20, y + 70, `700 26px ${BODY}`, "#ffffff", factW - 40);
+          txt(x.sub, fx + 20, y + 99, `500 21px ${BODY}`, "rgba(219,229,238,.7)", factW - 40);
+        });
+        y += factH;
+      }
+      y += 6;
+
+      if (standingsH && y + standingsH <= footer) {
+        txt("STANDINGS", PAD, y + 26, `700 22px ${BODY}`, "#f6b73c");
+        y += 44;
+        f.top.forEach((t) => {
+          txt(`${t.rank}`, PAD, y + 28, `700 28px ${BODY}`, "rgba(219,229,238,.55)");
+          txt(t.name, PAD + 50, y + 28, `600 28px ${BODY}`, "#ffffff", W - PAD * 2 - 220);
+          txt(t.record, W - PAD, y + 28, `700 28px ${BODY}`, "#ffffff", 160, "right");
+          y += 44;
+        });
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,.12)";
+      ctx.fillRect(PAD, H - PAD - 34, W - PAD * 2, 2);
+      txt("LEAGUE HISTORY", PAD, H - PAD + 6, `700 24px ${BODY}`, "rgba(219,229,238,.75)");
+      txt(location.host, W - PAD, H - PAD + 6, `500 24px ${BODY}`, "rgba(219,229,238,.5)", 500, "right");
+      return new Promise((resolve) => c.toBlob(resolve, "image/png"));
+    }
+
+    // The recap, previewed, with the ways to send it.
+    async function openRecap(week, button) {
+      if (button) { button.disabled = true; button.classList.add("is-busy"); }
+      try {
+        const facts = await recapFacts(week);
+        const blob = await recapImage(facts);
+        const text = recapText(facts);
+        const file = new File([blob], `week-${week}-recap.png`, { type: "image/png" });
+        const url = URL.createObjectURL(blob);
+        const canShare = navigator.canShare && navigator.canShare({ files: [file] });
+        const modal = document.createElement("div");
+        modal.className = "recap-modal";
+        modal.innerHTML = `<div class="recap-backdrop" data-close></div>
+          <div class="recap-card" role="dialog" aria-modal="true" aria-label="Week ${week} recap">
+            <button type="button" class="recap-close" data-close aria-label="Close">&times;</button>
+            <img src="${url}" alt="Week ${week} recap" />
+            <div class="recap-actions">
+              ${canShare ? '<button type="button" class="recap-btn primary" data-act="share">Share</button>' : ""}
+              <a class="recap-btn${canShare ? "" : " primary"}" href="${url}" download="week-${week}-recap.png">Save image</a>
+              <button type="button" class="recap-btn" data-act="copy">Copy as text</button>
+            </div>
+          </div>`;
+        document.body.appendChild(modal);
+        const close = () => { modal.remove(); URL.revokeObjectURL(url); document.removeEventListener("keydown", onKey); };
+        const onKey = (e) => { if (e.key === "Escape") close(); };
+        document.addEventListener("keydown", onKey);
+        modal.addEventListener("click", async (e) => {
+          if (e.target.closest("[data-close]")) return close();
+          const act = e.target.closest("[data-act]");
+          if (!act) return;
+          if (act.dataset.act === "share") {
+            try { await navigator.share({ files: [file], title: `${model.name} · Week ${week} recap`, text }); } catch (err) { /* dismissed */ }
+          } else if (act.dataset.act === "copy") {
+            try { await navigator.clipboard.writeText(text); act.textContent = "Copied"; } catch (err) { act.textContent = "Couldn't copy"; }
+            setTimeout(() => { act.textContent = "Copy as text"; }, 1800);
+          }
+        });
+        modal.querySelector(".recap-actions > *").focus();
+      } finally {
+        if (button) { button.disabled = false; button.classList.remove("is-busy"); }
+      }
+    }
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-recap]");
+      if (b) openRecap(Number(b.dataset.recap), b);
+    });
 
 
     /* =================================================================
@@ -4953,6 +5364,7 @@
         ${item("Biggest blowout", `${nameOf(winnerOf(blowout))} over ${nameOf(loserOf(blowout))}`, `by ${fmt(Math.abs(blowout[1] - blowout[3]))}`)}
         ${item("Closest game", `${nameOf(winnerOf(nailbiter))} over ${nameOf(loserOf(nailbiter))}`, `by ${fmt(Math.abs(nailbiter[1] - nailbiter[3]))}`)}
         ${item("League average", `${fmt1(total / scores.length)} per team`, `${fmt(total)} total points`)}
+        <div class="superlative" data-blunder-week="${week}"><small>Bench blunder</small><strong>Checking lineups…</strong><span></span></div>
       </div>`;
     }
 
@@ -4996,9 +5408,14 @@
             <article class="card">
               ${cardHead(`Week ${week} Notes`, "notes")}
               ${weekSuperlatives(week)}
+              <div class="recap-bar">
+                <a class="recap-link" href="${League.url("moves", {}, `lineups/${SEASON}`)}">Every lineup, graded →</a>
+                <button type="button" class="recap-open" data-recap="${week}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.6M5 5.4l3-3 3 3M3.2 9v3.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>Share week ${week} recap</button>
+              </div>
             </article>
           </div>`;
         markBoxScores(week);
+        fillBlunder(week);
         return;
       }
 
@@ -5008,7 +5425,10 @@
       }
 
       const stats = computeStats(asOfWeek(week));
+      const stake = !FINISHED && week === lastPlayedWeek + 1 ? scenarioCard(lastPlayedWeek) : "";
       panel.innerHTML = `
+        <div class="panel-stack">
+        ${stake}
         <article class="card">
           ${cardHead(`Week ${week} Matchups`, "versus", "Not yet played")}
           <div class="projected-matchups">
@@ -5019,7 +5439,8 @@
                 <div class="pg-side">${miniTeam(b)}<span class="pg-name">${nameOf(b)}</span><span class="pg-rec">${stats[b].record}</span></div>
               </div>`).join("")}
           </div>
-        </article>`;
+        </article>
+        </div>`;
     }
 
     /* =================================================================
@@ -5690,8 +6111,10 @@
             `<span class="rule-tag flip">Level on record and points · ${nameOf(a)} / ${nameOf(b)}</span>`).join("")}</div>`
         : "";
 
+      const stake = !FINISHED && asOf === lastPlayedWeek ? scenarioCard(asOf) : "";
       panel.innerHTML = `
         <div class="panel-stack">
+          ${stake}
           ${winnersCard(ctx, { note, label: "Projected winner's bracket" })}
           ${flipNote}
           ${losersCard(ctx, { note })}

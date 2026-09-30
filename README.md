@@ -20,6 +20,7 @@ for accounts (see [Accounts, plans and ads](#accounts-plans-and-ads)).
 | A season | `season.html?league=<id>&season=<year>` |
 | Record book | `alltime.html?league=<id>` (add `#owner=<user id>` to open a manager) |
 | Trophy room | `trophy.html?league=<id>` |
+| Front office | `moves.html?league=<id>` (add `#trades`, `#waivers`, `#picks`, or `#lineups/<year>`) |
 
 `<id>` is the league's newest Sleeper league ID. Earlier seasons are found by
 following Sleeper's `previous_league_id` chain, so one link covers the whole
@@ -47,7 +48,35 @@ that model.
 - **Box scores** come from the weekly matchups: every starter and bench
   player with his points, and his NFL club as a coloured chip.
 - **Clinch flags** (z, x, e) are only shown once they are mathematically
-  certain.
+  certain. **Playoff scenarios** ("clinches with a win, or with a loss if
+  the Dawgs beat MCM22") come from the same test run over every way the
+  next week's games could go, shown on the next week's matchups and on the
+  Playoffs view while a season is live.
+
+## The front office
+
+`insights.js` judges what managers did, in hindsight, from the scores
+Sleeper already has. Nothing uses projections (Sleeper's API terms rule
+them out). "Scored for" always means points in a team's starting lineup.
+
+- **Lineups:** each week's best possible lineup from the players a team
+  had (an exact assignment over Sleeper's slots, flex and IDP included,
+  using the eligible positions in `data/players.json`), against the one it
+  set: efficiency, points left on the bench, the games a lineup cost, and
+  the costliest benchings. Taxi-squad players who were never started that
+  season are left out. The week's worst benching is also in each week's
+  notes on the season page.
+- **Trades:** every trade in the league's history with what each side got
+  and what it has scored for them since; a traded pick counts once it is
+  used, through the player drafted with it. An all-time table of who wins
+  their trades.
+- **Waivers:** every pickup and what it scored for the team that added
+  him that season; FAAB spent and points per dollar where the league bids.
+- **Draft picks** (keeper and dynasty leagues): who holds every pick for
+  the next three drafts, from Sleeper's traded-picks list.
+- **Weekly recap:** "Share week N recap" in each week's notes draws a
+  1080 × 1350 image (scores, high score, bench blunder, trade of the week,
+  standings) to share to a group chat, save, or copy as text.
 
 A finished season never changes, so its data is kept in the browser
 (IndexedDB) for a month; a season in progress is re-read every few minutes.

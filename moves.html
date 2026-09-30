@@ -1,0 +1,2070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A Sleeper fantasy football league's front office: lineup efficiency, every trade graded in hindsight, the waiver wire and future draft picks." />
+  <title>League History · Front Office</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#071827" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="League History" />
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <script src="sleeper.js"></script>
+  <script src="pwa.js" defer></script>
+  <style>
+    /* Moving between pages crossfades where the browser supports it. */
+    @view-transition { navigation: auto; }
+
+    :root {
+      --ink: #0b1726;
+      --muted: #637083;
+      --line: #dce3eb;
+      --surface: #ffffff;
+      --surface-2: #f5f7fa;
+      --page: #eef2f6;
+      --navy: #071827;
+      --navy-2: #102b43;
+      --blue: #1769e0;
+      --blue-2: #0f56bd;
+      --red: #d71920;
+      --gold: #f6b73c;
+      --green: #16834a;
+      --shadow: 0 12px 30px rgba(7, 24, 39, 0.10);
+      --radius: 18px;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        var(--page);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+    }
+    button,
+    select {
+      font: inherit;
+    }
+    button {
+      cursor: pointer;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(7, 24, 39, .96);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #fff;
+    }
+    .topbar-inner {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand {
+      color: inherit;
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+    .brand-mark img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .brand-copy {
+      min-width: 0;
+    }
+    .brand-kicker {
+      display: block;
+      font-size: 10px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #9eb0c1;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+    .brand-title {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+    .year-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #c9d5df;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .year-control select {
+      appearance: none;
+      color: #fff;
+      background: #16324a;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 10px;
+      padding: 10px 38px 10px 14px;
+      font-weight: 800;
+      outline: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, #fff 50%),
+        linear-gradient(135deg, #fff 50%, transparent 50%);
+      background-position: calc(100% - 16px) 16px, calc(100% - 11px) 16px;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+    }
+    .hero {
+      color: #fff;
+      border-bottom: 4px solid var(--red);
+    }
+    .hero-inner {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 36px 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(330px, 430px);
+      gap: 32px;
+      align-items: center;
+    }
+    .eyebrow {
+      color: #9fc4ff;
+      text-transform: uppercase;
+      letter-spacing: .19em;
+      font-size: 11px;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+    .hero h1 {
+      font-size: clamp(54px, 8vw, 92px);
+      line-height: .9;
+      letter-spacing: -.06em;
+      margin: 0;
+      max-width: 760px;
+    }
+    main {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 30px 0 70px;
+    }
+    .page-toolbar {
+      margin: 28px 0 18px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .page-title h2 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -.04em;
+    }
+    .page-title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .view-tabs {
+      display: inline-flex;
+      gap: 4px;
+      background: #e4e9ef;
+      padding: 4px;
+      border-radius: 12px;
+      flex-wrap: wrap;
+    }
+    .view-tab {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 14px;
+      color: #536174;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 800;
+      transition: .18s ease;
+    }
+    .view-tab:hover {
+      color: var(--ink);
+    }
+    .view-tab.active {
+      color: #fff;
+      background: var(--navy-2);
+      box-shadow: 0 5px 14px rgba(7,24,39,.18);
+    }
+    .view-panel {
+      display: none;
+    }
+    .view-panel.active {
+      display: block;
+      animation: panelIn .2s ease;
+    }
+    @keyframes panelIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 19px 20px;
+      background: #fbfcfd;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-head h3 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 18px;
+      letter-spacing: -.025em;
+    }
+    .division-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 8px;
+      background: var(--navy);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .chip-icon {
+      width: 16px;
+      height: 16px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .division-chip:has(.chip-icon) {
+      padding: 0;
+      width: 28px;
+    }
+    .card-head > span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 555px;
+    }
+    th {
+      color: #6b7788;
+      font-size: 10px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      font-weight: 900;
+      padding: 12px 14px;
+      text-align: right;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfd;
+      white-space: nowrap;
+    }
+    th:first-child,
+    th:nth-child(2) {
+      text-align: left;
+    }
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid #edf0f3;
+      font-size: 13px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    tbody tr {
+      transition: background .15s ease;
+    }
+    tbody tr:hover {
+      background: #f5f8fb;
+    }
+    td:first-child,
+    td:nth-child(2) {
+      text-align: left;
+    }
+    .rank {
+      color: #7a8796;
+      font-weight: 900;
+      width: 36px;
+    }
+    .team-cell {
+      min-width: 250px;
+      white-space: normal;
+    }
+    .team-cell .team-button {
+      min-width: 0;
+    }
+    .team-cell .team-meta {
+      min-width: 0;
+    }
+    .team-cell .team-name {
+      overflow-wrap: anywhere;
+    }
+    .team-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--blue-2);
+      font-weight: 800;
+      text-align: left;
+    }
+    .team-button:hover .team-name {
+      text-decoration: underline;
+    }
+    .team-badge {
+      width: 34px;
+      height: 34px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 10px;
+      font-size: 17px;
+      color: #fff;
+      background: var(--team-color, var(--navy-2));
+      border: 2px solid rgba(255,255,255,.5);
+      box-shadow: 0 0 0 1px rgba(7,24,39,.12), inset 0 -8px 14px rgba(0,0,0,.13);
+      flex: 0 0 auto;
+    }
+    .team-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .team-name {
+      color: var(--blue-2);
+      font-size: 13px;
+    }
+    .owner {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .record {
+      font-weight: 900;
+    }
+    .positive {
+      color: var(--green);
+    }
+    .negative {
+      color: #c92929;
+    }
+    .muted {
+      color: var(--muted);
+    }
+    .sort-button {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 5px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-transform: inherit;
+      letter-spacing: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .sort-button:hover,
+    .sort-button.active {
+      color: var(--blue-2);
+    }
+    .sort-indicator {
+      min-width: 10px;
+      font-size: 11px;
+      line-height: 1;
+      color: var(--red);
+    }
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      background: rgba(4, 14, 23, .64);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s ease;
+      backdrop-filter: blur(3px);
+    }
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .team-drawer {
+      position: fixed;
+      z-index: 80;
+      top: 0;
+      right: 0;
+      width: min(680px, 100%);
+      height: 100dvh;
+      background: #f6f8fa;
+      box-shadow: -25px 0 65px rgba(0,0,0,.25);
+      transform: translateX(104%);
+      transition: transform .26s cubic-bezier(.2,.8,.2,1);
+      display: flex;
+      flex-direction: column;
+    }
+    .team-drawer.open {
+      transform: translateX(0);
+    }
+    @media (min-width: 761px) {
+      .team-drawer {
+        left: 0;
+        right: auto;
+        transform: translateX(-104%);
+        box-shadow: 25px 0 65px rgba(0,0,0,.25);
+      }
+      .team-drawer.open {
+        transform: translateX(0);
+      }
+    }
+    .drawer-hero {
+      padding: 22px;
+      color: #fff;
+      background: var(--drawer-color, var(--navy-2));
+      position: relative;
+      overflow: hidden;
+    }
+    .drawer-hero::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      right: -120px;
+      top: -110px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.08);
+    }
+    .drawer-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 2;
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      border-radius: 10px;
+      font-size: 22px;
+      line-height: 1;
+    }
+    .drawer-team {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding-right: 46px;
+    }
+    .drawer-team .team-badge {
+      width: 58px;
+      height: 58px;
+      font-size: 28px;
+    }
+    .drawer-team h2 {
+      margin: 0 0 4px;
+      font-size: 25px;
+      letter-spacing: -.04em;
+    }
+    .drawer-team p {
+      margin: 0;
+      color: rgba(255,255,255,.72);
+      font-size: 13px;
+    }
+    .drawer-year {
+      display: inline-block;
+      margin-bottom: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.16);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .drawer-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .drawer-stat {
+      background: rgba(255,255,255,.09);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .drawer-stat small {
+      display: block;
+      color: rgba(255,255,255,.63);
+      font-size: 8px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      font-weight: 900;
+      margin-bottom: 5px;
+    }
+    .drawer-stat strong {
+      font-size: 14px;
+    }
+    .drawer-stats-body {
+      display: none;
+    }
+    .drawer-body {
+      flex: 1;
+      overflow: auto;
+      padding: 18px;
+    }
+    .schedule-section {
+      margin-bottom: 20px;
+    }
+    .schedule-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 2px 10px;
+    }
+    .schedule-heading h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+    .schedule-heading span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .schedule-list {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .schedule-row {
+      display: grid;
+      grid-template-columns: 54px 34px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border-bottom: 1px solid #edf0f3;
+    }
+    .schedule-row:last-child {
+      border-bottom: 0;
+    }
+    .schedule-week {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .result-pill {
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 1000;
+      color: #fff;
+    }
+    .result-pill.win {
+      background: var(--green);
+    }
+    .result-pill.loss {
+      background: #c73535;
+    }
+    .result-pill.bye {
+      background: #8693a1;
+    }
+    .schedule-opponent {
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .schedule-opponent strong {
+      text-decoration: underline dotted rgba(23, 105, 224, .55) 1.5px;
+      text-underline-offset: 3px;
+    }
+    @media (hover: hover) {
+      .schedule-opponent:hover strong {
+        color: var(--blue);
+        text-decoration-style: solid;
+        text-decoration-color: var(--blue);
+      }
+    }
+    .schedule-opponent strong {
+      display: block;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .schedule-opponent span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .schedule-score {
+      text-align: right;
+      font-size: 12px;
+    }
+    .schedule-score strong {
+      display: block;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+    .schedule-score span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .mobile-stat-strip,
+    .mobile-sort-control {
+      display: none;
+    }
+    .mobile-stat-strip {
+      margin-top: 5px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 3px;
+    }
+    .mobile-stat {
+      min-width: 0;
+      padding: 3px 2px;
+      border-radius: 5px;
+      background: #f3f6f9;
+      text-align: center;
+    }
+    .mobile-stat small {
+      display: block;
+      color: #7a8796;
+      font-size: 7px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+    .mobile-stat strong {
+      display: block;
+      margin-top: 2px;
+      color: var(--ink);
+      font-size: 9px;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .mobile-sort-control {
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .mobile-sort-control select {
+      min-width: 112px;
+      border: 1px solid #ccd5df;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 7px 28px 7px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .mobile-sort-direction {
+      width: 30px;
+      height: 30px;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid #ccd5df;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 1000;
+      cursor: pointer;
+    }
+    .mobile-sort-direction:hover,
+    .mobile-sort-direction:focus-visible {
+      border-color: var(--blue);
+      color: var(--blue-2);
+    }
+    @media (max-width: 900px) {
+      .hero-inner {
+        grid-template-columns: 1fr;
+      }
+      .page-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .view-tabs {
+        align-self: stretch;
+      }
+      .view-tab {
+        flex: 1;
+      }
+    }
+    @media (max-width: 700px) {
+      .topbar-inner,
+      .hero-inner,
+      main {
+        width: min(100% - 12px, 1220px);
+      }
+      .topbar-inner {
+        min-height: 56px;
+      }
+      .brand-kicker {
+        display: none;
+      }
+      .brand-title {
+        font-size: 15px;
+      }
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+      }
+      .year-control > span {
+        display: none;
+      }
+      .year-control select {
+        padding: 7px 27px 7px 9px;
+        font-size: 12px;
+      }
+      .hero-inner {
+        padding: 20px 0 18px;
+        gap: 12px;
+      }
+      .hero h1 {
+        font-size: 38px;
+      }
+      .page-toolbar {
+        margin: 15px 0 9px;
+        gap: 8px;
+      }
+      .page-title h2 {
+        font-size: 21px;
+      }
+      .page-title p {
+        margin-top: 3px;
+        font-size: 10px;
+      }
+      .card {
+        border-radius: 12px;
+        box-shadow: 0 5px 16px rgba(7,24,39,.07);
+      }
+      .card-head {
+        padding: 11px 12px;
+      }
+      .card-head h3 {
+        font-size: 15px;
+      }
+      .card-head > span {
+        font-size: 9px;
+      }
+      .division-chip {
+        min-width: 23px;
+        height: 23px;
+        border-radius: 6px;
+        font-size: 9px;
+      }
+      td.team-cell .team-button {
+        flex: 0 1 auto;
+        width: auto;
+        max-width: 100%;
+        min-width: 0;
+      }
+      td.team-cell .team-button .team-meta {
+        min-width: 0;
+      }
+      td.team-cell .team-button .team-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      td.team-cell .mobile-stat-strip {
+        flex: 1 0 100%;
+      }
+      .team-button {
+        width: 100%;
+        gap: 6px;
+      }
+      .team-badge {
+        width: 27px;
+        height: 27px;
+        border-radius: 7px;
+        font-size: 13px;
+      }
+      .team-meta {
+        min-width: 0;
+        gap: 0;
+      }
+      .team-name {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        color: var(--blue-2);
+        font-size: 10.5px;
+        line-height: 1.1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .owner {
+        font-size: 8.5px;
+        line-height: 1.15;
+      }
+      .mobile-stat-strip {
+        display: grid;
+      }
+      .mobile-sort-control {
+        display: inline-flex;
+        margin-left: auto;
+      }
+      .drawer-stats {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+      }
+      .drawer-stat {
+        padding: 7px 4px;
+      }
+      .drawer-stat small {
+        font-size: 7px;
+      }
+      .drawer-stat strong {
+        font-size: 11px;
+      }
+      .schedule-row {
+        grid-template-columns: 42px 23px minmax(0, 1fr) auto;
+        gap: 5px;
+        padding: 7px;
+      }
+      .schedule-week {
+        font-size: 8px;
+      }
+      .result-pill {
+        width: 21px;
+        height: 21px;
+        font-size: 8px;
+      }
+      .schedule-opponent strong {
+        font-size: 10px;
+      }
+      .schedule-opponent span {
+        font-size: 8px;
+      }
+      .schedule-score {
+        font-size: 9px;
+      }
+      .schedule-score strong {
+        font-size: 10px;
+      }
+      .drawer-hero,
+      .drawer-body {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      .team-drawer {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto;
+        max-height: 92dvh;
+        border-radius: 16px 16px 0 0;
+        overflow: hidden;
+        transform: translateY(104%);
+      }
+      .team-drawer.open {
+        transform: none;
+      }
+      .drawer-body {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+      .drawer-hero {
+        flex: 0 0 auto;
+        padding-top: 14px;
+        padding-bottom: 14px;
+        transition: padding .2s ease;
+      }
+      .drawer-close {
+        top: 10px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        font-size: 18px;
+        border-radius: 8px;
+      }
+      .drawer-team .team-badge,
+      .drawer-team h2 {
+        transition: width .2s ease, height .2s ease, font-size .2s ease;
+      }
+      .drawer-team .team-badge {
+        width: 48px;
+        height: 48px;
+      }
+      .drawer-team h2 {
+        font-size: 21px;
+      }
+      .drawer-hero .drawer-stats {
+        display: none;
+      }
+      .drawer-stats-body {
+        display: grid;
+        margin: 0 0 14px;
+      }
+      .drawer-stats-body .drawer-stat {
+        background: var(--drawer-color, var(--navy-2));
+        border-color: transparent;
+        color: #fff;
+      }
+      .drawer-year,
+      .drawer-team p {
+        max-height: 34px;
+        overflow: hidden;
+        transition: max-height .28s ease, opacity .2s ease, margin .28s ease, padding .28s ease;
+      }
+      .team-drawer.compact .drawer-hero {
+        padding-top: 8px;
+        padding-bottom: 8px;
+      }
+      .team-drawer.compact .drawer-team p,
+      .team-drawer.compact .drawer-year {
+        max-height: 0;
+        opacity: 0;
+        margin: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+      .team-drawer.compact .drawer-team .team-badge {
+        width: 34px;
+        height: 34px;
+      }
+      .team-drawer.compact .drawer-team h2 {
+        font-size: 16px;
+        margin: 0;
+      }
+    }
+    .hero + main .page-toolbar {
+      margin-top: 0;
+    }
+    @media (max-width: 700px) {
+      .hero + main .page-toolbar {
+        margin-top: 0;
+      }
+    }
+    body {
+      background:
+        repeating-linear-gradient(90deg, transparent 0 149px, rgba(11,23,38,.045) 149px 150px),
+        repeating-linear-gradient(90deg, transparent 0 29px, rgba(11,23,38,.018) 29px 30px),
+        #f0f4f9;
+    }
+    .card {
+      border-color: rgba(15,34,55,.09);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.85),
+        0 1px 2px rgba(10,22,38,.05),
+        0 22px 46px -26px rgba(10,22,38,.42);
+    }
+    .card-head {
+      position: relative;
+      background: #fafcfe;
+    }
+    .card-head::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 2px;
+      background: rgba(23,105,224,.35);
+      opacity: .75;
+    }
+    .division-chip {
+      background: var(--blue);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.22),
+        0 6px 14px -5px rgba(23,105,224,.6);
+    }
+    th {
+      background: #f6f9fc;
+    }
+    tbody tr {
+      transition: background .18s ease, box-shadow .18s ease;
+    }
+    tbody tr:hover {
+      background: rgba(23,105,224,.05);
+      box-shadow: inset 3px 0 0 rgba(23,105,224,.6);
+    }
+    .team-badge {
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.35),
+        0 6px 14px -6px rgba(7,24,39,.55);
+    }
+    .view-tabs {
+      background: rgba(12,28,45,.06);
+      border-radius: 999px;
+      box-shadow: inset 0 1px 2px rgba(7,24,39,.08);
+    }
+    .view-tab {
+      border-radius: 999px;
+      transition: color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+    .view-tab.active {
+      background: var(--navy-2);
+      box-shadow: 0 8px 18px -7px rgba(7,24,39,.7), inset 0 1px 0 rgba(255,255,255,.12);
+    }
+    @keyframes v4Sheen {
+      0%, 15% { background-position: -120% 0; }
+      55%, 100% { background-position: 140% 0; }
+    }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255,255,255,.075) 28px 30px) 0 34% / 100% 7px no-repeat,
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(255,255,255,.075) 28px 30px) 0 68% / 100% 7px no-repeat,
+        repeating-linear-gradient(90deg, transparent 0 149px, rgba(255,255,255,.055) 149px 150px),
+        repeating-linear-gradient(90deg, transparent 0 29px, rgba(255,255,255,.022) 29px 30px),
+        rgba(7, 24, 39, .98);
+    }
+    .hero::before {
+      content: "🏈";
+      position: absolute;
+      right: -26px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-24deg);
+      font-size: 150px;
+      line-height: 1;
+      opacity: .055;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+    }
+    .team-button {
+      transition: transform .15s ease;
+    }
+    .team-name {
+      transition: color .15s ease;
+    }
+    .page-title h2 {
+      position: relative;
+      padding-left: 15px;
+    }
+    .page-title h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .12em;
+      bottom: .12em;
+      width: 5px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+    .live-hero .hero-inner {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+      align-items: stretch;
+      padding: 26px 20px 30px;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    .live-status {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      padding: 5px 12px 5px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .12);
+      border: 1px solid rgba(255, 255, 255, .22);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 0 rgba(215, 25, 32, .7);
+      animation: livePulse 2.2s infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot {
+        animation: none;
+      }
+    }
+    .live-status h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.04;
+      letter-spacing: -.02em;
+    }
+    .live-status p {
+      margin: 0;
+      max-width: 40ch;
+      color: rgba(255, 255, 255, .72);
+      font-size: 14.5px;
+      line-height: 1.45;
+    }
+    .hero-brief {
+      background: rgba(255, 255, 255, .07);
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 16px;
+      padding: 17px 19px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      min-width: 0;
+    }
+    .brief-label {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .55);
+    }
+    .brief-narrative {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, .86);
+    }
+    .brief-narrative strong {
+      color: #fff;
+      font-weight: 800;
+    }
+    .brief-headlines {
+      list-style: none;
+      margin: 0;
+      padding: 13px 0 0;
+      border-top: 1px solid rgba(255, 255, 255, .13);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .brief-headlines li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 13px;
+      line-height: 1.42;
+      color: rgba(255, 255, 255, .8);
+    }
+    .brief-headlines li::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 5px;
+      height: 5px;
+      margin-top: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+    .brief-headlines li > span {
+      min-width: 0;
+    }
+    .brief-headlines strong {
+      color: #fff;
+      font-weight: 800;
+    }
+    .week-rail-wrap {
+      width: min(1220px, calc(100% - 32px));
+      margin: 22px auto 0;
+    }
+    .week-rail-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .week-rail-head strong {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .week-rail-head span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .week-rail {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 6px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      scrollbar-width: thin;
+    }
+    .view-select-wrap {
+      display: none;
+    }
+    @media (max-width: 700px) {
+      .week-rail {
+        display: none;
+      }
+      .view-tabs {
+        display: none;
+      }
+      .view-select-wrap {
+        display: block;
+        position: relative;
+        width: 100%;
+      }
+      .view-select-wrap::after {
+        content: "";
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        width: 9px;
+        height: 9px;
+        margin-top: -6px;
+        border-right: 2.5px solid rgba(255, 255, 255, .8);
+        border-bottom: 2.5px solid rgba(255, 255, 255, .8);
+        transform: rotate(45deg);
+        pointer-events: none;
+      }
+      #viewSelect {
+        width: 100%;
+        appearance: none;
+        -webkit-appearance: none;
+        background: var(--navy);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 14px;
+        padding: 13px 42px 13px 16px;
+        font-size: 15px;
+        font-weight: 800;
+        box-shadow: var(--shadow);
+      }
+      #viewSelect:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+    }
+    @media (max-width: 900px) {
+      .live-hero .hero-inner {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .hero-brief {
+        order: 2;
+      }
+    }
+    @media (max-width: 560px) {
+      .live-hero .hero-inner {
+        padding: 20px 14px 24px;
+        gap: 14px;
+      }
+      .hero-brief {
+        padding: 14px 15px;
+        gap: 11px;
+      }
+      .brief-narrative {
+        font-size: 13.5px;
+      }
+      .brief-headlines li {
+        font-size: 12.5px;
+      }
+    }
+    .team-badge:has(.team-logo) {
+      background: #fff;
+      box-shadow: inset 0 0 0 1.5px var(--team-color, #667);
+    }
+    .team-badge .team-logo {
+      width: 82%;
+      height: 82%;
+      object-fit: contain;
+      display: block;
+      margin: auto;
+    }
+
+    /* ================================================================
+       All-time page. Everything above is the season pages' own styling
+       (shared with season.html), so the header, hero, tabs, cards, tables
+       and team panel look and size exactly as they do on a season page.
+       What follows is only what this page has and they do not.
+       ================================================================ */
+
+    .home-hero h1 { margin: 0; }
+
+
+    .division-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+    /* Titles and last places wear the same tints as the season pages'
+       winners and losers brackets. */
+    .champions-card .card-head { background: #fffae9; border-bottom-color: #ead58b; }
+    .losers-card .card-head { background: #fffbfb; border-bottom-color: #efc9c6; }
+    .champions-card .division-chip { background: #b8860b; }
+    .losers-card .division-chip { background: #a62f2b; }
+    .titles-table { min-width: 0; }
+    .standings-section { margin-top: 18px; }
+    @media (max-width: 700px) { .standings-section { margin-top: 9px; } }
+    .title-count { font-weight: 900; }
+    .title-years { color: var(--muted); }
+
+    /* ---- Team history panel: the season pages' team drawer ---- */
+    .drawer-body .schedule-list + .schedule-list { margin-top: 10px; }
+    .schedule-list > .table-wrap table { min-width: 520px; }
+    .schedule-list th, .schedule-list td { padding-left: 12px; padding-right: 12px; }
+    .schedule-list td { font-size: 12px; padding-top: 10px; padding-bottom: 10px; }
+    .schedule-list .team-badge { width: 28px; height: 28px; border-radius: 8px; }
+    .schedule-list .team-name { font-size: 12px; }
+    .schedule-list .owner { font-size: 10px; }
+
+    /* Highlights: a tinted tile each, its emoji large in the corner. */
+    .hl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .hl-tile {
+      --hl-bg: #f1f4f8; --hl-line: #d3dbe5; --hl-ink: #102b43; --hl-chip: #102b43;
+      position: relative; overflow: hidden; min-width: 0; min-height: 98px;
+      display: flex; flex-direction: column;
+      padding: 12px 12px 11px;
+      border: 1px solid var(--hl-line); border-radius: 14px;
+      background: linear-gradient(145deg, #fff 0%, var(--hl-bg) 100%);
+    }
+    .hl-icon {
+      position: absolute; right: -8px; bottom: -14px;
+      font-size: 58px; line-height: 1; opacity: .2; transform: rotate(-12deg);
+      pointer-events: none;
+    }
+    .hl-label { position: relative; color: var(--hl-ink); font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .hl-value { position: relative; margin-top: 6px; color: var(--ink); font-size: 20px; font-weight: 900; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+    .hl-meta { position: relative; margin-top: auto; padding-top: 4px; color: var(--muted); font-size: 10px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hl-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 1px; }
+    .hl-chips span { padding: 3px 8px; border-radius: 999px; background: var(--hl-chip); color: #fff; font-size: 11px; font-weight: 900; letter-spacing: .02em; }
+    .hl-gold   { --hl-bg: #fff4cf; --hl-line: #ead58b; --hl-ink: #8a6500; --hl-chip: #c99a1c; }
+    .hl-red    { --hl-bg: #ffe9e7; --hl-line: #efc9c6; --hl-ink: #a62f2b; --hl-chip: #c73535; }
+    .hl-green  { --hl-bg: #e3f5ea; --hl-line: #bfe3cc; --hl-ink: #16834a; --hl-chip: #16834a; }
+    .hl-fire   { --hl-bg: #ffe8d9; --hl-line: #f6cfb0; --hl-ink: #b4540f; --hl-chip: #b4540f; }
+    .hl-blue   { --hl-bg: #e2eeff; --hl-line: #c5dafb; --hl-ink: #0f56bd; --hl-chip: #0f56bd; }
+    .hl-purple { --hl-bg: #ece6ff; --hl-line: #d6cdf7; --hl-ink: #5b3fb8; --hl-chip: #5b3fb8; }
+    .hl-navy   { --hl-bg: #e6ebf2; --hl-line: #d3dbe5; --hl-ink: #102b43; --hl-chip: #102b43; }
+
+    /* Season history rows: the schedule row, with the finish in the pill. */
+    .season-row { color: inherit; text-decoration: none; transition: background .15s ease; }
+    @media (hover: hover) {
+      .season-row:hover { background: #f5f8fb; }
+      .season-row:hover .schedule-opponent strong { color: var(--blue); text-decoration-style: solid; text-decoration-color: var(--blue); }
+    }
+    .result-pill.place-1 { background: #c99a1c; }
+    .result-pill.place-2 { background: #8a97a6; }
+    .result-pill.place-3 { background: #b0703a; }
+    .result-pill.place-last { background: #c73535; }
+    .result-pill.place-mid { background: #d5dce4; color: #4b5866; }
+    /* The season still being played: a red dot, as on the live season page. */
+    .result-pill.place-live { background: #fdecec; }
+    .result-pill.place-live::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 3px rgba(215, 25, 32, .18); }
+
+    .chart-wrap { padding: 10px 10px 4px; }
+    .wins-chart { display: block; width: 100%; height: auto; }
+
+    /* Most-started players: the drawer's roster rows, one cell per season. */
+    .starters-row {
+      display: grid;
+      grid-template-columns: 22px 28px minmax(0, 1fr) var(--year-cols) 50px;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 12px;
+      border-top: 1px solid #edf0f3;
+      font-variant-numeric: tabular-nums;
+    }
+    .starters-row:first-child { border-top: 0; }
+    .starters-row.header {
+      padding-top: 8px; padding-bottom: 8px;
+      background: #f6f8fa; color: #788696;
+      font-size: 8px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
+    }
+    .starters-rank { color: var(--muted); font-size: 11px; font-weight: 900; text-align: center; }
+    .starters-chip {
+      display: inline-block; width: 28px; padding: 3px 0; border-radius: 4px;
+      background: #e7ebef; color: #4b5866; font-size: 8px; font-weight: 900; text-align: center;
+    }
+    .starters-name { min-width: 0; }
+    .starters-name strong { display: block; overflow: hidden; color: var(--ink); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .starters-name small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .03em; }
+    .starters-years { display: grid; grid-template-columns: repeat(var(--year-count), 1fr); gap: 4px; text-align: center; }
+    .starters-year {
+      height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      border-radius: 6px; font-size: 9.5px; font-weight: 900; line-height: 1;
+    }
+    .starters-year .starters-chip { width: 24px; padding: 2px 0; font-size: 7px; }
+    .starters-year.on { background: color-mix(in srgb, var(--team-color) calc(var(--fill) * 100%), #fff); color: var(--ink); }
+    .starters-year.off { background: #f1f4f7; color: #c3ccd5; }
+    .starters-total { text-align: right; }
+    .starters-total strong { display: block; color: var(--ink); font-size: 13px; line-height: 1; }
+    .starters-total small { color: var(--muted); font-size: 8px; }
+    .empty-state { padding: 24px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    @media (max-width: 700px) {
+      .division-grid { grid-template-columns: 1fr; gap: 9px; }
+      .titles-table th, .titles-table td { padding-left: 8px; padding-right: 8px; }
+      .titles-table td { font-size: 11px; }
+      .titles-table .team-button { width: auto; }
+      .titles-table .team-cell { min-width: 0; width: 100%; }
+      .titles-table .team-name { max-width: 150px; }
+
+      /* Standings rows collapse as the season pages' do: rank and team, with
+         every figure in a strip underneath. */
+      .compact-table .table-wrap { overflow: visible; }
+      .compact-table table, .compact-table tbody { display: block; width: 100%; min-width: 0; }
+      .compact-table thead { display: none; }
+      .compact-table tbody tr {
+        display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center;
+        padding: 7px 8px; border-bottom: 1px solid #edf0f3;
+      }
+      .compact-table tbody tr:last-child { border-bottom: 0; }
+      .compact-table td { padding: 0; border: 0; text-align: left; white-space: normal; }
+      .compact-table td.rank { grid-column: 1; color: #738090; font-size: 11px; text-align: center; }
+      .compact-table td.team-cell { grid-column: 2; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; }
+      .compact-table td:not(.rank):not(.team-cell) { display: none; }
+
+      .hl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+      .hl-tile { min-height: 82px; padding: 9px 10px; border-radius: 12px; }
+      .hl-icon { font-size: 46px; }
+      .hl-label { font-size: 8px; }
+      .hl-value { margin-top: 4px; font-size: 16px; }
+      .hl-meta { font-size: 9px; }
+      .hl-chips span { padding: 2px 7px; font-size: 10px; }
+      .schedule-list > .table-wrap { overflow: visible; }
+      .schedule-list > .table-wrap table,
+      .schedule-list > .table-wrap tbody { display: block; width: 100%; min-width: 0; }
+      .schedule-list > .table-wrap thead { display: none; }
+      .schedule-list > .table-wrap tbody tr { display: block; padding: 7px; border-bottom: 1px solid #edf0f3; }
+      .schedule-list > .table-wrap tbody tr:last-child { border-bottom: 0; }
+      .schedule-list > .table-wrap td { display: none; padding: 0; border: 0; white-space: normal; }
+      .schedule-list > .table-wrap td.team-cell { display: block; }
+      .schedule-list .team-badge { width: 23px; height: 23px; border-radius: 6px; }
+      .schedule-list .team-name { font-size: 10px; }
+      .schedule-list .owner { font-size: 8px; }
+      .starters-row {
+        grid-template-columns: 16px 20px minmax(0, 1fr) var(--year-cols-sm) 30px;
+        gap: 5px; padding: 6px 7px;
+      }
+      .starters-row.header { font-size: 7px; }
+      .starters-rank { font-size: 9px; }
+      .starters-name strong { font-size: 10px; }
+      .starters-name small { font-size: 8px; }
+      .starters-years { gap: 2px; }
+      .starters-year { height: 28px; border-radius: 4px; font-size: 8px; }
+      .starters-total strong { font-size: 10px; }
+      .starters-total small { font-size: 7px; }
+    }
+  
+    /* Sortable headers line up with their column: numbers sit right, so
+       their headers do too. */
+    th .sort-button { justify-content: flex-end; }
+    th:first-child .sort-button, th:nth-child(2) .sort-button { justify-content: flex-start; }
+    th .sort-indicator:empty { display: none; }
+  
+    /* ---- Desktop: the navy header becomes a sidebar ----------------------
+       On a wide screen the top bar and the hero stack into one navy column
+       fixed down the left, with the red stripe on its edge, so the page's
+       own content (week rail, tabs, tables) starts at the very top on the
+       right. Narrower screens keep the header across the top. */
+    @media (min-width: 1200px) {
+      :root { --side: 340px; --topbar-h: 76px; }
+      body { padding-left: var(--side); }
+      .topbar {
+        position: fixed; top: 0; left: 0; bottom: auto; width: var(--side);
+        border-right: 4px solid var(--red);
+      }
+      .topbar-inner { width: auto; min-height: var(--topbar-h); padding: 0 18px 0 20px; gap: 10px; }
+      .topbar .year-control > span { display: none; }
+      .topbar .brand-title { font-size: 17px; }
+      html body .hero {
+        position: fixed; top: var(--topbar-h); bottom: 0; left: 0; z-index: 30;
+        width: var(--side); overflow-y: auto; overscroll-behavior: contain;
+        border-bottom: 0; border-right: 4px solid var(--red);
+        scrollbar-width: none;
+      }
+      html body .hero::-webkit-scrollbar { display: none; }
+      html body .hero .hero-inner,
+      html body .hero .hero-inner.outcome-grid,
+      html body .live-hero .hero-inner {
+        width: auto; margin: 0; padding: 26px 20px 28px;
+        display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start;
+      }
+      html body .hero-brief { width: auto; max-width: none; justify-self: stretch; }
+      html body .live-status h1 { font-size: 38px; }
+      .week-rail-wrap,
+      main { width: min(1220px, calc(100% - 48px)); }
+      .week-rail-wrap { margin-top: 24px; }
+      main { padding-top: 22px; }
+      main > .page-toolbar:first-child { margin-top: 0; }
+      .topbar .brand-kicker { white-space: nowrap; letter-spacing: .16em; }
+      /* Every week still fits beside the sidebar. */
+      .week-rail { gap: 2px; }
+      .week-pill { padding: 9px 6px; }
+      /* Division tables sit two across in less room: let them fit it. */
+      .division-grid table { min-width: 0; }
+      .division-grid th, .division-grid td { padding-left: 7px; padding-right: 7px; }
+      .division-grid .team-cell { min-width: 0; }
+    }
+    /* Beside the sidebar on a smaller desktop, the division tables take a
+       row each rather than squeeze two across. */
+    @media (min-width: 1200px) and (max-width: 1439px) {
+      .division-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+  
+    /* Trophy Room: always in the header, between the brand and the season
+       menu; in the desktop sidebar it sits under the menu. */
+    .topbar-trophy {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto;
+      padding: 9px 13px;
+      border: 1px solid rgba(246, 183, 60, .45); border-radius: 10px;
+      background: rgba(246, 183, 60, .12);
+      color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap;
+      transition: background .18s ease, border-color .18s ease;
+    }
+    .topbar-trophy:hover { background: rgba(246, 183, 60, .22); border-color: rgba(246, 183, 60, .7); }
+    .topbar-trophy + .year-control { margin-left: 0; }
+    @media (max-width: 700px) {
+      .topbar-inner { gap: 8px; }
+      .topbar-trophy { padding: 6px 9px; gap: 5px; font-size: 11.5px; border-radius: 9px; }
+    }
+    @media (max-width: 374px) {
+      .topbar-trophy { font-size: 0; gap: 0; padding: 6px 8px; }
+      .topbar-trophy span { font-size: 14px; }
+    }
+    @media (min-width: 1200px) {
+      :root { --topbar-h: 124px; }
+      .topbar-inner {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto;
+        align-content: center; row-gap: 12px; column-gap: 10px; padding-top: 14px; padding-bottom: 14px;
+      }
+      .topbar .brand { grid-column: 1; grid-row: 1; }
+      .topbar .year-control { grid-column: 2; grid-row: 1; }
+      .topbar-trophy { grid-column: 1 / -1; grid-row: 2; margin: 0; justify-content: center; }
+    }
+  </style>
+  <style>
+    /* ---- Front office ----------------------------------------------------
+       Lists rather than wide tables: every row reads on a phone as it is. */
+    .fo-tabs {
+      display: flex; gap: 2px; padding: 3px; margin: 0 0 14px; border-radius: 12px;
+      background: var(--surface-3, #eef1f5); overflow-x: auto; scrollbar-width: none;
+    }
+    .fo-tabs::-webkit-scrollbar { display: none; }
+    .fo-tabs button {
+      flex: 1 0 auto; min-height: 38px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent;
+      color: var(--ink-2, #475467); font: 700 13px/1 var(--font-body, Inter, sans-serif); cursor: pointer; white-space: nowrap;
+    }
+    .fo-tabs button[aria-selected="true"] { background: #fff; color: var(--ink, #0b1f3f); box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+    .fo-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+    .fo-chips button {
+      min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line, #e4e7ec); background: #fff;
+      color: var(--ink-2, #475467); font: 700 12.5px/1 var(--font-body, Inter, sans-serif); cursor: pointer;
+    }
+    .fo-chips button[aria-pressed="true"] { background: var(--navy, #071827); border-color: var(--navy, #071827); color: #fff; }
+    .fo-stack { display: grid; gap: 16px; }
+    .fo-note { margin: 0; padding: 12px 16px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+    .fo-list { display: grid; }
+    .fo-row {
+      display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+      padding: 10px 16px; border-bottom: 1px solid var(--line, #e4e7ec);
+    }
+    .fo-row:last-child { border-bottom: 0; }
+    .fo-rank { color: #7a8796; font-weight: 900; font-size: 13px; text-align: center; }
+    .fo-team { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .fo-team .team-badge { width: 32px; height: 32px; border-radius: 9px; font-size: 15px; }
+    .fo-team .team-logo { width: 100%; height: 100%; border-radius: 7px; object-fit: cover; }
+    .fo-team-copy { display: grid; min-width: 0; }
+    .fo-team-copy strong { color: var(--ink, #0b1f3f); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fo-team-copy span { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fo-big { text-align: right; }
+    .fo-big strong { display: block; font-size: 16px; font-weight: 900; color: var(--ink, #0b1f3f); font-variant-numeric: tabular-nums; }
+    .fo-big span { display: block; color: var(--muted); font-size: 11px; font-weight: 600; }
+    .fo-stats { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: 11.5px; }
+    .fo-stats b { color: var(--ink-2, #475467); font-weight: 800; }
+    .fo-meter { grid-column: 2 / -1; height: 6px; border-radius: 99px; background: var(--surface-3, #eef1f5); overflow: hidden; }
+    .fo-meter i { display: block; height: 100%; border-radius: 99px; background: var(--blue, #1769e0); }
+    .fo-good { color: var(--green, #16834a) !important; }
+    .fo-bad { color: #c92929 !important; }
+    .fo-empty { padding: 26px 16px; color: var(--muted); text-align: center; font-size: 13.5px; }
+    .fo-more { display: block; width: calc(100% - 32px); margin: 12px 16px 16px; min-height: 40px; border-radius: 10px; border: 1px solid var(--line, #e4e7ec); background: #fff; color: var(--ink, #0b1f3f); font: 700 13px/1 var(--font-body, Inter, sans-serif); cursor: pointer; }
+
+    /* A benching, a pickup: a line of what happened, the cost at the end. */
+    .fo-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 11px 16px; border-bottom: 1px solid var(--line, #e4e7ec); align-items: center; }
+    .fo-item:last-child { border-bottom: 0; }
+    .fo-item-main { display: grid; gap: 3px; min-width: 0; }
+    .fo-item-main strong { font-size: 13.5px; color: var(--ink, #0b1f3f); }
+    .fo-item-main span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .fo-item-main em { font-style: normal; font-weight: 700; color: var(--ink-2, #475467); }
+    .fo-tag { display: inline-block; margin-left: 6px; padding: 2px 6px; border-radius: 5px; background: #fff1f1; color: #b4141a; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; vertical-align: 1px; }
+    .fo-tag.soft { background: var(--surface-3, #eef1f5); color: var(--ink-2, #475467); }
+
+    /* Trades: a card per trade, one column per side. */
+    .fo-trade { border-bottom: 1px solid var(--line, #e4e7ec); }
+    .fo-trade:last-child { border-bottom: 0; }
+    .fo-trade-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px 0; color: var(--muted); font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .fo-verdict { padding: 3px 8px; border-radius: 999px; background: var(--surface-3, #eef1f5); color: var(--ink-2, #475467); font-size: 10.5px; letter-spacing: .04em; white-space: nowrap; }
+    .fo-verdict.won { background: rgba(22, 131, 74, .1); color: var(--green, #16834a); }
+    .fo-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 10px 16px 14px; }
+    .fo-side { border: 1px solid var(--line, #e4e7ec); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+    .fo-side.winner { border-color: rgba(22, 131, 74, .45); box-shadow: inset 3px 0 0 var(--green, #16834a); }
+    .fo-side-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .fo-side-head .fo-big strong { font-size: 15px; }
+    .fo-got { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+    .fo-got li { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--ink-2, #475467); }
+    .fo-got li span:first-child { min-width: 0; overflow-wrap: anywhere; }
+    .fo-got li span:last-child { flex: 0 0 auto; font-weight: 800; color: var(--ink, #0b1f3f); font-variant-numeric: tabular-nums; }
+    .fo-got .muted { color: var(--muted); font-weight: 600; }
+
+    /* Draft picks: a row of chips per season. */
+    .fo-picks { grid-column: 2 / -1; display: grid; gap: 6px; }
+    .fo-pick-year { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+    .fo-pick-year > b { width: 42px; color: var(--muted); font-size: 11px; font-weight: 800; }
+    .fo-chip { display: inline-grid; place-items: center; min-width: 30px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--surface-3, #eef1f5); color: var(--ink-2, #475467); font-size: 11px; font-weight: 800; }
+    .fo-chip.got { background: rgba(23, 105, 224, .12); color: var(--blue-2, #0f56bd); }
+    .fo-chip.lost { background: transparent; border: 1px dashed #c6cfda; color: #98a2b3; text-decoration: line-through; }
+    /* The hero only says what the page title under it says: in the desktop
+       sidebar it fills the column; across the top it would be said twice. */
+    @media (max-width: 1199px) { .home-hero { display: none; } }
+    @media (max-width: 700px) {
+      .fo-row { padding: 10px 12px; gap: 8px; }
+      .fo-item { padding: 10px 12px; }
+      .fo-sides { padding: 10px 12px 12px; }
+      .fo-trade-head { padding: 12px 12px 0; }
+      .fo-note { padding: 10px 12px 12px; }
+    }
+  </style>
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="account.css" />
+  <script src="account-config.js"></script>
+  <script src="account.js"></script>
+  <script src="ui.js"></script>
+  <script src="insights.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="League History home">
+        <div class="brand-mark"><img src="icons/crest.png" alt="" width="46" height="46" /></div>
+        <div class="brand-copy">
+          <span class="brand-kicker">Fantasy Football</span>
+          <span class="brand-title">League History</span>
+        </div>
+      </a>
+
+      <a class="topbar-trophy" href="trophy.html"><span aria-hidden="true">🏆</span>Trophy Room</a>
+      <label class="year-control">
+        <span>Season</span>
+        <select id="pageSelect" aria-label="Choose season"></select>
+      </label>
+    </div>
+  </header>
+
+  <section class="hero live-hero home-hero">
+    <div class="hero-inner">
+      <div class="live-status">
+        <span class="live-badge" id="heroBadge">Front Office</span>
+        <h1>Front Office</h1>
+        <p>Who sets the best lineups, who wins their trades, who works the waiver wire.</p>
+      </div>
+    </div>
+    <div class="ad-wrap ad-sidebar" data-ad="moves-sidebar"><div class="ad-slot"></div></div>
+  </section>
+
+  <main>
+    <div class="ad-wrap ad-top" data-ad="moves-top"><div class="ad-slot"></div></div>
+    <div class="page-toolbar">
+      <div class="page-title">
+        <h2 id="pageTitle">Front Office</h2>
+      </div>
+    </div>
+
+    <nav class="fo-tabs" role="tablist" aria-label="Front office" id="foTabs" hidden></nav>
+    <div id="pageStatus"></div>
+    <div id="foChips"></div>
+    <section id="foPanel" data-ad-feed="moves-mid" role="tabpanel" aria-live="polite"></section>
+
+    <div class="ad-wrap ad-bottom" data-ad="moves-bottom"><div class="ad-slot"></div></div>
+  </main>
+
+  <footer class="footer">
+    <a class="footer-switch" href="index.html">Switch league</a>
+    Not affiliated with or endorsed by Sleeper. League data from the
+    <a href="https://docs.sleeper.com/" target="_blank" rel="noopener">Sleeper API</a>.
+  </footer>
+
+  <script>
+    /* The front office: lineups, trades, waivers and draft picks, judged in
+       hindsight (insights.js). moves.html?league=<id>#<tab>/<season> opens
+       straight onto a tab and season. */
+    (function boot() {
+      const leagueId = League.requireLeague();
+      if (!leagueId) return;
+      const status = document.getElementById("pageStatus");
+      League.showStatus(status, { title: "Opening the front office", copy: "Reading every season from Sleeper&hellip;" });
+      League.load(leagueId, {
+        onProgress: (done, total) => {
+          if (total > 1) League.showStatus(status, { title: "Opening the front office", copy: `Reading season ${Math.min(done + 1, total)} of ${total} from Sleeper&hellip;` });
+        },
+      }).then((model) => {
+        status.innerHTML = "";
+        League.remember({ id: leagueId, name: model.name, avatar: model.avatar, season: model.current.year });
+        frontOffice(model);
+      }).catch((error) => {
+        League.showStatus(status, { title: "This league couldn't be loaded", copy: League.esc(error.message || "Sleeper didn't answer."), error: true });
+      });
+    })();
+
+    function frontOffice(model) {
+      window.TEAM_LOGOS = model.logos;
+      League.dressHeader(model, "moves");
+      document.title = `${model.name} · Front Office`;
+      const esc = League.esc;
+      const fmt = (n) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      const pctTxt = (n) => `${(n * 100).toFixed(1)}%`;
+      const panel = document.getElementById("foPanel");
+      const chipsEl = document.getElementById("foChips");
+      const tabsEl = document.getElementById("foTabs");
+      const played = model.seasons.filter((s) => s.playedWeeks.length);
+      const years = played.map((s) => s.year).sort((a, b) => b - a);
+      const newest = model.seasons[model.seasons.length - 1];
+      const picksShown = newest && (newest.settings.leagueType > 0);
+
+      const ICON = {
+        lineup: '<path d="M3 4.5h10M3 8h10M3 11.5h6"/>',
+        trade: '<path d="M3 5.5h9.5l-2.2-2.2M13 10.5H3.5l2.2 2.2"/>',
+        wire: '<path d="M8 2.8v10.4M2.8 8h10.4"/>',
+        pick: '<rect x="3" y="2.8" width="10" height="10.4" rx="1.6"/><path d="M5.6 6h4.8M5.6 8.6h4.8M5.6 11.2h2.4"/>',
+        star: '<path d="M8 2.2l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 10.9l-3.4 1.8.7-3.8-2.8-2.7 3.8-.5z"/>',
+      };
+      const card = (title, icon, meta, body) => `
+        <article class="card">
+          <div class="card-head">
+            <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true">${ICON[icon]}</svg></span>${title}</h3>
+            ${meta ? `<span>${meta}</span>` : ""}
+          </div>
+          ${body}
+        </article>`;
+
+      // A team as it was in a season, or a manager across all of them.
+      const mark = (ownerId, icon) => {
+        const src = window.TEAM_LOGOS && window.TEAM_LOGOS[ownerId];
+        return src ? `<img class="team-logo" src="${src}" alt="">` : esc(icon || "");
+      };
+      function seasonTeam(year, teamId) {
+        const t = model.season(year).teams[teamId];
+        return `<span class="fo-team"><span class="team-badge" style="--team-color:${t.color}">${mark(t.ownerId, t.icon)}</span>
+          <span class="fo-team-copy"><strong>${esc(t.name)}</strong><span>${esc(t.owner)}</span></span></span>`;
+      }
+      function manager(ownerId) {
+        const o = model.owners[ownerId];
+        return `<span class="fo-team"><span class="team-badge" style="--team-color:${o.color}">${mark(ownerId, o.icon)}</span>
+          <span class="fo-team-copy"><strong>${esc(o.currentTeam)}</strong><span>${esc(o.name)}</span></span></span>`;
+      }
+      const teamName = (year, teamId) => esc(model.season(year).teams[teamId].name);
+      let db = {};
+      const player = (pid) => esc(db[pid] ? db[pid][0] : `Player ${pid}`);
+
+      /* ------------------------------------------------ tabs and state */
+      const TABS = [
+        { id: "lineups", label: "Lineups" },
+        { id: "trades", label: "Trades" },
+        { id: "waivers", label: "Waivers" },
+        ...(picksShown ? [{ id: "picks", label: "Draft Picks" }] : []),
+      ];
+      const state = { tab: "lineups", year: years[0] || null, tradeYear: "all" };
+      const [hashTab, hashYear] = location.hash.slice(1).split("/");
+      if (TABS.some((t) => t.id === hashTab)) state.tab = hashTab;
+      if (hashYear === "all" || years.includes(Number(hashYear))) {
+        if (state.tab === "trades") state.tradeYear = hashYear === "all" ? "all" : Number(hashYear);
+        else state.year = hashYear === "all" ? "all" : Number(hashYear);
+      }
+
+      tabsEl.hidden = false;
+      function drawTabs() {
+        tabsEl.innerHTML = TABS.map((t) => `<button type="button" role="tab" data-tab="${t.id}" aria-selected="${t.id === state.tab}">${t.label}</button>`).join("");
+      }
+      tabsEl.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-tab]");
+        if (!b || b.dataset.tab === state.tab) return;
+        state.tab = b.dataset.tab;
+        state.shown = 20;
+        render();
+      });
+      const onPick = (e) => {
+        const y = e.target.closest("[data-year]");
+        if (y) {
+          const v = y.dataset.year === "all" ? "all" : Number(y.dataset.year);
+          if (state.tab === "trades") state.tradeYear = v; else state.year = v;
+          state.shown = 20;
+          render();
+          return;
+        }
+        const more = e.target.closest("[data-more]");
+        if (more) { state.shown = (state.shown || 20) + 20; render(); }
+      };
+      panel.addEventListener("click", onPick);
+      chipsEl.addEventListener("click", onPick);
+
+      const yearChips = (current, withAll) => `<div class="fo-chips" role="group" aria-label="Season">
+        ${withAll ? `<button type="button" data-year="all" aria-pressed="${current === "all"}">All-time</button>` : ""}
+        ${years.map((y) => `<button type="button" data-year="${y}" aria-pressed="${current === y}">${y}</button>`).join("")}
+      </div>`;
+      const loading = (what) => `<div class="card"><div class="empty-state lh-status"><span class="lh-spinner" aria-hidden="true"></span><strong>${what}</strong><p>Working through every week&hellip;</p></div></div>`;
+
+      let drawId = 0;
+      let drawnTab = null;
+      async function render() {
+        const id = ++drawId;
+        drawTabs();
+        const year = state.tab === "trades" ? state.tradeYear : state.year;
+        history.replaceState(null, "", `#${state.tab}${year != null ? `/${year}` : ""}`);
+        if (!years.length) {
+          panel.innerHTML = `<div class="card"><div class="fo-empty">No games have been played in this league yet.</div></div>`;
+          return;
+        }
+        if (drawnTab !== state.tab) chipsEl.innerHTML = "";
+        drawnTab = state.tab;
+        panel.innerHTML = loading({ lineups: "Checking every lineup", trades: "Reading every trade", waivers: "Reading the waiver wire", picks: "Counting draft picks" }[state.tab]);
+        try {
+          db = await League.players();
+          const [chips, html] = await ({ lineups: drawLineups, trades: drawTrades, waivers: drawWaivers, picks: drawPicks }[state.tab])();
+          if (id === drawId) { chipsEl.innerHTML = chips; panel.innerHTML = html; }
+        } catch (err) {
+          console.error(err);
+          if (id === drawId) panel.innerHTML = `<div class="card"><div class="fo-empty">Sleeper didn't answer. Try again in a moment.</div></div>`;
+        }
+      }
+
+      /* ------------------------------------------------ lineups */
+      async function drawLineups() {
+        const all = state.year === "all";
+        const chips = yearChips(state.year, played.length > 1);
+        const note = `<p class="fo-note">Hindsight: the best lineup each team could have set from the players it had that week, against the one it set. Players who stayed on a taxi squad all season aren't counted.</p>`;
+        if (all) {
+          const rows = await Insights.lineupAllTime(model);
+          const best = Math.max(...rows.map((r) => r.efficiency), 0);
+          return [chips, `<div class="fo-stack" data-ad-feed-into>${card("Lineup efficiency · All-time", "lineup", `${played.length} seasons`, `
+            <div class="fo-list">${rows.map((r, i) => `
+              <div class="fo-row">
+                <span class="fo-rank">${i + 1}</span>${manager(r.ownerId)}
+                <span class="fo-big"><strong>${pctTxt(r.efficiency)}</strong><span>of the best lineup</span></span>
+                <span class="fo-meter"><i style="width:${(100 * r.efficiency / (best || 1)).toFixed(1)}%"></i></span>
+                <span class="fo-stats"><span>Left on the bench <b>${fmt(r.left)}</b></span><span>Games lost to the lineup <b>${r.costGames}</b></span><span>Perfect weeks <b>${r.perfect}</b> of ${r.weeks}</span></span>
+              </div>`).join("")}
+            </div>${note}`)}</div>`];
+        }
+        const s = await Insights.lineupSeason(model, state.year);
+        const y = state.year;
+        const best = Math.max(...s.rows.map((r) => r.efficiency), 0);
+        const table = card(`Lineup efficiency · ${y}`, "lineup", `${s.weeks.length} week${s.weeks.length === 1 ? "" : "s"}`, `
+          <div class="fo-list">${s.rows.map((r, i) => `
+            <div class="fo-row">
+              <span class="fo-rank">${i + 1}</span>${seasonTeam(y, r.teamId)}
+              <span class="fo-big"><strong>${pctTxt(r.efficiency)}</strong><span>${fmt(r.actual)} of ${fmt(r.optimal)}</span></span>
+              <span class="fo-meter"><i style="width:${(100 * r.efficiency / (best || 1)).toFixed(1)}%"></i></span>
+              <span class="fo-stats"><span>Left on the bench <b>${fmt(r.left)}</b></span><span>Games lost to the lineup <b class="${r.costGames ? "fo-bad" : ""}">${r.costGames}</b></span><span>Perfect weeks <b>${r.perfect}</b></span></span>
+            </div>`).join("")}
+          </div>${note}`);
+        const lost = new Set(s.lostGames.map((g) => `${g.week}|${g.teamId}`));
+        const blunders = card("Costliest benchings", "star", y, s.blunders.length ? `
+          <div class="fo-list">${s.blunders.slice(0, 12).map((b) => `
+            <div class="fo-item">
+              <div class="fo-item-main">
+                <strong>${teamName(y, b.teamId)} · Week ${b.week}${lost.has(`${b.week}|${b.teamId}`) ? '<span class="fo-tag">Cost the game</span>' : ""}</strong>
+                <span>Benched <em>${player(b.benched.pid)}</em> (${fmt(b.benched.pts)})${b.started ? ` and started <em>${player(b.started.pid)}</em> (${fmt(b.started.pts)})` : " and left a slot empty"}</span>
+              </div>
+              <span class="fo-big"><strong class="fo-bad">−${fmt(b.cost)}</strong><span>points</span></span>
+            </div>`).join("")}
+          </div>` : `<div class="fo-empty">Not one benching cost a point. Remarkable.</div>`);
+        const games = s.lostGames.length ? card("Games lost to the lineup", "lineup", `${s.lostGames.length}`, `
+          <div class="fo-list">${s.lostGames.sort((a, b) => a.week - b.week).map((g) => {
+            const opp = (model.season(y).results[g.week] || []).map(([a, as, b, bs]) => (a === g.teamId ? [b, bs] : b === g.teamId ? [a, as] : null)).find(Boolean);
+            return `<div class="fo-item">
+              <div class="fo-item-main">
+                <strong>${teamName(y, g.teamId)} · Week ${g.week}</strong>
+                <span>Lost ${fmt(g.actual)}–${fmt(opp[1])} to ${teamName(y, opp[0])}. The best lineup scored <em>${fmt(g.optimal)}</em>.</span>
+              </div>
+              <span class="fo-big"><strong>${fmt(g.left)}</strong><span>on the bench</span></span>
+            </div>`;
+          }).join("")}</div>`) : "";
+        return [chips, `<div class="fo-stack" data-ad-feed-into>${table}${blunders}${games}</div>`];
+      }
+
+      /* ------------------------------------------------ trades */
+      let tradesJob = null;
+      async function drawTrades() {
+        tradesJob = tradesJob || Insights.trades(model);
+        const { trades, traders } = await tradesJob;
+        if (!trades.length) return ["", `<div class="card"><div class="fo-empty">No trades in this league's history yet.</div></div>`];
+        const tradeYears = [...new Set(trades.map((t) => t.year))];
+        const chips = `<div class="fo-chips" role="group" aria-label="Season">
+          <button type="button" data-year="all" aria-pressed="${state.tradeYear === "all"}">All-time</button>
+          ${years.filter((y) => tradeYears.includes(y)).map((y) => `<button type="button" data-year="${y}" aria-pressed="${state.tradeYear === y}">${y}</button>`).join("")}
+        </div>`;
+        const board = card("Best and worst traders", "trade", "All-time", `
+          <div class="fo-list">${traders.map((o, i) => `
+            <div class="fo-row">
+              <span class="fo-rank">${i + 1}</span>${manager(o.ownerId)}
+              <span class="fo-big"><strong class="${o.net > 0 ? "fo-good" : o.net < 0 ? "fo-bad" : ""}">${o.net > 0 ? "+" : ""}${fmt(o.net)}</strong><span>net points</span></span>
+              <span class="fo-stats"><span>Trades <b>${o.trades}</b></span><span>Won <b>${o.won}</b></span><span>Got <b>${fmt(o.got)}</b></span><span>Gave away <b>${fmt(o.gave)}</b></span></span>
+            </div>`).join("")}
+          </div>
+          <p class="fo-note">A trade is scored by the points each side's players went on to put up in its starting lineup. A traded pick counts once it's used, through the player drafted with it.</p>`);
+
+        const list = trades.filter((t) => state.tradeYear === "all" || t.year === state.tradeYear);
+        const shown = list.slice(0, state.shown || 20);
+        const item = (g, year) => {
+          if (g.kind === "player") return `<li><span>${esc(g.name)} <span class="muted">${esc(g.pos)}</span></span><span>${fmt(g.pts)}</span></li>`;
+          if (g.kind === "faab") return `<li><span>$${g.amount} FAAB</span><span class="muted">—</span></li>`;
+          const whose = g.origin && model.season(year).teams[g.origin] ? ` <span class="muted">(${teamName(year, g.origin)})</span>` : "";
+          const became = g.became ? ` → ${esc(g.became.name)}${g.passedOn ? ' <span class="muted">traded on</span>' : ""}` : g.pending ? ' <span class="muted">not yet drafted</span>' : "";
+          return `<li><span>${g.season} round ${g.round} pick${whose}${became}</span><span>${g.became && !g.passedOn ? fmt(g.pts) : '<span class="muted">—</span>'}</span></li>`;
+        };
+        const verdict = (t) => {
+          if (!t.winner) return `<span class="fo-verdict">${t.sides.every((s) => !s.total) ? "Too early to call" : "Dead even"}</span>`;
+          return `<span class="fo-verdict won">${teamName(t.year, t.winner)} +${fmt(t.margin)}${t.pending || t.live ? " so far" : ""}</span>`;
+        };
+        const tradeCards = card(state.tradeYear === "all" ? "Every trade" : `${state.tradeYear} trades`, "trade", `${list.length}`, `
+          <div>${shown.map((t) => `
+            <div class="fo-trade">
+              <div class="fo-trade-head"><span>${t.year} · ${t.created ? new Date(t.created).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : `Week ${t.week}`}</span>${verdict(t)}</div>
+              <div class="fo-sides">${t.sides.map((s) => `
+                <div class="fo-side${t.winner === s.teamId ? " winner" : ""}">
+                  <div class="fo-side-head">${seasonTeam(t.year, s.teamId)}<span class="fo-big"><strong>${fmt(s.total)}</strong><span>pts since</span></span></div>
+                  <ul class="fo-got">${s.got.length ? s.got.map((g) => item(g, t.year)).join("") : '<li><span class="muted">Nothing</span><span></span></li>'}</ul>
+                </div>`).join("")}
+              </div>
+            </div>`).join("")}
+          </div>
+          ${list.length > shown.length ? `<button type="button" class="fo-more" data-more>Show more trades (${list.length - shown.length})</button>` : ""}`);
+        return [chips, `<div class="fo-stack" data-ad-feed-into>${board}${tradeCards}</div>`];
+      }
+
+      /* ------------------------------------------------ waivers */
+      async function drawWaivers() {
+        if (state.year === "all") state.year = years[0];
+        const y = state.year;
+        const w = await Insights.waivers(model, y);
+        const chips = yearChips(y, false);
+        if (!w || !w.pickups.length) return [chips, `<div class="card"><div class="fo-empty">No waiver claims or free-agent pickups in ${y}.</div></div>`];
+        const report = card(`Waiver report · ${y}`, "wire", w.faab ? `$${w.budget} FAAB budget` : "Rolling waivers", `
+          <div class="fo-list">${w.rows.map((r, i) => `
+            <div class="fo-row">
+              <span class="fo-rank">${i + 1}</span>${seasonTeam(y, r.teamId)}
+              <span class="fo-big"><strong>${fmt(r.pts)}</strong><span>pts from pickups</span></span>
+              <span class="fo-stats"><span>Pickups <b>${r.adds}</b></span><span>Started 3+ times <b>${r.hits}</b></span>${w.faab ? `<span>FAAB spent <b>$${r.spent}</b></span><span>Pts per $1 <b>${r.perDollar != null ? r.perDollar.toFixed(1) : "—"}</b></span>` : ""}</span>
+            </div>`).join("")}
+          </div>
+          <p class="fo-note">Points a pickup scored in the starting lineup of the team that added him, for the rest of that season.${w.failed ? ` ${w.failed} claim${w.failed === 1 ? "" : "s"} lost out to a higher bid or priority.` : ""}</p>`);
+        const pickupRow = (p) => `
+          <div class="fo-item">
+            <div class="fo-item-main">
+              <strong>${esc(p.name)} <span class="fo-tag soft">${esc(p.pos)}</span></strong>
+              <span>${teamName(y, p.teamId)} · Week ${p.week} · ${p.kind === "waiver" ? (w.faab && p.bid != null ? `$${p.bid} bid` : "waiver claim") : "free agent"} · ${p.starts} start${p.starts === 1 ? "" : "s"}</span>
+            </div>
+            <span class="fo-big"><strong>${fmt(p.pts)}</strong><span>pts</span></span>
+          </div>`;
+        const best = card("Best pickups", "star", y, `<div class="fo-list">${w.pickups.slice(0, 12).map(pickupRow).join("")}</div>`);
+        let spends = "";
+        if (w.faab) {
+          const big = w.pickups.filter((p) => p.bid).sort((a, b) => b.bid - a.bid).slice(0, 10);
+          if (big.length) spends = card("Biggest bids", "wire", "and what they bought", `<div class="fo-list">${big.map(pickupRow).join("")}</div>`);
+        }
+        return [chips, `<div class="fo-stack" data-ad-feed-into>${report}${best}${spends}</div>`];
+      }
+
+      /* ------------------------------------------------ draft picks */
+      async function drawPicks() {
+        const ledger = await Insights.pickLedger(model);
+        if (!ledger) return ["", `<div class="card"><div class="fo-empty">This league has no rookie draft picks to track.</div></div>`];
+        const y = ledger.year;
+        const chip = (p) => `<span class="fo-chip${p.own ? "" : " got"}" title="${p.own ? "Own pick" : `From ${teamName(y, p.origin)}`}">${p.round}${p.own ? "" : "*"}</span>`;
+        const rows = ledger.rows.map((r, i) => `
+          <div class="fo-row">
+            <span class="fo-rank">${i + 1}</span>${seasonTeam(y, r.teamId)}
+            <span class="fo-big"><strong class="${r.vsPar > 1.001 ? "fo-good" : r.vsPar < 0.999 ? "fo-bad" : ""}">${Math.round(r.vsPar * 100)}%</strong><span>pick capital</span></span>
+            <span class="fo-picks">${ledger.seasons.map((year) => {
+              const mine = r.picks.filter((p) => p.year === year).sort((a, b) => a.round - b.round);
+              const gone = r.lost.filter((p) => p.year === year);
+              return `<span class="fo-pick-year"><b>${year}</b>${mine.map(chip).join("")}${gone.map((p) => `<span class="fo-chip lost" title="Traded away">${p.round}</span>`).join("")}</span>`;
+            }).join("")}</span>
+          </div>`).join("");
+        return ["", `<div class="fo-stack" data-ad-feed-into>${card("Future draft picks", "pick", `${ledger.seasons[0]}–${ledger.seasons[ledger.seasons.length - 1]} · ${ledger.rounds} rounds`, `
+          <div class="fo-list">${rows}</div>
+          <p class="fo-note">Each number is a round. Blue with a * came in a trade (hover or long-press for whose); dashed and struck through was traded away. Pick capital weighs a first-round pick most and each later round a little over half the one before; 100% is a team's own picks.</p>`)}</div>`];
+      }
+
+      render();
+    }
+  </script>
+</body>
+</html>

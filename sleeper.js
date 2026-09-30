@@ -349,6 +349,12 @@
       divisions: [],
       rosterPositions: league.roster_positions || [],
       scoring: league.scoring_settings || {},
+      // For the front office: redraft (0), keeper (1) or dynasty (2); how
+      // waivers run (2 is FAAB) and the budget; how many rounds a draft has.
+      leagueType: Number(s.type) || 0,
+      waiverType: Number(s.waiver_type) || 0,
+      waiverBudget: Number(s.waiver_budget) || 0,
+      draftRounds: Number(s.draft_rounds) || 0,
     };
     for (let d = 1; d <= divisionCount; d++) settings.divisions.push((meta[`division_${d}`] || `Division ${d}`).trim());
     // Byes: the seeds left over once round 1's games are filled.
@@ -375,6 +381,9 @@
         icon: iconFor(name),
         wins: 0, losses: 0, ties: 0, pf: 0, pa: 0,
         sleeper: { wins: (r.settings || {}).wins || 0, losses: (r.settings || {}).losses || 0, pf: fpts(r.settings || {}, "fpts") },
+        // Who sat on the taxi squad as the season ended. Sleeper keeps no
+        // week-by-week record of it, and a taxi player can't be started.
+        taxi: (r.taxi || []).filter(Boolean),
       };
     });
     const known = (rid) => teams[idOf(rid)] ? idOf(rid) : null;
@@ -753,6 +762,9 @@
       roster: (year) => rosterOf(model, year),
       starters: () => startersOf(model),
       playerIndex: () => playerIndexOf(model),
+      transactions: () => transactionsOf(model),
+      drafts: () => draftsOf(model),
+      tradedPicks: () => tradedPicksOf(model),
     };
     return model;
   }
@@ -807,14 +819,14 @@
   function players() {
     if (!playersPromise) {
       playersPromise = (async () => {
-        const hit = await storeGet("players:site");
+        const hit = await storeGet("players:site2");
         if (hit && Date.now() - hit.t < TTL.players) return hit.v;
         try {
           const all = await fetchJSON("data/players.json");
           const slim = {};
-          Object.entries(all || {}).forEach(([pid, p]) => { slim[pid] = [p[0], p[1], club(p[2])]; });
+          Object.entries(all || {}).forEach(([pid, p]) => { slim[pid] = p[3] ? [p[0], p[1], club(p[2]), p[3]] : [p[0], p[1], club(p[2])]; });
           if (!Object.keys(slim).length) throw new Error("no players");
-          await storeSet("players:site", { t: Date.now(), v: slim });
+          await storeSet("players:site2", { t: Date.now(), v: slim });
           return slim;
         } catch (err) {
           return hit ? hit.v : {};
@@ -825,7 +837,7 @@
   }
   function playerInfo(db, pid) {
     const p = db[pid];
-    if (p) return { name: p[0], pos: p[1], nfl: p[2] };
+    if (p) return { name: p[0], pos: p[1], nfl: p[2], elig: p[3] || null };
     // A defence Sleeper's file has lost track of is still its club.
     if (/^[A-Z]{2,3}$/.test(pid)) return { name: `${pid} D/ST`, pos: "DST", nfl: club(pid) };
     return { name: `Player ${pid}`, pos: "?", nfl: "FA" };
@@ -1022,6 +1034,68 @@
     return indexJob;
   }
 
+  /* ------------------------------------------------------------ front office */
+
+  /* Every transaction of every season: trades, waiver claims, free-agent
+     pickups, commissioner moves. Sleeper files them by week ("leg"), the
+     offseason under week 1. A finished season's are kept for a month. */
+  let transactionsJob = null;
+  function transactionsOf(model) {
+    if (!transactionsJob) {
+      transactionsJob = Promise.all(model.seasons.map(async (season) => {
+        const ttl = season.finished ? TTL.finished : TTL.live;
+        const weeks = [];
+        for (let w = 1; w <= Math.max(1, season.settings.lastWeek); w++) weeks.push(w);
+        const lists = await Promise.all(weeks.map((w) =>
+          cached(`transactions:${season.leagueId}:${w}`, ttl, `${API}/league/${season.leagueId}/transactions/${w}`).catch(() => [])));
+        const all = [];
+        lists.forEach((list) => (list || []).forEach((t) => all.push(t)));
+        all.sort((a, b) => (a.created || 0) - (b.created || 0));
+        return [season.year, all];
+      })).then((pairs) => Object.fromEntries(pairs));
+      transactionsJob.catch(() => { transactionsJob = null; });
+    }
+    return transactionsJob;
+  }
+
+  /* Every season's rookie or startup draft, with its picks, and the slot
+     each roster drafted from, so a traded pick can be followed to the
+     player it became. */
+  let draftsJob = null;
+  function draftsOf(model) {
+    if (!draftsJob) {
+      draftsJob = Promise.all(model.seasons.map(async (season) => {
+        const list = (await cached(`drafts:${season.leagueId}`, season.finished ? TTL.finished : TTL.live,
+          `${API}/league/${season.leagueId}/drafts`).catch(() => [])) || [];
+        return Promise.all(list.map(async (d) => {
+          const done = d.status === "complete";
+          // The league's list of drafts leaves out which roster drafted
+          // from which slot; the draft itself has it.
+          const [full, picks] = done ? await Promise.all([
+            cached(`draft:${d.draft_id}`, TTL.finished, `${API}/draft/${d.draft_id}`).catch(() => null),
+            cached(`draftpicks:${d.draft_id}`, TTL.finished, `${API}/draft/${d.draft_id}/picks`).catch(() => []),
+          ]) : [null, []];
+          return {
+            id: d.draft_id, year: Number(d.season) || season.year, leagueYear: season.year, status: d.status, done,
+            type: d.type, rounds: Number((d.settings || {}).rounds) || 0,
+            slotToRoster: (full && full.slot_to_roster_id) || d.slot_to_roster_id || {},
+            picks: (picks || []).map((p) => ({ round: p.round, slot: p.draft_slot, no: p.pick_no, rosterId: p.roster_id, pid: p.player_id })),
+          };
+        }));
+      })).then((groups) => groups.flat());
+      draftsJob.catch(() => { draftsJob = null; });
+    }
+    return draftsJob;
+  }
+
+  // The newest league's traded picks: who holds whose picks now.
+  function tradedPicksOf(model) {
+    const newest = model.seasons[model.seasons.length - 1];
+    if (!newest) return Promise.resolve([]);
+    return cached(`tradedpicks:${newest.leagueId}`, TTL.live, `${API}/league/${newest.leagueId}/traded_picks`)
+      .then((list) => list || []).catch(() => []);
+  }
+
   /* ------------------------------------------------------------ accounts */
 
   async function user(username) {
@@ -1089,8 +1163,8 @@
   const params = new URLSearchParams(location.search);
   const pageLeague = params.get("league");
 
-  /* A link to another page of the same league. `page` is alltime, season or
-     trophy; `extra` adds search parameters, `hash` a fragment. */
+  /* A link to another page of the same league. `page` is alltime, season,
+     moves or trophy; `extra` adds search parameters, `hash` a fragment. */
   function url(page, extra = {}, hash = "") {
     const q = new URLSearchParams();
     if (pageLeague) q.set("league", pageLeague);
@@ -1127,11 +1201,11 @@
     // Seasons only: a select is as wide as its longest option, and the
     // header gives it just the room "All-Time" needs. Switching leagues is
     // in the footer.
-    select.innerHTML = `<option value="home">All-Time</option>${years.map((y) => `<option value="${y}">${y}</option>`).join("")}`;
+    select.innerHTML = `<option value="home">All-Time</option><option value="moves">Front Office</option>${years.map((y) => `<option value="${y}">${y}</option>`).join("")}`;
     select.value = String(selected);
     select.addEventListener("change", () => {
       const v = select.value;
-      location.href = v === "home" ? url("alltime") : url("season", { season: v });
+      location.href = v === "home" ? url("alltime") : v === "moves" ? url("moves") : url("season", { season: v });
     });
     // the list that opens is the site's own, not the browser's (ui.js)
     if (window.UI && window.UI.seasonMenu) window.UI.seasonMenu(select);

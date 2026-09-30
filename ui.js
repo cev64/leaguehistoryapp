@@ -1004,7 +1004,9 @@
     const check = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg>';
     list.innerHTML = [...select.options].map((o, i) => {
       const on = i === select.selectedIndex;
-      const rule = i === 0 && select.options.length > 1 ? ' data-rule="after"' : "";
+      // A rule under the pages that aren't seasons (All-Time, Front Office).
+      const lastPage = [...select.options].map((x) => /^\d+$/.test(x.value)).lastIndexOf(false);
+      const rule = i === lastPage && i < select.options.length - 1 ? ' data-rule="after"' : "";
       return `<div class="ui-menu-item${on ? " on" : ""}" role="option" tabindex="-1" data-value="${esc(o.value)}" aria-selected="${on}"${rule}>
         <span>${esc(o.textContent)}</span>${on ? check : ""}</div>`;
     }).join("");
