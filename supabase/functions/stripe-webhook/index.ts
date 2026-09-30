@@ -1,4 +1,4 @@
-// Stripe → Supabase: keeps profiles.plan in step with the $10/month Pro
+// Stripe → Supabase: keeps profiles.plan in step with the $5/month Pro
 // subscription. The only thing in the system allowed to write a plan.
 //
 // Deploy:

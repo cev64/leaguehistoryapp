@@ -2,7 +2,7 @@
 -- Sleeper leagues synced to the account.
 --
 --   free  one league, ads, and the league can be swapped once every 30 days
---   pro   ($10/month) unlimited leagues, no ads, no swap limit
+--   pro   ($5/month) unlimited leagues, no ads, no swap limit
 --
 -- The plan is only ever written by the stripe-webhook function (service
 -- role); a signed-in user can read it but not change it. Leagues are synced

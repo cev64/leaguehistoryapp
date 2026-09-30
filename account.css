@@ -372,14 +372,20 @@ html.lh-gated { overflow: hidden; }
 }
 
 @media (max-width: 767px) {
-  /* Out to the edges of the screen, so a 320-wide unit fits a 320-wide phone. */
-  main .ad-wrap { margin-left: -16px; margin-right: -16px; }
   .ad-top .ad-slot { width: 320px; height: 100px; }
   .ad-top .ad-ph-size::after { content: "320 × 100"; }
   .ad-mid .ad-slot { width: 300px; height: 250px; }
   .ad-mid .ad-ph-size::after { content: "300 × 250"; }
   .ad-bottom .ad-slot { width: 300px; height: 600px; }
   .ad-bottom .ad-ph-size::after { content: "300 × 600"; }
+}
+/* Every slot fits inside the page's content on a phone 350px or wider. On
+   the smallest phones (320px) the content is narrower than a 320-wide unit,
+   so the slot is laid across the whole screen instead, centred on it. Only a
+   phone is ever this narrow, and a phone's scrollbar takes no width, so
+   100vw is exactly the screen. */
+@media (max-width: 349px) {
+  main .ad-wrap { width: 100vw; margin-left: calc(50% - 50vw); margin-right: 0; }
 }
 
 /* The desktop sidebar's slot, on the navy. */
