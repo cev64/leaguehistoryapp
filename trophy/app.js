@@ -56,6 +56,15 @@ const IN_LOCKER = (mode) => mode === "locker" || mode === "lockerFocus";
    rectangle, which wants exactly what a desktop wants and none of what a phone
    held upright does, so it is not upright and nothing changes for it. Above the
    breakpoint, neither is ever true and nothing changes at all. */
+/* The room's viewport. Not the window: an ad bar can run along the foot of
+   the screen (trophy.html, #hallAd), and the room is laid out in the space
+   above it rather than behind it, so an exhibit, its nameplate or the record
+   sheet is never under the bar. Every measurement of the screen below reads
+   these, not innerWidth / innerHeight. */
+const stageEl = document.getElementById("stage");
+const viewW = () => (stageEl && stageEl.clientWidth) || innerWidth;
+const viewH = () => (stageEl && stageEl.clientHeight) || innerHeight;
+
 /* How hard the render is pushed before the tone map. A shaft is read at arm's
    length through a phone, and at the corridor's exposure every glazed or gold
    surface in it clipped — a porcelain lid, the face of a cup, a brass plate —
@@ -63,12 +72,12 @@ const IN_LOCKER = (mode) => mode === "locker" || mode === "lockerFocus";
    lamps and wants the exposure it was lit for, so the two are set separately
    rather than the whole site being turned down. Both are swapped behind the
    wipe that covers a change of room, so neither is ever seen changing. */
-const HALL_EXPOSURE = innerWidth <= 860 && innerHeight > innerWidth ? 0.86 : 1.06;
+const HALL_EXPOSURE = viewW() <= 860 && viewH() > viewW() ? 0.86 : 1.06;
 const LOCKER_EXPOSURE = 1.06;
 
 const NARROW_AT = 860;
-const isNarrow = () => innerWidth <= NARROW_AT;
-const isUpright = () => isNarrow() && innerHeight > innerWidth;
+const isNarrow = () => viewW() <= NARROW_AT;
+const isUpright = () => isNarrow() && viewH() > viewW();
 
 const dom = {};
 let hall;
@@ -93,7 +102,7 @@ const lookAt = new THREE.Vector3();
 /* ------------------------------------------------------------------- setup */
 
 function detectQuality() {
-  const mobile = matchMedia("(pointer: coarse)").matches || innerWidth < 820;
+  const mobile = matchMedia("(pointer: coarse)").matches || viewW() < 820;
   const cores = navigator.hardwareConcurrency || 4;
   const memory = navigator.deviceMemory || 4;
   const light = mobile && (cores <= 4 || memory <= 4);
@@ -178,7 +187,7 @@ async function boot() {
 
   quality = detectQuality();
   renderer.setPixelRatio(quality.pixelRatio);
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(viewW(), viewH());
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = HALL_EXPOSURE;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -198,7 +207,7 @@ async function boot() {
   hallFog = new THREE.Fog(0x070d17, 17, 62);
   scene.fog = hallFog;
 
-  camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 220);
+  camera = new THREE.PerspectiveCamera(52, viewW() / viewH(), 0.1, 220);
   camera.position.set(0, 2.1, LAYOUT.itemZ + 6.4);
 
   const envMap = environmentTexture(renderer);
@@ -228,7 +237,10 @@ async function boot() {
   bindInput();
   applyDeepLink();
 
-  addEventListener("resize", onResize);
+  // The stage, not the window: it also changes size when the ad bar under it
+  // comes or goes (a member going Pro), with no window resize to say so.
+  if (window.ResizeObserver) new ResizeObserver(() => onResize()).observe(stageEl);
+  else addEventListener("resize", onResize);
   onResize();
 
   /* A console handle for tuning the room and for driving it from a headless
@@ -461,14 +473,14 @@ function focusFraming(exhibit) {
 
   // The top chrome, and whatever the sheet is currently covering.
   const topChrome = narrow ? 78 : 84;
-  const sheetHeight = dom.sheet.offsetHeight || innerHeight * 0.46;
+  const sheetHeight = dom.sheet.offsetHeight || viewH() * 0.46;
   const sheetWidth = dom.sheet.offsetWidth || 372;
 
   const band = {
     left: pad,
-    right: narrow ? innerWidth - pad : innerWidth - sheetWidth - 32 - pad,
+    right: narrow ? viewW() - pad : viewW() - sheetWidth - 32 - pad,
     top: topChrome + pad,
-    bottom: narrow ? innerHeight - sheetHeight - pad : innerHeight - pad
+    bottom: narrow ? viewH() - sheetHeight - pad : viewH() - pad
   };
   const bandWidth = Math.max(140, band.right - band.left);
   const bandHeight = Math.max(140, band.bottom - band.top);
@@ -485,8 +497,8 @@ function focusFraming(exhibit) {
      own handles. So each fit is measured to the near face and the reach is
      added back. */
   const reach = exhibit.focusHalfWidth;
-  const fitHeight = exhibit.focusHalfHeight / (Math.tan(vertical / 2) * (bandHeight / innerHeight)) + reach;
-  const fitWidth = reach / (Math.tan(horizontal / 2) * (bandWidth / innerWidth)) + reach;
+  const fitHeight = exhibit.focusHalfHeight / (Math.tan(vertical / 2) * (bandHeight / viewH())) + reach;
+  const fitWidth = reach / (Math.tan(horizontal / 2) * (bandWidth / viewW())) + reach;
   const distance = Math.max(fitHeight, fitWidth) * 1.06 * state.focusZoom;
 
   const visibleHeight = 2 * distance * Math.tan(vertical / 2);
@@ -495,8 +507,8 @@ function focusFraming(exhibit) {
   // Shift the level camera so the object projects onto the middle of the band.
   return {
     distance,
-    offsetX: (0.5 - (band.left + band.right) / 2 / innerWidth) * visibleWidth,
-    offsetY: ((band.top + band.bottom) / 2 / innerHeight - 0.5) * visibleHeight
+    offsetX: (0.5 - (band.left + band.right) / 2 / viewW()) * visibleWidth,
+    offsetY: ((band.top + band.bottom) / 2 / viewH() - 0.5) * visibleHeight
   };
 }
 
@@ -509,8 +521,8 @@ function wallFraming() {
   const narrow = isNarrow();
   const pad = narrow ? 12 : 24;
   const band = {
-    width: Math.max(160, innerWidth - pad * 2),
-    height: Math.max(160, innerHeight - (narrow ? LOCKER_CHROME.narrow : LOCKER_CHROME.wide))
+    width: Math.max(160, viewW() - pad * 2),
+    height: Math.max(160, viewH() - (narrow ? LOCKER_CHROME.narrow : LOCKER_CHROME.wide))
   };
   const centreY = (narrow ? 84 : 92) + band.height / 2;
 
@@ -519,8 +531,8 @@ function wallFraming() {
   // A wall does not turn, so the only depth in front of its centre is its own
   // thickness — using the width here pushed the camera into the next room.
   const reach = lockerWall.size.z / 2;
-  const fitHeight = lockerWall.size.y / 2 / (Math.tan(vertical / 2) * (band.height / innerHeight)) + reach;
-  const fitWidth = lockerWall.size.x / 2 / (Math.tan(horizontal / 2) * (band.width / innerWidth)) + reach;
+  const fitHeight = lockerWall.size.y / 2 / (Math.tan(vertical / 2) * (band.height / viewH())) + reach;
+  const fitWidth = lockerWall.size.x / 2 / (Math.tan(horizontal / 2) * (band.width / viewW())) + reach;
   // Both shapes are framed whole. The folded wall is folded precisely so that it
   // can be: a case you have to scroll is a case you cannot take in.
   const distance = Math.max(fitHeight, fitWidth) * 1.05 / state.lockerWallZoom;
@@ -529,7 +541,7 @@ function wallFraming() {
   return {
     distance,
     offsetX: 0,
-    offsetY: (centreY / innerHeight - 0.5) * visibleHeight
+    offsetY: (centreY / viewH() - 0.5) * visibleHeight
   };
 }
 
@@ -547,8 +559,8 @@ const LOCKER_CHROME = { narrow: 152, wide: 168 };
 function bandAspect() {
   const narrow = isNarrow();
   const pad = narrow ? 12 : 24;
-  const width = Math.max(160, innerWidth - pad * 2);
-  const height = Math.max(160, innerHeight - (narrow ? LOCKER_CHROME.narrow : LOCKER_CHROME.wide));
+  const width = Math.max(160, viewW() - pad * 2);
+  const height = Math.max(160, viewH() - (narrow ? LOCKER_CHROME.narrow : LOCKER_CHROME.wide));
   return height / width;
 }
 
@@ -1159,7 +1171,7 @@ function bindInput() {
      same distance, and the flick carries the same way. */
   const railAxis = () => (layout.vertical ? "y" : "x");
   const stopsPerPixel = () =>
-    (railAxis() === "y" ? 4.2 / Math.max(360, innerHeight) : 4.2 / Math.max(360, innerWidth));
+    (railAxis() === "y" ? 4.2 / Math.max(360, viewH()) : 4.2 / Math.max(360, viewW()));
 
   canvas.addEventListener("pointerdown", (event) => {
     if (state.mode === "intro") return;
@@ -1404,9 +1416,9 @@ function handleTap(event) {
 }
 
 function onResize() {
-  camera.aspect = innerWidth / innerHeight;
+  camera.aspect = viewW() / viewH();
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(viewW(), viewH());
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, quality.pixelRatio));
 
   /* A wall is folded at build time, so turning a phone on its side while one is

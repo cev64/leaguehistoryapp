@@ -327,6 +327,7 @@
     drawButtons();
     drawPanel();
     drawSyncedCard();
+    if (document.body) placeFeeds();
     fillAds();
     listeners.forEach((fn) => { try { fn(api); } catch (err) { console.error(err); } });
   }
@@ -1113,17 +1114,46 @@
 
   /* ------------------------------------------------------------ wiring */
 
+  /* A mid-page slot in each [data-ad-feed] panel, between the blocks of
+     whatever it is showing: the matchups and the week's notes, the tables and
+     their legend, the two brackets. A panel whose content is one wrapper
+     (.panel-stack) is split inside it; a panel that is one card or one
+     message is left whole, since there is nothing to go between. Panels
+     redraw by replacing their contents, which takes the slot with it, so this
+     runs again on every redraw, before the browser paints: the slot is there
+     in the first frame the new content is, never pushed in after it. */
+  const blocksOf = (el) => [...el.children].filter((c) => !c.classList.contains("ad-wrap") && !/^(SCRIPT|STYLE|TEMPLATE)$/.test(c.tagName));
+  function placeFeeds() {
+    if (state.user && isPro()) return;
+    document.querySelectorAll("[data-ad-feed]").forEach((panel) => {
+      if (panel.querySelector(".ad-feed")) return;
+      let host = panel;
+      for (let depth = 0; depth < 2; depth++) {
+        const only = blocksOf(host);
+        if (only.length !== 1 || !only[0].matches(".panel-stack, [data-ad-feed-into]")) break;
+        host = only[0];
+      }
+      const blocks = blocksOf(host);
+      if (blocks.length < 2) return;
+      const slot = document.createElement("div");
+      slot.className = "ad-wrap ad-mid ad-feed";
+      slot.dataset.ad = panel.dataset.adFeed;
+      slot.innerHTML = '<div class="ad-slot"></div>';
+      host.insertBefore(slot, blocks[Math.max(1, Math.floor(blocks.length / 2))]);
+    });
+  }
+
   function start() {
     drawButtons();
+    placeFeeds();
     fillAds();
     drawSyncedCard();
-    // Slots a page writes later (the team history drawer) are filled as
-    // they appear.
-    let queued = false;
+    // Anything a page writes later (a redrawn season view, the team history
+    // drawer) gets its slots as it appears. A MutationObserver's callback
+    // runs before the next paint, so nothing is seen to move.
     new MutationObserver(() => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => { queued = false; if (document.querySelector(".ad-slot:not([data-filled])")) fillAds(); });
+      placeFeeds();
+      if (document.querySelector(".ad-slot:not([data-filled])")) fillAds();
     }).observe(document.body, { childList: true, subtree: true });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);

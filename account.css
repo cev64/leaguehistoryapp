@@ -317,12 +317,23 @@ html.lh-gated { overflow: hidden; }
    Ad slots
 
    Each slot is a box of one exact size, reserved in the page before any ad
-   loads, so an ad arriving (or not) never moves anything. Sizes are the
-   standard IAB units:
-     .ad-sidebar   300 × 250   desktop sidebar only (≥ 1200px)
-     .ad-top       728 × 90    on a tablet or desktop, 320 × 100 on a phone
-     .ad-bottom    728 × 90    on a tablet or desktop, 300 × 250 on a phone
-     .ad-rect      300 × 250   everywhere
+   loads, so an ad arriving (or not) never moves anything. The size is set by
+   the screen it is drawn on and never changes after. Standard IAB units:
+
+                  phone       tablet / desktop   wide content (≥ 970px)
+     .ad-top      320 × 100   728 × 90           970 × 90
+     .ad-mid      300 × 250   728 × 90           970 × 90
+     .ad-bottom   300 × 600   728 × 90           970 × 250
+     .ad-rect     300 × 250   300 × 250          300 × 250
+     .ad-sidebar  (desktop sidebar only)  300 × 250, or 300 × 600 on a
+                  screen at least 980px tall
+
+   "Wide content" is the page's main column being 970px or more: 1020px and
+   up without the sidebar, 1376px and up beside it (the column is the screen
+   less 32px, or less the 340px sidebar and 48px, with room for a scrollbar).
+
+   .ad-mid slots are placed by account.js between the blocks of whatever a
+   [data-ad-feed] panel is showing (the season page's views).
    Pro members never see them: html.lh-no-ads hides every one.
    --------------------------------------------------------------- */
 .ad-wrap {
@@ -344,19 +355,31 @@ html.lh-gated { overflow: hidden; }
 .ad-ph-mark { padding: 3px 6px; border: 1px solid currentColor; border-radius: 4px; font: 800 10px/1 var(--font-body, Inter, sans-serif); letter-spacing: .12em; }
 .ad-ph-size { font: 600 11px/1 var(--font-body, Inter, sans-serif); letter-spacing: .04em; }
 
-.ad-top .ad-slot, .ad-bottom .ad-slot { width: 728px; height: 90px; }
-.ad-top .ad-ph-size::after, .ad-bottom .ad-ph-size::after { content: "728 × 90"; }
+.ad-top .ad-slot, .ad-mid .ad-slot, .ad-bottom .ad-slot { width: 728px; height: 90px; }
+.ad-top .ad-ph-size::after, .ad-mid .ad-ph-size::after, .ad-bottom .ad-ph-size::after { content: "728 × 90"; }
 .ad-rect .ad-slot, .ad-sidebar .ad-slot { width: 300px; height: 250px; }
 .ad-rect .ad-ph-size::after, .ad-sidebar .ad-ph-size::after { content: "300 × 250"; }
 .ad-top { margin-top: 4px; }
+.ad-mid { margin: 22px 0; }
+/* In a grid or a row of cards, a slot takes a line of its own. */
+.ad-feed { grid-column: 1 / -1; flex: 0 0 100%; min-width: 0; }
+
+@media (min-width: 1020px) and (max-width: 1199px), (min-width: 1376px) {
+  .ad-top .ad-slot, .ad-mid .ad-slot { width: 970px; height: 90px; }
+  .ad-top .ad-ph-size::after, .ad-mid .ad-ph-size::after { content: "970 × 90"; }
+  .ad-bottom .ad-slot { width: 970px; height: 250px; }
+  .ad-bottom .ad-ph-size::after { content: "970 × 250"; }
+}
 
 @media (max-width: 767px) {
   /* Out to the edges of the screen, so a 320-wide unit fits a 320-wide phone. */
   main .ad-wrap { margin-left: -16px; margin-right: -16px; }
   .ad-top .ad-slot { width: 320px; height: 100px; }
   .ad-top .ad-ph-size::after { content: "320 × 100"; }
-  .ad-bottom .ad-slot { width: 300px; height: 250px; }
-  .ad-bottom .ad-ph-size::after { content: "300 × 250"; }
+  .ad-mid .ad-slot { width: 300px; height: 250px; }
+  .ad-mid .ad-ph-size::after { content: "300 × 250"; }
+  .ad-bottom .ad-slot { width: 300px; height: 600px; }
+  .ad-bottom .ad-ph-size::after { content: "300 × 600"; }
 }
 
 /* The desktop sidebar's slot, on the navy. */
@@ -369,6 +392,10 @@ html.lh-gated { overflow: hidden; }
     background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .02) 0 10px, rgba(255, 255, 255, .045) 10px 20px), rgba(255, 255, 255, .03);
   }
   .ad-sidebar .ad-ph { color: rgba(219, 229, 238, .45); }
+}
+@media (min-width: 1200px) and (min-height: 980px) {
+  .ad-sidebar .ad-slot { height: 600px; }
+  .ad-sidebar .ad-ph-size::after { content: "300 × 600"; }
 }
 
 /* The trophy room's slots sit on its dark glass. */

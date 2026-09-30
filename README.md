@@ -127,14 +127,27 @@ Going live:
 The gate is a paywall in the browser: Sleeper's data is public, so it keeps
 honest visitors honest rather than locking anything away.
 
-Ad slots are fixed-size boxes written into each page, so nothing moves when
-an ad loads: 300 × 250 in the desktop sidebar, a 728 × 90 banner (320 × 100
-on phones) at the top of each page and 728 × 90 (300 × 250 on phones) at the
-foot, two 300 × 250 in each manager's history, and in the trophy room one in
-the loading screen, one in the exhibit sheet and one in the hall's corner on
-large screens. With `ADS.provider` unset they show labelled placeholders;
-set it to `"adsense"` with a publisher id and a unit id per slot name (the
-`data-ad` attribute) to serve ads. Pro members see none.
+Ad slots are fixed-size boxes reserved in each page, so nothing moves when
+an ad loads. Each slot's size is set by the screen it's drawn on:
+
+| Slot | Phone | Tablet / desktop | Wide content |
+| --- | --- | --- | --- |
+| Top of every page | 320 × 100 | 728 × 90 | 970 × 90 |
+| Mid-page (every season view, the record book, the front page) | 300 × 250 | 728 × 90 | 970 × 90 |
+| Foot of every page | 300 × 600 | 728 × 90 | 970 × 250 |
+| Desktop sidebar | — | 300 × 250 (300 × 600 on screens 980px+ tall) | |
+| Manager history drawer (two) | 300 × 250 | 300 × 250 | |
+
+The trophy room has a bar along the bottom of the screen that is always in
+view, in the hall and in the lockers: 320 × 100 on phones (320 × 50 turned
+sideways), 728 × 90 on tablets and desktop. The 3D room is drawn in the space
+above it, so it never covers an exhibit or a control. There is also a
+300 × 250 in the loading screen, one in the exhibit sheet, and one in the
+hall's corner on large screens.
+
+With `ADS.provider` unset the slots show labelled placeholders; set it to
+`"adsense"` with a publisher id and a unit id per slot name (the `data-ad`
+attribute) to serve ads. Pro members see none.
 
 ## Tools
 

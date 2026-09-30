@@ -145,7 +145,9 @@
     .hud-account .acct-button { background: rgba(9, 16, 27, .55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
     @media (max-width: 560px) { .hud-account .acct-button-label { display: none; } .hud-account .acct-button:has(.acct-button-label) { width: 38px; padding: 0; justify-content: center; border-radius: 50%; } }
     #sheet .ad-wrap { margin: 4px 0 0; }
-    #hud .ad-wrap, #sheet .ad-wrap { pointer-events: auto; }
+    /* The corner slot takes taps; the sheet's inherits the sheet's, so a closed
+       sheet's slot never sits invisibly over the nameplate. */
+    #hud .ad-wrap { pointer-events: auto; }
     #loader .ad-wrap { margin: 0; }
     /* On a big screen the hall's bottom-left corner is empty floor: one more
        slot lives there, clear of the plate and the wing tabs in the middle.
@@ -157,6 +159,35 @@
       .hud-ad { transition: opacity .3s ease; }
     }
     @media (max-height: 640px) { #loader .ad-wrap { display: none; } }
+
+    /* The ad bar: a strip of its own along the foot of the screen, in view
+       the whole time in the hall and in every locker, the record sheet open
+       or not. The stage stops above it (trophy/app.js measures the room from
+       the stage), so it never covers an exhibit or a control. Its height is
+       the slot's plus its label, fixed per screen shape:
+         phones upright     320 × 100
+         phones on a side   320 × 50
+         tablets, desktop   728 × 90   */
+    #hallAd {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+      box-sizing: border-box; height: var(--hall-ad); margin: 0;
+      padding: 6px 0 env(safe-area-inset-bottom); gap: 6px; justify-content: flex-start;
+      background: #05090f; border-top: 1px solid rgba(242, 193, 74, .2);
+    }
+    #hallAd .ad-slot { width: 320px; height: 100px; }
+    #hallAd .ad-ph-size::after { content: "320 × 100"; }
+    html:not(.lh-no-ads) { --hall-ad: calc(128px + env(safe-area-inset-bottom)); }
+    @media (max-height: 500px) {
+      #hallAd .ad-slot { height: 50px; }
+      #hallAd .ad-ph-size::after { content: "320 × 50"; }
+      html:not(.lh-no-ads) { --hall-ad: calc(78px + env(safe-area-inset-bottom)); }
+    }
+    @media (min-width: 760px) and (min-height: 501px) {
+      #hallAd .ad-slot { width: 728px; height: 90px; }
+      #hallAd .ad-ph-size::after { content: "728 × 90"; }
+      html:not(.lh-no-ads) { --hall-ad: calc(118px + env(safe-area-inset-bottom)); }
+    }
+    html:not(.lh-no-ads) #stage { bottom: var(--hall-ad); --pad-bottom: 14px; }
     .wordmark .mark {
       font-family: var(--display);
       font-size: clamp(18px, 2.8vw, 23px);
@@ -897,6 +928,8 @@
       </div>
     </div>
   </div>
+
+  <div class="ad-wrap ad-dark" id="hallAd" data-ad="trophy-anchor"><div class="ad-slot"></div></div>
 
   <noscript>
     <div style="position:fixed;inset:0;display:grid;place-items:center;padding:32px;text-align:center;background:#05090f;z-index:99">
