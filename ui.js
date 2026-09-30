@@ -963,6 +963,128 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(pin.measure);
   }
 
-  window.UI = { roll, measureRows, shuffleRows, haptic, findPill, reduced: () => REDUCE.matches };
+  /* ---------------------------------------------------------------
+     The header's season menu. The <select> stays where it is and keeps
+     its look (it is what shows the season you are on), but its list is
+     never opened: browsers draw that list themselves, in their own
+     colours, and on Windows it came out as a white frame around navy
+     rows. A clear button laid over the select opens this list instead,
+     drawn in the header's own navy and gold. Picking a season sets the
+     select and fires its change, so whatever listens to it still works.
+
+     Keyboard: Enter, Space or the arrows open it; the arrows, Home and
+     End move; Enter picks; Escape or Tab closes.
+     --------------------------------------------------------------- */
+  function seasonMenu(select) {
+    if (!select) return;
+    const host = select.closest(".year-control") || select.parentElement;
+    let trigger = host.querySelector(".ui-menu-trigger");
+    let list = host.querySelector(".ui-menu");
+    if (!trigger) {
+      host.classList.add("ui-menu-host");
+      select.tabIndex = -1;
+      select.setAttribute("aria-hidden", "true");
+      trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "ui-menu-trigger";
+      trigger.setAttribute("aria-haspopup", "listbox");
+      trigger.setAttribute("aria-expanded", "false");
+      list = document.createElement("div");
+      list.className = "ui-menu";
+      list.id = `${select.id || "season"}-menu`;
+      list.setAttribute("role", "listbox");
+      list.setAttribute("aria-label", select.getAttribute("aria-label") || "Choose");
+      list.hidden = true;
+      trigger.setAttribute("aria-controls", list.id);
+      host.append(trigger, list);
+      wireMenu(select, host, trigger, list);
+    }
+    const current = select.options[select.selectedIndex];
+    trigger.setAttribute("aria-label", `${select.getAttribute("aria-label") || "Choose"}: ${current ? current.textContent : ""}`);
+    const check = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg>';
+    list.innerHTML = [...select.options].map((o, i) => {
+      const on = i === select.selectedIndex;
+      const rule = i === 0 && select.options.length > 1 ? ' data-rule="after"' : "";
+      return `<div class="ui-menu-item${on ? " on" : ""}" role="option" tabindex="-1" data-value="${esc(o.value)}" aria-selected="${on}"${rule}>
+        <span>${esc(o.textContent)}</span>${on ? check : ""}</div>`;
+    }).join("");
+  }
+
+  function wireMenu(select, host, trigger, list) {
+    const items = () => [...list.querySelectorAll(".ui-menu-item")];
+    const isOpen = () => !list.hidden;
+    function open(focusWhich = "current") {
+      if (isOpen()) return;
+      list.hidden = false;
+      host.classList.add("open");
+      trigger.setAttribute("aria-expanded", "true");
+      // a long history scrolls inside the list; start it on the current season
+      const all = items();
+      const cur = all.find((el) => el.classList.contains("on")) || all[0];
+      const target = focusWhich === "first" ? all[0] : focusWhich === "last" ? all[all.length - 1] : cur;
+      if (cur) cur.scrollIntoView({ block: "nearest" });
+      if (target) target.focus({ preventScroll: focusWhich === "current" });
+      document.addEventListener("pointerdown", outside, true);
+    }
+    function close(refocus) {
+      if (!isOpen()) return;
+      list.hidden = true;
+      host.classList.remove("open");
+      trigger.setAttribute("aria-expanded", "false");
+      document.removeEventListener("pointerdown", outside, true);
+      if (refocus) trigger.focus({ preventScroll: true });
+    }
+    function outside(e) { if (!host.contains(e.target)) close(false); }
+    function pick(el) {
+      if (!el) return;
+      haptic("tap");
+      const value = el.dataset.value;
+      close(true);
+      if (value === select.value) return;
+      select.value = value;
+      seasonMenu(select);
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    function move(by) {
+      const all = items();
+      const at = all.indexOf(document.activeElement);
+      const next = by === "first" ? 0 : by === "last" ? all.length - 1 : Math.max(0, Math.min(all.length - 1, at + by));
+      if (all[next]) all[next].focus();
+    }
+
+    trigger.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (isOpen()) close(true); else open("current");
+    });
+    trigger.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); open(e.key === "ArrowUp" ? "last" : "current"); }
+    });
+    // the label's own text ("Season", where it shows) opens the list too,
+    // rather than focusing the select behind it
+    host.addEventListener("click", (e) => {
+      if (e.target === trigger || list.contains(e.target)) return;
+      e.preventDefault();
+      open("current");
+    });
+    list.addEventListener("click", (e) => pick(e.target.closest(".ui-menu-item")));
+    list.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") { e.preventDefault(); move(1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); move(-1); }
+      else if (e.key === "Home") { e.preventDefault(); move("first"); }
+      else if (e.key === "End") { e.preventDefault(); move("last"); }
+      else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(document.activeElement.closest(".ui-menu-item")); }
+      else if (e.key === "Escape") { e.preventDefault(); close(true); }
+      else if (e.key === "Tab") close(false);
+    });
+    // a desktop pointer moving over the list moves the highlight with it
+    list.addEventListener("pointermove", (e) => {
+      const el = e.target.closest(".ui-menu-item");
+      if (el && e.pointerType === "mouse" && document.activeElement !== el) el.focus({ preventScroll: true });
+    });
+    // leaving the menu by any other road (a click in a sheet, focus moving away) closes it
+    host.addEventListener("focusout", (e) => { if (isOpen() && !host.contains(e.relatedTarget)) close(false); });
+  }
+
+  window.UI = { roll, measureRows, shuffleRows, haptic, findPill, seasonMenu, reduced: () => REDUCE.matches };
   window.SeasonNav = SeasonNav;
 })();
