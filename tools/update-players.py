@@ -7,8 +7,11 @@ A scheduled GitHub Action runs this each morning (see
 writes instead of calling Sleeper for it.
 
 Each entry is  id: [name, position, club]  with Sleeper's own club code;
-sleeper.js turns the code into the one the site uses. One entry per line,
-in a fixed order, so a day's commit shows only the players that changed.
+sleeper.js turns the code into the one the site uses. A fourth element, the
+lineup slots a player can fill, is added only where that isn't implied by
+his position (a QB who is also listed at TE): the lineup tools need it to
+know who could have played where. One entry per line, in a fixed order, so
+a day's commit shows only the players that changed.
 
     python tools/update-players.py
 
@@ -29,7 +32,16 @@ def slim(pid, p):
         return [f"{p.get('last_name') or pid} D/ST", "DST", pid]
     name = p.get("full_name") or f"{p.get('first_name') or ''} {p.get('last_name') or ''}".strip() or pid
     pos = p.get("position") or (p.get("fantasy_positions") or ["?"])[0] or "?"
-    return [name, pos, p.get("team")]
+    entry = [name, pos, p.get("team")]
+    eligible = [x for x in (p.get("fantasy_positions") or []) if x]
+    if eligible and eligible != [IMPLIED.get(pos, pos)]:
+        entry.append(eligible)
+    return entry
+
+
+# The fantasy position a real one stands for, as sleeper.js assumes it.
+IMPLIED = {"DE": "DL", "DT": "DL", "NT": "DL", "CB": "DB", "S": "DB", "SS": "DB",
+           "FS": "DB", "ILB": "LB", "OLB": "LB", "MLB": "LB", "DEF": "DEF"}
 
 
 def main():

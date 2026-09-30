@@ -7,7 +7,7 @@
        to the browser; sleeper.js keeps its own copies in IndexedDB
    Bump CACHE_VERSION whenever the precache list or these rules change. */
 
-const CACHE_VERSION = 'v83';
+const CACHE_VERSION = 'v85';
 const SHELL_CACHE = `league-history-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `league-history-fonts-${CACHE_VERSION}`;
 
@@ -17,6 +17,8 @@ const PRECACHE = [
   './season.html',
   './alltime.html',
   './trophy.html',
+  './moves.html',
+  './insights.js',
   './sleeper.js',
   './player-card.js',
   './pwa.js',
