@@ -1374,7 +1374,6 @@ body:not(#_) .schedule-week { white-space: nowrap; letter-spacing: .03em; }
   body:not(#_) .roster-row > .roster-strip { grid-area: strip; gap: 2px; grid-template-columns: repeat(var(--reg), minmax(0, 1fr)) 5px repeat(var(--po), minmax(0, 1fr)); }
   body:not(#_) .roster-row > :nth-child(4) { grid-area: gs; }
   body:not(#_) .roster-row > :nth-child(5) { display: none; }
-  body:not(#_) .roster-row .bx-nfl-logo { width: 26px; height: 19px; }
   body:not(#_) .roster-name { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
   body:not(#_) .roster-name strong { display: block; flex: 0 1 auto; min-width: 0; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   body:not(#_) .roster-name small { flex: none; color: var(--ink-3); font-size: 10.5px; font-weight: 600; white-space: nowrap; }
@@ -1440,3 +1439,23 @@ body:not(#_) .brand-mark.league-avatar img { border-radius: 50%; object-fit: cov
 
 /* A bracket slot nobody fills (a team entering later than the round). */
 body:not(#_) .bk-slot { min-height: 1px; }
+
+/* The line that closes every page: the site is independent of Sleeper,
+   and says where its data comes from. A short run of yard ticks above. */
+body:not(#_) .footer {
+  padding: 26px 16px 34px;
+  text-align: center;
+  color: #718092;
+  font-size: 11px;
+  line-height: 1.6;
+}
+body:not(#_) .footer::before {
+  content: "";
+  display: block;
+  width: min(360px, 52%);
+  height: 7px;
+  margin: 0 auto 15px;
+  background: repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 15px);
+  opacity: .45;
+}
+body:not(#_) .footer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }

@@ -1006,24 +1006,6 @@
       color: var(--blue-2);
     }
 
-    /* A short run of yard ticks closes the page out. */
-    .footer::before {
-      content: "";
-      display: block;
-      width: min(360px, 52%);
-      height: 7px;
-      margin: 0 auto 15px;
-      background: repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 15px);
-      opacity: .45;
-    }
-
-    .footer {
-      padding: 26px 16px 34px;
-      text-align: center;
-      color: #718092;
-      font-size: 11px;
-    }
-
     @media (max-width: 900px) {
       .hero-inner { grid-template-columns: 1fr; }
       .champ-card { justify-self: stretch; width: 100%; }
@@ -2941,13 +2923,6 @@
       letter-spacing: .04em;
     }
 
-    .bx-nfl-logo {
-      flex: 0 0 auto;
-      width: 28px;
-      height: 20px;
-      object-fit: contain;
-    }
-
     .bx-inj { flex: 0 0 auto; font-size: 9px; font-weight: 900; color: var(--red); }
 
     .bx-sc { text-align: center; padding: 5px 0; }
@@ -2999,7 +2974,6 @@
       .bx-name { font-size: 11.5px; }
       .bx-sb .bx-name { font-size: 12px; }
       .bx-nfl { min-width: 24px; font-size: 7.5px; padding: 1.5px 3px; }
-      .bx-nfl-logo { width: 24px; height: 17px; }
       .bx-sc b { font-size: 11.5px; }
       .bx-total b { font-size: 15px; }
       .bx-p { gap: 4px; }
@@ -3489,7 +3463,6 @@
       text-transform: uppercase;
     }
 
-    .roster-row .bx-nfl-logo { width: 28px; height: 20px; }
     .roster-row .bx-nfl { min-width: 28px; }
 
     .roster-name { min-width: 0; }
@@ -3568,7 +3541,6 @@
         gap: 5px;
         padding: 7px 8px;
       }
-      .roster-row .bx-nfl-logo { width: 20px; height: 15px; }
       .roster-row .bx-nfl { min-width: 20px; font-size: 6.5px; padding: 1.5px 1px; }
       .roster-row > :nth-child(5) { display: none; }
       .roster-name strong { font-size: 10.5px; }
@@ -4061,6 +4033,11 @@
     <section id="panel-playoffs" class="view-panel" role="tabpanel"></section>
     <section id="panel-sos" class="view-panel" role="tabpanel"></section>
   </main>
+
+  <footer class="footer">
+    Not affiliated with or endorsed by Sleeper. League data from the
+    <a href="https://docs.sleeper.com/" target="_blank" rel="noopener">Sleeper API</a>.
+  </footer>
 
   <div class="bx-backdrop" id="bxBackdrop"></div>
   <div class="bx-modal" id="bxModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="bxTitle">
@@ -5745,9 +5722,8 @@
        BOX SCORES
 
        Player-level lineups for a week, built from Sleeper's matchups the
-       first time someone opens one. Projected points are Sleeper's
-       projections priced with this league's scoring, fetched with the
-       box score; the club beside a player is where he played that week.
+       first time someone opens one. The club beside a player is his NFL
+       club today, from the site's daily copy of Sleeper's players file.
        ================================================================= */
 
     const boxWeeks = () => model.boxWeeks(SEASON);
@@ -5793,16 +5769,8 @@
       return `${parts[0].charAt(0)}. ${parts.slice(1).join(" ")}`;
     }
 
-    /* Clubs with artwork in nfl-logos/ show the logo; free agents keep the
-       coloured abbreviation chip. */
-    const NFL_LOGOS = new Set(["ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE", "DAL", "DEN", "DET",
-      "GB", "HOU", "IND", "JAX", "KC", "LAC", "LAR", "LV", "MIA", "MIN", "NE", "NO", "NYG", "NYJ", "PHI", "PIT",
-      "SEA", "SF", "TB", "TEN", "WSH"]);
-
+    /* The club as a coloured abbreviation chip; free agents in grey. */
     function bxClub(abbr) {
-      if (NFL_LOGOS.has(abbr)) {
-        return `<img class="bx-nfl-logo" src="nfl-logos/${abbr}.png" alt="${abbr}" title="${abbr}" loading="lazy" decoding="async">`;
-      }
       const c = NFL_TEAMS[abbr] || NFL_TEAMS.FA;
       return `<span class="bx-nfl" style="background:${c};color:${readableInk(c)}">${abbr || "FA"}</span>`;
     }
@@ -5918,9 +5886,7 @@
           ${bxGroup("Bench", lu(a.id, benched), lu(b.id, benched))}
           ${bxGroup("Injured reserve", lu(a.id, reserve), lu(b.id, reserve))}`;
 
-        document.getElementById("bxFoot").textContent = data.projected
-          ? "Projected points sit under each score. The logo is the player's NFL club."
-          : "The logo is the player's NFL club.";
+        document.getElementById("bxFoot").textContent = "The chip beside each player is his NFL club today.";
 
         document.getElementById("bxCols").scrollTop = 0;
 
