@@ -1,0 +1,1442 @@
+/* The record book in Bracketeer's design language.
+
+   Linked last on every page, after the page's own <style> and ui.css, so
+   where they disagree this file wins. Like ui.css it changes how things
+   look, never what they say: every table keeps every column, every
+   bracket keeps every seed, score, box score and note.
+
+   What it brings over from Bracketeer:
+     - type: Inter for everything you read, Barlow Condensed (uppercase,
+       tracked out a little) for the titles that name a thing
+     - quiet surfaces: white cards on a hairline border with a whisper of
+       shadow, grey-blue labels, navy ink
+     - tables that read as lists: small grey column heads, one hairline
+       between rows, the team in navy with its logo, markers at the end
+     - brackets as clean boxes on thin connector lines, the side that
+       advanced tinted and ruled in blue, the side that went out faded */
+
+:root {
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+
+  /* Bracketeer's neutrals. The league's own navy, red and gold stay. */
+  --ink: #0b1f3f;
+  --ink-2: #475467;
+  --ink-3: #8a94a6;
+  --muted: #667085;
+  --line: #e4e7ec;
+  --line-2: #d5dae1;
+  --surface-2: #f7f8fa;
+  --surface-3: #eef1f5;
+  --accent: #1769e0;
+  --accent-ink: #0f56bd;
+  --accent-soft: #edf3ff;
+  --card-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+  --card-radius: 14px;
+}
+
+/* ---------------------------------------------------------------
+   Type
+   --------------------------------------------------------------- */
+body {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
+}
+button, select, input, textarea { font-family: inherit; }
+
+/* The titles that name a thing: the season, the page, a card, a bracket. */
+.hero h1,
+.page-title h2,
+.card-head h3,
+.bracket-head h3,
+.brand-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  line-height: 1;
+}
+.hero h1 { letter-spacing: .01em; line-height: .88; }
+.page-title h2 { font-size: 32px; letter-spacing: .02em; }
+.card-head h3, .bracket-head h3 { font-size: 22px; }
+.brand-title { font-size: 23px; letter-spacing: .04em; }
+.brand-kicker { font-weight: 700; letter-spacing: .16em; }
+@media (max-width: 700px) {
+  .page-title h2 { font-size: 27px; }
+  .card-head h3, .bracket-head h3 { font-size: 20px; }
+  .brand-title { font-size: 19px; letter-spacing: .03em; }
+}
+/* a phone's header shares its row with the trophy room and the season */
+@media (max-width: 400px) { .brand-title { font-size: 15.5px; letter-spacing: .01em; } }
+
+/* ---------------------------------------------------------------
+   Cards: white on a hairline, the head a plain band
+   --------------------------------------------------------------- */
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+.card-head {
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  padding: 14px 16px;
+  gap: 10px;
+}
+.card-head::after { content: none; }
+.card-head > span {
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.card-head h3 { gap: 10px; color: var(--ink); }
+.division-chip {
+  min-width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--ink);
+  box-shadow: none;
+}
+@media (max-width: 700px) {
+  .card { border-radius: 12px; box-shadow: var(--card-shadow); }
+  .card-head { padding: 11px 12px; }
+  .division-chip { min-width: 22px; height: 22px; border-radius: 6px; }
+}
+
+
+/* ---------------------------------------------------------------
+   Tables
+
+   From here on most rules start with `body:not(#_)`, which is just the
+   body carrying the weight of an id. The pages style their tables
+   through ids (`#regular td`, `#panel-standings td.team-cell`), and this
+   lets the rules below win without an !important on every line.
+   --------------------------------------------------------------- */
+body:not(#_) .table-wrap table { font-size: 13px; }
+body:not(#_) .table-wrap th {
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--line);
+}
+body:not(#_) .table-wrap td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 13px;
+}
+body:not(#_) .table-wrap tr:last-child td { border-bottom: 0; }
+body:not(#_) .table-wrap :is(th, td):first-child { padding-left: 16px; }
+body:not(#_) .table-wrap :is(th, td):last-child { padding-right: 16px; }
+body:not(#_) .table-wrap td.rank { color: var(--ink-3); font-weight: 500; font-size: 12.5px; }
+body:not(#_) .table-wrap td.record { color: var(--ink); font-weight: 700; }
+body:not(#_) .table-wrap .positive { color: #15803d; }
+body:not(#_) .table-wrap .negative { color: #dc2626; }
+body:not(#_) .sort-button:is(:hover, .active) { color: var(--ink); }
+
+/* Rows: a hover wash and nothing else. The seed a row holds is a thin
+   rule down its leading edge, the way Bracketeer marks the side that
+   advances. */
+body:not(#_) .table-wrap tbody tr:hover { background: var(--surface-2); box-shadow: none; }
+/* (drawn on the first cell: Safari paints no shadow on a table row) */
+body:not(#_) .table-wrap tbody tr > td:first-child { box-shadow: none; }
+body:not(#_) .table-wrap tbody tr.seed-div > td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+body:not(#_) .table-wrap tbody tr.seed-wc > td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
+body:not(#_) .table-wrap tbody tr.seed-toilet > td:first-child { box-shadow: inset 3px 0 0 #c3cad5; }
+body:not(#_) .table-wrap tbody tr.champion-row { background: rgba(246, 183, 60, .09); box-shadow: none; }
+body:not(#_) .table-wrap tbody tr.champion-row > td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
+
+/* The team: logo, the name in navy, the manager in grey under it. */
+body:not(#_) .team-button { gap: 10px; color: var(--ink); font-weight: 600; }
+body:not(#_) .team-name { color: var(--ink); font-size: 13.5px; font-weight: 600; letter-spacing: -.005em; }
+body:not(#_) .owner { color: var(--ink-3); font-size: 11.5px; font-weight: 500; }
+body:not(#_) .team-button:hover .team-name { color: var(--accent-ink); text-decoration: none; }
+body:not(#_) .table-wrap .team-badge,
+body:not(#_) .standings-table .team-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(7, 24, 39, .08);
+}
+
+/* Standings rows name the team alone; the manager is a tap away, on the
+   team's card. (A standings row is a ranked row with a stat strip; the
+   head-to-head table on a manager's page keeps its managers.) */
+body:not(#_) td.rank + td.team-cell:has(> .mobile-stat-strip) .owner { display: none; }
+
+/* Markers: the seed at the very end of the team cell, the "why" dot
+   just before it, a clinch letter before that. */
+body:not(#_) .team-flags { gap: 6px; }
+body:not(#_) .team-flags .clinch-tag { order: 1; }
+body:not(#_) .team-flags .why-btn { order: 2; }
+body:not(#_) .team-flags .seed-tag { order: 3; }
+body:not(#_) .seed-tag {
+  min-width: 30px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  padding: 2px 6px;
+  border-radius: 99px;
+  line-height: 1.4;
+}
+body:not(#_) .seed-tag.div { background: var(--accent-soft); color: var(--accent-ink); }
+body:not(#_) .seed-tag.div.lead { background: var(--ink); color: #fff; }
+body:not(#_) .seed-tag.wc { background: #fdf1d8; color: #8a5a00; }
+body:not(#_) .seed-tag.out { background: var(--surface-3); color: var(--ink-3); }
+body:not(#_) .clinch-tag {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e7f5ec;
+  color: #15803d;
+}
+body:not(#_) .clinch-tag.x { background: var(--accent-soft); color: var(--accent-ink); }
+body:not(#_) .clinch-tag.e { background: var(--surface-3); color: var(--ink-3); }
+body:not(#_) .why-btn {
+  width: 17px;
+  height: 17px;
+  border: 1px solid var(--line-2);
+  background: #fff;
+  color: var(--ink-3);
+  font: italic 700 10px/1 Georgia, "Times New Roman", serif;
+}
+body:not(#_) .why-btn:is(:hover, :focus-visible, .open) { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+/* Desktop and tablet: the markers sit at the right edge of the team
+   cell, centred on the row, so they line up from one row to the next
+   instead of trailing whatever length each name happens to be. */
+@media (min-width: 901px) {
+  body:not(#_) td.team-cell:has(> .team-flags) { position: relative; padding-right: 96px; }
+  body:not(#_) td.team-cell > .team-flags {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+  }
+  body:not(#_) td.team-cell:has(> .team-flags) { padding-right: 88px; }
+  body:not(#_) .table-wrap td.team-cell .team-name { white-space: nowrap; }
+}
+
+/* A division's table gets the page's full width. Side by side, two cards
+   left the team column too narrow for a name, eight columns and the
+   markers, so names broke over three lines and the table scrolled. */
+body:not(#_) .division-grid:has(.mobile-stat-strip) { grid-template-columns: minmax(0, 1fr); }
+body:not(#_) .division-grid:has(.mobile-stat-strip) td.team-cell { min-width: 260px; }
+/* Same columns at the same widths in every division, so the numbers line
+   up from one card to the next. */
+@media (min-width: 901px) {
+  body:not(#_) .division-grid:has(.mobile-stat-strip) table { table-layout: fixed; min-width: 680px; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) th:nth-child(1) { width: 52px; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) th:nth-child(3) { width: 76px; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) th:nth-child(4) { width: 58px; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) th:nth-child(5) { width: 72px; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) th:nth-child(6),
+  body:not(#_) .division-grid:has(.mobile-stat-strip) th:nth-child(7) { width: 108px; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) th:nth-child(8) { width: 76px; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) td.team-cell { min-width: 0; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) td.team-cell .team-button { max-width: 100%; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) td.team-cell .team-meta { min-width: 0; }
+  body:not(#_) .division-grid:has(.mobile-stat-strip) td.team-cell .team-name { overflow: hidden; text-overflow: ellipsis; }
+}
+
+body:not(#_) .standings-note { color: var(--ink-2); font-size: 12px; gap: 8px 16px; }
+
+/* Phones, in the tables that stay tables (the all-time titles, a
+   drawer's lists): tighter gutters, and a long name gives way to the
+   numbers instead of pushing the table past the card. */
+@media (max-width: 700px) {
+  body:not(#_) .table-wrap :is(th, td) { padding: 9px 7px; }
+  body:not(#_) .table-wrap :is(th, td):first-child { padding-left: 11px; }
+  body:not(#_) .table-wrap :is(th, td):last-child { padding-right: 11px; }
+  body:not(#_) .table-wrap td.team-cell { min-width: 0; }
+  body:not(#_) .table-wrap td.team-cell .team-meta { min-width: 0; }
+  body:not(#_) .table-wrap td.team-cell .team-name,
+  body:not(#_) .table-wrap td.team-cell .owner { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body:not(#_) .titles-table td.team-cell .team-name { max-width: 150px; font-size: 13px; }
+  body:not(#_) .titles-table td { font-size: 12px; }
+  body:not(#_) .card-head { flex-wrap: wrap; row-gap: 8px; }
+}
+
+/* ---------------------------------------------------------------
+   Phone standings
+
+   Every standings row in the book (a division, the final table, a
+   week's standings, the all-time table) takes the same shape on a phone:
+
+     ┌────┐ Team name ································ x (i) X1
+     │logo│ W–L    GB    PF         PA         DIV
+     └────┘ 6–4    —     1,376.00   1,229.86   4–2
+
+   The logo fills the row's height, the markers end the name's line with
+   the seed last, and the numbers under it are a plain row of columns,
+   not a strip of pills.
+   A row is recognised by its stat strip, so the rule reaches every page
+   without naming each table. Tablets get it too: below 900px a table of
+   eight columns only has room for the numbers by starving the names.
+   --------------------------------------------------------------- */
+@media (max-width: 900px) {
+  body:not(#_) .table-wrap:has(td.team-cell > .mobile-stat-strip) { overflow: visible; }
+  body:not(#_) .table-wrap table:has(td.team-cell > .mobile-stat-strip) { display: block; width: 100%; min-width: 0; }
+  body:not(#_) .table-wrap table:has(td.team-cell > .mobile-stat-strip) thead { display: none; }
+  body:not(#_) .table-wrap table:has(td.team-cell > .mobile-stat-strip) tbody { display: block; width: 100%; }
+
+  body:not(#_) .table-wrap tbody tr:has(> td.team-cell > .mobile-stat-strip) {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 12px;
+    padding: 11px 10px 11px 8px;
+    border-bottom: 1px solid var(--line);
+    min-height: 0;
+  }
+  body:not(#_) .table-wrap tbody tr:has(> td.team-cell > .mobile-stat-strip):last-child { border-bottom: 0; }
+  /* a phone row is a grid, not a table row, so the seed rule is the row's own */
+  body:not(#_) .table-wrap tbody tr:has(> td.team-cell > .mobile-stat-strip) > td:first-child { box-shadow: none; }
+  body:not(#_) .table-wrap tbody tr.seed-div:has(> td.team-cell > .mobile-stat-strip) { box-shadow: inset 3px 0 0 var(--accent); }
+  body:not(#_) .table-wrap tbody tr.seed-wc:has(> td.team-cell > .mobile-stat-strip) { box-shadow: inset 3px 0 0 var(--gold); }
+  body:not(#_) .table-wrap tbody tr.seed-toilet:has(> td.team-cell > .mobile-stat-strip) { box-shadow: inset 3px 0 0 #c3cad5; }
+  body:not(#_) .table-wrap tbody tr.champion-row:has(> td.team-cell > .mobile-stat-strip) { box-shadow: inset 3px 0 0 var(--gold); }
+  body:not(#_) .table-wrap tbody tr:has(> td.team-cell > .mobile-stat-strip) > td {
+    padding: 0 0 0 var(--logo-gutter, 0px);
+    border: 0;
+    text-align: left;
+    white-space: normal;
+  }
+  body:not(#_) .table-wrap tbody tr:has(> td.team-cell > .mobile-stat-strip) > td:not(.rank):not(.team-cell) { display: none; }
+  body:not(#_) .table-wrap tbody tr:has(> td.team-cell > .mobile-stat-strip) > td.rank {
+    grid-column: 1;
+    color: var(--ink-3);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.1;
+  }
+  body:not(#_) .table-wrap td.rank .place-medal { display: block; font-size: 13px; margin: 0 0 1px; }
+  body:not(#_) .table-wrap tbody tr:not(:has(> td.rank)):has(> td.team-cell > .mobile-stat-strip) { grid-template-columns: minmax(0, 1fr); padding-left: 12px; }
+  body:not(#_) .table-wrap tbody tr:not(:has(> td.rank)) > td.team-cell:has(> .mobile-stat-strip) { grid-column: 1; }
+
+  /* the cell: the logo pinned down the left, the name line, the numbers */
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) {
+    grid-column: 2;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 5px;
+    min-width: 0;
+    min-height: 48px;
+    --logo-gutter: 58px;
+  }
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) > .team-button {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    gap: 0;
+  }
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) .team-badge {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    margin-top: -24px;
+    border-radius: 12px;
+    font-size: 23px;
+  }
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) .team-meta {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) .team-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) .owner {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--ink-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) > .team-flags { flex: 0 0 auto; margin: 0; gap: 5px; }
+
+  /* the numbers: label over value, in columns that line up down the card */
+  body:not(#_) td.team-cell > .mobile-stat-strip {
+    display: grid;
+    flex: 1 0 100%;
+    grid-template-columns: .8fr .55fr 1.2fr 1.2fr .7fr;
+    gap: 0 6px;
+    margin: 0;
+    max-width: 440px;
+  }
+  /* each table's own five numbers get columns sized for them */
+  body:not(#_) .final-table td.team-cell > .mobile-stat-strip { grid-template-columns: .8fr 1.2fr 1.2fr .85fr .85fr; }
+  body:not(#_) :is(#allTimeBody, #h2hBody) td.team-cell > .mobile-stat-strip { grid-template-columns: .95fr .75fr 1.2fr 1.2fr 1.05fr; }
+  body:not(#_) td.team-cell > .mobile-stat-strip .mobile-stat {
+    min-width: 0;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    text-align: left;
+  }
+  body:not(#_) td.team-cell > .mobile-stat-strip .mobile-stat small {
+    display: block;
+    color: var(--ink-3);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+  body:not(#_) td.team-cell > .mobile-stat-strip .mobile-stat strong {
+    display: block;
+    margin-top: 2px;
+    color: var(--ink-2);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  body:not(#_) td.team-cell > .mobile-stat-strip .mobile-stat:first-child strong { color: var(--ink); font-weight: 700; }
+  body:not(#_) td.team-cell > .mobile-stat-strip .mobile-stat strong.positive { color: #15803d; }
+  body:not(#_) td.team-cell > .mobile-stat-strip .mobile-stat strong.negative { color: #dc2626; }
+
+  body:not(#_) .standings-note { font-size: 11.5px; gap: 6px 12px; padding: 2px 4px; }
+}
+@media (max-width: 374px) {
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) { --logo-gutter: 52px; }
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) .team-badge { width: 44px; height: 44px; margin-top: -22px; }
+  body:not(#_) td.team-cell:has(> .mobile-stat-strip) .team-name { font-size: 14.5px; }
+  body:not(#_) td.team-cell > .mobile-stat-strip .mobile-stat strong { font-size: 11.5px; }
+}
+
+/* ---------------------------------------------------------------
+   Brackets
+
+   Bracketeer's: every game a clean white box, one row per team (seed,
+   logo, name, score), the side that advanced tinted and ruled in blue,
+   the side that went out greyed. The winner's bracket hangs on thin
+   rounded connector lines; round names are small grey capitals.
+   Everything a game carried stays on it: its kicker ("Game 1", "Third
+   Place") as a band across the top, where the teams go next and the box
+   score link as bands along the foot, byes as a quiet footnote.
+   --------------------------------------------------------------- */
+/* the card's rounded corners clip its white head and bracket, which
+   otherwise square off over them */
+body:not(#_) .bracket-card { overflow: hidden; border-radius: var(--card-radius); }
+body:not(#_) .bracket-head,
+body:not(#_) .winners-card .bracket-head,
+body:not(#_) .losers-card .bracket-head {
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  padding: 14px 18px;
+}
+body:not(#_) .bracket-head h3 { display: flex; align-items: center; gap: 10px; }
+/* a small medal of colour names which bracket this is */
+body:not(#_) .winners-card .bracket-head h3::before,
+body:not(#_) .losers-card .bracket-head h3::before {
+  content: ""; width: 10px; height: 10px; border-radius: 50%; flex: none;
+  background: var(--gold); box-shadow: 0 0 0 3px rgba(246, 183, 60, .22);
+}
+body:not(#_) .losers-card .bracket-head h3::before { background: #d6433d; box-shadow: 0 0 0 3px rgba(214, 67, 61, .16); }
+body:not(#_) .bk-note { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+body:not(#_) .bracket-tag { font-size: 10px; font-weight: 700; letter-spacing: .08em; padding: 4px 9px; }
+
+body:not(#_) .bracket {
+  background: #fff;
+  gap: 36px;
+  padding: 20px 22px 24px;
+}
+
+/* round names: "ROUND 1 · NFL WEEK 15" */
+body:not(#_) .round-title,
+body:not(#_) .mobile-stage-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 7px;
+  margin: 0 0 12px;
+  padding: 0 2px;
+  border: 0;
+  min-height: 0;
+  text-align: left;
+}
+body:not(#_) .round-title strong,
+body:not(#_) .mobile-stage-title strong {
+  display: inline;
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+body:not(#_) .round-title span,
+body:not(#_) .mobile-stage-title span {
+  display: inline;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+body:not(#_) .round-title span::before,
+body:not(#_) .mobile-stage-title span::before { content: "· "; }
+
+/* the game */
+body:not(#_) .matchup {
+  position: relative;
+  padding: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  line-height: 1.25;
+}
+body:not(#_) .matchup > :first-child { border-top-left-radius: 9px; border-top-right-radius: 9px; }
+body:not(#_) .matchup > :last-child { border-bottom-left-radius: 9px; border-bottom-right-radius: 9px; }
+body:not(#_) .matchup-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 12px 6px 10px;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: background-color .25s var(--ease);
+}
+body:not(#_) .matchup-row + .matchup-row { border-top: 1px solid var(--line); }
+body:not(#_) .matchup-row .seed {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+body:not(#_) .matchup-row .mini-team { display: flex; align-items: center; gap: 8px; min-width: 0; }
+body:not(#_) .matchup-row .mini-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 12px;
+  flex: none;
+  transition: opacity .25s var(--ease);
+}
+body:not(#_) .matchup-row .bracket-team-name,
+body:not(#_) .matchup-row .mini-team > span:last-child {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.25;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-line-clamp: unset;
+}
+body:not(#_) .bracket-team-button:is(:hover, :focus-visible) .bracket-team-name { color: var(--accent-ink); text-decoration: none; }
+body:not(#_) .matchup-row .score {
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* who went through, who went out */
+body:not(#_) .matchup-row.winner {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+body:not(#_) .matchup-row.winner .score { color: var(--accent-ink); font-weight: 700; }
+body:not(#_) .matchup:has(> .matchup-row.winner) > .matchup-row:not(.winner) { color: var(--ink-3); font-weight: 500; }
+body:not(#_) .matchup:has(> .matchup-row.winner) > .matchup-row:not(.winner) .score { color: var(--ink-3); font-weight: 500; }
+body:not(#_) .matchup:has(> .matchup-row.winner) > .matchup-row:not(.winner) .mini-badge { opacity: .5; }
+/* a bye is a berth, not a win: no tint for the lone team on a bye card */
+body:not(#_) :is(.bye, .mobile-bye-card) > .matchup-row.winner { background: none; box-shadow: none; color: var(--ink); font-weight: 600; }
+
+/* the title game in gold, the last-place game in red */
+body:not(#_) .championship-matchup { border: 1.5px solid var(--gold); box-shadow: 0 8px 22px -12px rgba(186, 128, 10, .45); }
+body:not(#_) .championship-matchup > .matchup-row.winner { background: #fff6e0; box-shadow: inset 3px 0 0 var(--gold); color: #7a5200; }
+body:not(#_) .championship-matchup > .matchup-row.winner .score { color: #7a5200; }
+body:not(#_) .last-place-matchup { border: 1.5px solid #d6433d; box-shadow: 0 8px 22px -12px rgba(214, 67, 61, .4); }
+body:not(#_) .last-place-matchup > .matchup-row.winner { background: none; box-shadow: none; color: var(--ink); }
+body:not(#_) .last-place-matchup > .matchup-row.winner .score { color: var(--ink-2); }
+body:not(#_) .matchup-row.last-place-row,
+body:not(#_) .matchup:has(> .matchup-row.winner) > .matchup-row.last-place-row { color: #c2322c !important; font-weight: 700; background: #fdf1f0; box-shadow: inset 3px 0 0 #d6433d; }
+body:not(#_) .matchup-row.last-place-row .score { color: #c2322c !important; font-weight: 700; }
+body:not(#_) .championship-matchup::before,
+body:not(#_) .last-place-matchup::before {
+  top: -9px;
+  right: 10px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  line-height: 1.1;
+}
+
+/* the bands: kicker on top; route, bye note and box score along the foot */
+body:not(#_) .matchup-kicker {
+  margin: 0;
+  padding: 6px 12px 5px 10px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+body:not(#_) .matchup-path,
+body:not(#_) .bye-label {
+  margin: 0;
+  padding: 6px 12px 6px 10px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.3;
+  text-transform: none;
+}
+body:not(#_) .bye-label::after { content: " · first round"; }
+body:not(#_) .bx-cue-row {
+  gap: 5px;
+  padding: 7px 10px;
+  background: #fff;
+  border-top: 1px solid var(--line);
+  color: var(--accent-ink);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+}
+body:not(#_) .bx-cue-row svg { width: 12px; height: 12px; }
+@media (hover: hover) { body:not(#_) .bx-cue-row:hover { background: var(--surface-2); } }
+body:not(#_) .bye { min-height: 0; display: block; }
+body:not(#_) .third-place-matchup { background: #fff; border-color: var(--line); box-shadow: var(--card-shadow); padding: 0; }
+body:not(#_) .third-place-matchup .matchup-row { font-size: 13px; padding-top: 5px; padding-bottom: 5px; min-height: 36px; }
+body:not(#_) .third-place-matchup .matchup-row .score { font-size: 13px; }
+body:not(#_) .third-place-matchup .mini-badge { width: 20px; height: 20px; font-size: 11px; }
+body:not(#_) .third-place-matchup .place-note { color: var(--ink-3); font-size: 11px; font-weight: 500; letter-spacing: 0; }
+
+/* a projected bracket: records where scores go, open slots in grey */
+body:not(#_) .matchup-row.projected { color: var(--ink); font-weight: 600; }
+body:not(#_) .matchup-row .bk-rec { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+body:not(#_) .matchup-row.bk-tbd { min-height: 40px; }
+body:not(#_) .bk-tbd-name { color: var(--ink-3); font-size: 13px; font-style: normal; font-weight: 500; }
+body:not(#_) .third-place-matchup .matchup-row.bk-tbd { min-height: 36px; }
+
+/* ---- the winner's bracket as a tree (wider than a tablet) ---------
+   Every column is the same height and each round splits it into equal
+   slots, each game centred in its slot: Round 1's four games sit at
+   1/8, 3/8, 5/8 and 7/8 of the way down, the semifinals at 1/4 and 3/4,
+   the title game in the middle. The connectors are drawn on those same
+   fractions, so they meet every box at its centre. */
+@media (min-width: 901px) {
+  /* a column per round; --cols is the bracket's round count */
+  body:not(#_) .bracket { min-width: calc(var(--cols, 3) * 253px); }
+  /* The rounds share the bracket's one grid row, so they stretch to one
+     height; the tallest Round 1 game sets the slot size for all of it.
+     --rows is Round 1's slot count (four in a six-team bracket), --slots
+     each column's own: half the one before it. */
+  body:not(#_) .winners-bracket .round { align-self: stretch; }
+  body:not(#_) .winners-bracket .round-games {
+    display: grid;
+    position: relative;
+    flex: 1 1 auto;
+    height: auto;
+    min-height: calc(max(4, var(--rows, 4)) * 130px);
+    gap: 0;
+    padding: 0;
+    justify-content: stretch;
+    grid-template-rows: repeat(var(--slots, 1), minmax(0, 1fr));
+  }
+  body:not(#_) .winners-bracket .round-games > :is(.matchup, .bk-slot) { align-self: center; width: 100%; grid-row: auto; margin: 7px 0; }
+  body:not(#_) .winners-bracket .round-last .third-place-matchup { position: absolute; left: 0; right: 0; bottom: 0; }
+
+  /* Each game in a later round hangs off a rounded bracket that meets the
+     two slots feeding it at their centres (placed per game, in %) ... */
+  body:not(#_) .winners-bracket .bk-join {
+    position: absolute;
+    left: -36px;
+    width: 18px;
+    border: 1.5px solid var(--line-2);
+    border-left: 0;
+    border-radius: 0 7px 7px 0;
+    pointer-events: none;
+  }
+  /* ... and a stub from each bracket into the game it feeds */
+  body:not(#_) .winners-bracket .round:not(.round-1) .matchup:not(.bye):not(.third-place-matchup)::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -19px;
+    width: 18px;
+    border-top: 1.5px solid var(--line-2);
+    pointer-events: none;
+  }
+
+  /* the losers bracket keeps its own routes (they're written on each game),
+     so its games simply stack, centred down each column */
+  body:not(#_) .losers-bracket .round-games,
+  body:not(#_) .losers-bracket .round .round-games {
+    justify-content: center;
+    gap: 16px;
+    padding: 0;
+  }
+}
+
+/* ---- phones and tablets: a bracket that reads top to bottom -------
+   The two sides of the winner's bracket run down the screen as two lanes:
+   each side's Round 1 game drops a line into its semifinal, the two
+   semifinals join and feed a "Championship" marker, and the title game
+   hangs under it. In a lane a team takes two lines (logo and name, then
+   seed and score) so a name keeps its length at half the screen's width.
+   The losers bracket gets the same treatment: its two opening games side
+   by side, joining into the survival game, which feeds the last-place
+   game. (Where each loser goes is still written on the games.) */
+@media (max-width: 900px) {
+  /* the pages switch to the top-to-bottom tree at 700px; tablets get it too,
+     since three columns there only fit by scrolling sideways */
+  body:not(#_) .winners-card > .bracket-scroll { display: none; }
+  body:not(#_) .mobile-winner-tree { display: block; }
+  body:not(#_) .bracket-scroll { overflow: visible; }
+  body:not(#_) .bracket { min-width: 0; }
+  body:not(#_) .bracket-head { padding: 11px 12px; }
+  body:not(#_) .mobile-winner-tree { padding: 14px 10px 16px; background: #fff; }
+  body:not(#_) .mobile-bracket-stage + .mobile-bracket-stage { margin-top: 0; }
+  body:not(#_) .mobile-stage-title { margin-bottom: 10px; }
+  body:not(#_) .mobile-bracket-stage { position: relative; }
+  body:not(#_) .mobile-lane-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  body:not(#_) .mobile-bracket-lane { display: flex; flex-direction: column; min-width: 0; }
+  body:not(#_) .mobile-lane-label {
+    margin: 0 0 6px;
+    color: var(--ink-3);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  /* a lane's game fills the lane, so both sides' boxes start and end level
+     and the lines meet them */
+  body:not(#_) .mobile-bracket-lane > .matchup:last-child { flex: 1 1 auto; display: flex; flex-direction: column; }
+  body:not(#_) .mobile-bracket-lane > .matchup:last-child > .matchup-path,
+  body:not(#_) .mobile-bracket-lane > .matchup:last-child > .bx-cue-row:not(.matchup-path + *) { margin-top: auto; }
+
+  /* Round 1 → semifinal: a straight drop down the middle of each lane.
+     The semifinals' own title would sit across those lines, so the round
+     is named on a band across the top of each semifinal instead. */
+  body:not(#_) .semifinal-stage { padding-top: 24px; }
+  body:not(#_) .semifinal-stage > .mobile-stage-title { display: none; }
+  body:not(#_) .semifinal-stage::before { display: none; }
+  body:not(#_) .mobile-semifinal-lane { position: relative; }
+  body:not(#_) .mobile-semifinal-lane::before {
+    content: "";
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    width: 0;
+    height: 24px;
+    background: none;
+    border-left: 1.5px solid var(--line-2);
+    transform: none;
+  }
+  /* a bracket of four has nothing above its semifinals to drop from */
+  body:not(#_) .semifinal-stage.first-stage { padding-top: 0; }
+  body:not(#_) .semifinal-stage.first-stage .mobile-semifinal-lane::before { display: none; }
+  body:not(#_) .mobile-semifinal-lane > .matchup[data-stage]::before {
+    content: attr(data-stage);
+    display: block;
+    padding: 6px 10px 5px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    border-radius: 9px 9px 0 0;
+    color: var(--ink-3);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  body:not(#_) .mobile-semifinal-lane > .matchup > :first-child { border-top-left-radius: 0; border-top-right-radius: 0; }
+
+  /* semifinals → the title game: the two lanes join under the boxes */
+  body:not(#_) .mobile-merge-lines {
+    display: block;
+    position: relative;
+    height: 20px;
+    margin: 0 calc((100% - 10px) / 4);
+    border: 1.5px solid var(--line-2);
+    border-top: 0;
+    border-radius: 0 0 9px 9px;
+  }
+  body:not(#_) .mobile-merge-lines::after,
+  body:not(#_) .mobile-merge-lines span { display: none; }
+
+  /* a round named on a marker the lines run through */
+  body:not(#_) .championship-stage > .mobile-stage-title,
+  body:not(#_) .losers-bracket .round:not(.round-1) > .round-title {
+    position: relative;
+    justify-content: center;
+    width: max-content;
+    max-width: 100%;
+    margin: 14px auto 14px;
+    padding: 5px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    box-shadow: var(--card-shadow);
+  }
+  body:not(#_) .championship-stage > .mobile-stage-title::before,
+  body:not(#_) .championship-stage > .mobile-stage-title::after,
+  body:not(#_) .losers-bracket .round:not(.round-1) > .round-title::before,
+  body:not(#_) .losers-bracket .round:not(.round-1) > .round-title::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    height: 14px;
+    border-left: 1.5px solid var(--line-2);
+  }
+  body:not(#_) .championship-stage > .mobile-stage-title::before,
+  body:not(#_) .losers-bracket .round:not(.round-1) > .round-title::before { bottom: 100%; margin-bottom: 1px; }
+  body:not(#_) .championship-stage > .mobile-stage-title::after,
+  body:not(#_) .losers-bracket .round:not(.round-1) > .round-title::after { top: 100%; margin-top: 1px; }
+  body:not(#_) .championship-stage { padding-top: 0; }
+  body:not(#_) :is(.mobile-championship-card, .mobile-third-place-card) { width: 100%; margin: 0; }
+  body:not(#_) .mobile-third-place-card { margin-top: 12px; }
+
+  /* a team in a lane: logo and name, then seed and score under them */
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "team team" "seed score";
+    row-gap: 3px;
+    column-gap: 6px;
+    min-height: 0;
+    padding: 8px 10px 7px 9px;
+    align-items: center;
+  }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row > .mini-team,
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row > .bk-tbd-name { grid-area: team; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row > .seed { grid-area: seed; padding-left: 31px; font-size: 10.5px; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row > :last-child:not(.mini-team):not(.seed):not(.bk-tbd-name) { grid-area: score; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row.bk-tbd { grid-template-areas: "team team"; padding-top: 11px; padding-bottom: 11px; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row.bk-tbd > .seed { display: none; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row .mini-team { gap: 7px; align-items: flex-start; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row .mini-badge { width: 24px; height: 24px; font-size: 13px; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row :is(.bracket-team-name, .mini-team > span:last-child) {
+    display: -webkit-box;
+    align-self: center;
+    font-size: 13px;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row .score { font-size: 13.5px; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-row .bk-rec { font-size: 12px; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .bk-tbd-name { font-size: 12.5px; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) :is(.matchup-kicker, .matchup-path, .bx-cue-row) { padding-left: 9px; padding-right: 9px; }
+  body:not(#_) :is(.mobile-lane-grid, .losers-bracket .round-1) .matchup-path { font-size: 10.5px; }
+
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .matchup { padding: 0; border-radius: 10px; box-shadow: var(--card-shadow); }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .matchup-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 8px;
+    min-height: 44px;
+    padding: 6px 12px 6px 10px;
+  }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .matchup-row .seed { font-size: 11px; white-space: nowrap; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .mini-team { gap: 9px; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .mini-badge { display: inline-grid; width: 26px; height: 26px; border-radius: 7px; font-size: 14px; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .matchup-row :is(.bracket-team-name, .mini-team > span:last-child) { font-size: 14.5px; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .matchup-row .score { font-size: 14.5px; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .matchup-row .bk-rec { font-size: 12.5px; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .bk-tbd-name { font-size: 14px; line-height: 1.25; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .matchup-row.bk-tbd { min-height: 44px; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .matchup-kicker { font-size: 10px; margin: 0; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .third-place-matchup .matchup-row { min-height: 40px; }
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .championship-matchup::before,
+  body:not(#_) :is(.mobile-winner-tree, .bracket) .last-place-matchup::before { top: -9px; right: 10px; padding: 3px 8px; font-size: 9px; }
+  body:not(#_) .bye-label { padding-left: 10px; }
+  body:not(#_) .mobile-bye-card { background: #fff; border-color: var(--line); }
+
+  /* the losers bracket: the opening games as two lanes that join into
+     the survival game, which drops into the last-place game */
+  body:not(#_) .losers-bracket { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 14px 10px 16px; }
+  body:not(#_) .losers-bracket .round-games,
+  body:not(#_) .losers-bracket .round .round-games {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 0;
+  }
+  body:not(#_) .losers-bracket .round-1 .round-games:has(> .matchup + .matchup) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body:not(#_) .losers-bracket .round-1 .round-games > .matchup { display: flex; flex-direction: column; }
+  body:not(#_) .losers-bracket .round-1 .round-games > .matchup > .matchup-path,
+  body:not(#_) .losers-bracket .round-1 .round-games > .matchup > .bx-cue-row:not(.matchup-path + *) { margin-top: auto; }
+  body:not(#_) .losers-bracket .round-1:has(.round-games > .matchup + .matchup) + .round { padding-top: 20px; position: relative; }
+  body:not(#_) .losers-bracket .round-1:has(.round-games > .matchup + .matchup) + .round::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: calc((100% - 10px) / 4);
+    right: calc((100% - 10px) / 4);
+    height: 20px;
+    border: 1.5px solid var(--line-2);
+    border-top: 0;
+    border-radius: 0 0 9px 9px;
+  }
+  body:not(#_) .losers-bracket .round-1 .round-title { margin-bottom: 10px; }
+}
+
+/* ---------------------------------------------------------------
+   The rest of the book, in the same hand
+   --------------------------------------------------------------- */
+
+/* Header: the league's name set like Bracketeer's */
+.brand-kicker { letter-spacing: .12em; font-size: 9.5px; }
+
+/* the season capsule's views read like Bracketeer's tabs */
+.sn-seg button { font-weight: 600; font-size: 13.5px; letter-spacing: 0; }
+@media (max-width: 520px) { .sn-seg button { font-size: 12.5px; } }
+@media (max-width: 374px) { .sn-seg button { font-size: 11.5px; } }
+.sn-num { font-weight: 700; }
+
+/* Names that headline a card: the season's champion and last place, a
+   team's card, a box score */
+.outcome-team h2,
+.drawer-team h2,
+.bx-head h3,
+.champ-card h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  line-height: 1;
+}
+.outcome-label,
+.drawer-year { font-weight: 700; letter-spacing: .08em; }
+.outcome-score-side strong { font-weight: 700; letter-spacing: -.01em; }
+
+/* Results: a game is a matchup box like the bracket's. The side that won
+   is tinted and ruled in blue, the side that lost steps back. */
+body:not(#_) .game-card { border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--card-shadow); }
+body:not(#_) .game-card-head {
+  padding: 9px 14px;
+  background: #fff;
+  color: var(--ink-3);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+body:not(#_) .game-card-head .game-margin { color: var(--ink-2); font-weight: 600; letter-spacing: .06em; }
+body:not(#_) .game-side { gap: 10px; padding: 10px 14px; }
+body:not(#_) .game-side .win-flag { display: none; }
+body:not(#_) .game-side .mini-badge { width: 28px; height: 28px; border-radius: 8px; }
+body:not(#_) .game-side .game-team strong { color: var(--ink); font-size: 14.5px; font-weight: 600; letter-spacing: -.005em; }
+body:not(#_) .game-side .game-team span { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+body:not(#_) .game-side .game-score { color: var(--ink-2); font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+body:not(#_) .game-side.winner { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+@media (hover: hover) {
+  body:not(#_) .game-side:hover { background: var(--surface-2); }
+  body:not(#_) .game-side.winner:hover { background: #e3edff; }
+}
+body:not(#_) .game-side.winner .game-team strong { color: var(--accent-ink); font-weight: 700; }
+body:not(#_) .game-side.winner .game-score { color: var(--accent-ink); }
+body:not(#_) .game-card:has(.game-side.winner) .game-side:not(.winner) .game-team strong { color: var(--ink-2); font-weight: 500; }
+body:not(#_) .game-card:has(.game-side.winner) .game-side:not(.winner) .game-score { color: var(--ink-3); font-weight: 600; }
+body:not(#_) .game-side::after { color: var(--line-2); }
+body:not(#_) .bx-open {
+  padding: 9px 13px;
+  background: #fff;
+  border-top: 1px solid var(--line);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+@media (hover: hover) { body:not(#_) .bx-open:hover { background: var(--surface-2); } }
+
+/* A week's notes: small grey label, the fact in navy */
+body:not(#_) .superlative { background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--card-shadow); }
+body:not(#_) .superlative small { color: var(--ink-3); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; }
+body:not(#_) .superlative strong { color: var(--ink); font-size: 14px; font-weight: 600; }
+body:not(#_) .superlative span { color: var(--ink-3); }
+
+/* Controls: Bracketeer's quiet buttons and selects */
+body:not(#_) .mobile-sort-control { color: var(--ink-3); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; }
+body:not(#_) .mobile-sort-control select,
+body:not(#_) .mobile-sort-direction {
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: none;
+}
+body:not(#_) .mobile-sort-control select { font-size: 13px; }
+
+/* A team's card: its lists read like the tables */
+body:not(#_) .schedule-heading h3 { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+body:not(#_) .schedule-heading span { color: var(--ink-3); font-weight: 500; }
+body:not(#_) .schedule-week { color: var(--ink-3); font-weight: 700; letter-spacing: .06em; }
+body:not(#_) .schedule-opponent strong { font-weight: 600; }
+body:not(#_) .schedule-score strong { font-weight: 700; }
+body:not(#_) .drawer-stat small { font-weight: 700; letter-spacing: .08em; }
+body:not(#_) .drawer-stat strong { font-weight: 700; }
+@media (max-width: 700px) {
+  body:not(#_) .drawer-stat small { font-size: 8.5px; }
+  body:not(#_) .drawer-stat strong { font-size: 13px; }
+  body:not(#_) .schedule-week { font-size: 9px; }
+  body:not(#_) .schedule-opponent strong { font-size: 12.5px; }
+  body:not(#_) .schedule-opponent span { font-size: 10.5px; }
+  body:not(#_) .schedule-score strong { font-size: 12.5px; }
+  body:not(#_) .schedule-score { font-size: 10.5px; }
+}
+
+/* The season's result under the champion and last place: the scores and
+   the FINAL pill never overlap; a long team name under a score gives way
+   instead. */
+body:not(#_) .outcome-score { align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+body:not(#_) .outcome-score-side { flex: 0 0 auto; max-width: 34%; }
+body:not(#_) .outcome-score-side strong { white-space: nowrap; }
+/* the team name under a score is as wide as the score, never wider */
+body:not(#_) .outcome-score-side small { contain: inline-size; }
+body:not(#_) .outcome-status { flex: none; margin-top: 0; align-self: center; font-weight: 700; letter-spacing: .08em; }
+body:not(#_) .outcome-margin { flex: none; margin-left: auto; }
+
+/* ---------------------------------------------------------------
+   Side bets
+   --------------------------------------------------------------- */
+/* the scoreboard: two sides facing each other across one band */
+body:not(#_) .bet-board { padding: 18px 18px 16px; }
+body:not(#_) .bet-scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+}
+body:not(#_) .bet-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  text-align: left;
+}
+body:not(#_) .bet-side::before { content: none; }
+body:not(#_) .bet-side.b { flex-direction: row-reverse; text-align: right; }
+body:not(#_) .bet-wins {
+  color: var(--bet-color);
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 700;
+  line-height: .9;
+  letter-spacing: 0;
+}
+body:not(#_) .bet-side:not(.leading) .bet-wins { opacity: .55; }
+body:not(#_) .bet-who { display: grid; gap: 2px; min-width: 0; }
+body:not(#_) .bet-who small {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+body:not(#_) .bet-who span { color: var(--ink-3); font-size: 12px; font-weight: 500; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body:not(#_) .bet-versus { color: var(--ink-3); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+body:not(#_) .bet-bar { display: flex; gap: 3px; height: 8px; margin-top: 16px; }
+body:not(#_) .bet-bar i { display: block; height: 100%; border-radius: 99px; transition: width .6s var(--ease); }
+body:not(#_) .bet-bar i:not(.rest) { flex: none; min-width: 0; }
+body:not(#_) .bet-bar i[style*="width:0%"] { display: none; }
+body:not(#_) .bet-bar .rest { flex: 1 1 auto; background: var(--surface-3); }
+body:not(#_) .bet-status { margin-top: 8px; color: var(--ink-2); font-size: 12.5px; font-weight: 500; text-align: center; }
+
+/* the week's games: matchup boxes, each division in its own colour */
+body:not(#_) .bet-games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+body:not(#_) .bet-match .matchup-row { grid-template-columns: 62px minmax(0, 1fr) auto; }
+body:not(#_) .bet-match .bet-div {
+  color: var(--bet-color);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+body:not(#_) .bet-match .matchup-row.winner {
+  background: color-mix(in srgb, var(--bet-color) 8%, #fff);
+  box-shadow: inset 3px 0 0 var(--bet-color);
+  color: var(--ink);
+}
+body:not(#_) .bet-match .matchup-row.winner .score { color: var(--ink); }
+
+/* week by week */
+body:not(#_) .bet-table { min-width: 0; }
+body:not(#_) .bet-table tbody tr.is-pending td { color: var(--ink-3); }
+body:not(#_) .bet-table tbody tr.is-current { background: var(--accent-soft); }
+body:not(#_) .bet-table tbody tr.is-current td { color: var(--ink); font-weight: 600; }
+body:not(#_) .bet-table tbody tr.is-current > td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+body:not(#_) .bet-table tbody tr td.bet-lead-a { color: #1769e0; font-weight: 600; }
+body:not(#_) .bet-table tbody tr td.bet-lead-b { color: #d71920; font-weight: 600; }
+body:not(#_) .bet-table tbody tr td.bet-lead-even { color: var(--ink-3); font-weight: 600; }
+body:not(#_) .bet-dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: currentColor; vertical-align: 1px; }
+body:not(#_) .bet-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: #fdf1d8;
+  color: #8a5a00;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  vertical-align: 1px;
+}
+
+/* the preseason slate */
+body:not(#_) .schedule-weeks { gap: 12px; }
+body:not(#_) .schedule-week-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--card-shadow); overflow: hidden; }
+body:not(#_) .schedule-week-card .swc-head {
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+body:not(#_) .swc-game { font-size: 13px; }
+body:not(#_) .swc-game .swc-team { color: var(--ink); font-weight: 600; }
+body:not(#_) .swc-game .swc-vs { color: var(--ink-3); font-weight: 600; font-size: 10px; }
+
+@media (max-width: 700px) {
+  body:not(#_) .bet-board { padding: 16px 14px 14px; }
+  body:not(#_) .bet-scoreboard { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; }
+  body:not(#_) .bet-side { flex-direction: column; align-items: flex-start; gap: 4px; }
+  body:not(#_) .bet-side.b { flex-direction: column; align-items: flex-end; }
+  body:not(#_) .bet-wins { font-size: 48px; }
+  body:not(#_) .bet-who small { font-size: 17px; }
+  body:not(#_) .bet-who span { font-size: 11px; }
+  body:not(#_) .bet-games { grid-template-columns: minmax(0, 1fr); padding: 12px; gap: 10px; }
+  body:not(#_) .bet-match .matchup-row { grid-template-columns: 56px minmax(0, 1fr) auto; }
+  /* five narrow columns fit a phone once the gutters come in */
+  body:not(#_) .bet-table :is(th, td) { padding: 9px 6px; font-size: 12.5px; }
+  body:not(#_) .bet-table th { font-size: 9.5px; letter-spacing: .04em; }
+  body:not(#_) .bet-table :is(th, td):first-child { padding-left: 12px; }
+  body:not(#_) .bet-table :is(th, td):last-child { padding-right: 12px; }
+  body:not(#_) .bet-table .bet-tag { display: block; width: max-content; margin: 3px 0 0; }
+  body:not(#_) .schedule-weeks { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+}
+
+/* ---------------------------------------------------------------
+   Cards that open over the page: a team, a player, a box score
+
+   Still glass, but brighter: a near-white frosted sheet with the page
+   blurred behind it, white cards inside on a hairline (the same cards as
+   the page itself), section names as small grey capitals, and plain
+   navy text in place of the dotted underlines. The team-colour header
+   stays; it is what tells one team's card from another's.
+   --------------------------------------------------------------- */
+:root {
+  --glass-sheet: rgba(246, 247, 249, .9);
+  --glass-tile: #fff;
+  --glass-edge: var(--line);
+  --glass-hair: rgba(16, 24, 40, .06);
+  --tile-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+  --sheet-shadow: 0 32px 80px -24px rgba(8, 32, 79, .45), 0 10px 28px -12px rgba(8, 32, 79, .22), 0 0 0 .5px rgba(8, 32, 79, .14);
+}
+body:not(#_) :is(.drawer-backdrop, .bx-backdrop, .pc-backdrop) {
+  background: rgba(8, 32, 79, .26);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+}
+body:not(#_) :is(.team-drawer, .bx-modal, .pc) {
+  -webkit-backdrop-filter: blur(30px) saturate(1.6);
+  backdrop-filter: blur(30px) saturate(1.6);
+}
+body:not(#_) :is(.team-drawer, .bx-modal, .pc)::after { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5); }
+
+/* section names */
+body:not(#_) .schedule-heading { margin: 0 2px 8px; }
+body:not(#_) .schedule-heading h3,
+body:not(#_) .pc-card-head h3 {
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+body:not(#_) :is(.schedule-heading, .pc-card-head) > span { color: var(--ink-3); font-size: 11px; font-weight: 500; }
+
+/* white cards on a hairline */
+body:not(#_) :is(.drawer-body .schedule-list, .drawer-body .roster-list, .drawer-body .roster-help, .pc-card, .pc-tile) {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+}
+body:not(#_) .pc-tile small { color: var(--ink-3); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+body:not(#_) .pc-tile strong { color: var(--ink); font-size: 22px; font-weight: 700; }
+body:not(#_) .pc-tile span { color: var(--ink-3); font-size: 11px; }
+body:not(#_) .pc-card-head { border-bottom-color: var(--line); }
+
+/* rows in those cards: the table's hairlines and hover */
+body:not(#_) .drawer-body .schedule-row { border-bottom-color: var(--line); }
+body:not(#_) .drawer-body .roster-row { border-top-color: var(--line); }
+body:not(#_) .drawer-body .roster-row.header { background: var(--surface-2); }
+@media (hover: hover) {
+  body:not(#_) :is(.drawer-body .schedule-row, .drawer-body .roster-row:not(.header), .pc-log-row, .pc-mgr):hover { background: var(--surface-2); }
+}
+body:not(#_) .schedule-week { font-size: 10.5px; }
+body:not(#_) .result-pill { border-radius: 7px; font-weight: 700; }
+body:not(#_) .result-pill.win { background: #15803d; }
+body:not(#_) .result-pill.loss { background: #dc2626; }
+
+/* links: navy and plain; blue on hover, like every other team name */
+body:not(#_) .schedule-opponent strong,
+body:not(#_) .schedule-score.bx-link strong,
+body:not(#_) .bx-name[data-player],
+body:not(#_) .roster-name[data-player] strong,
+body:not(#_) .starters-name[data-player] strong,
+body:not(#_) .drawer-name-link { text-decoration: none; }
+body:not(#_) .schedule-opponent strong { color: var(--ink); }
+body:not(#_) .schedule-score.bx-link strong { color: var(--accent-ink); }
+body:not(#_) .schedule-score.bx-link strong::after { content: " \203A"; color: var(--ink-3); font-weight: 600; }
+body:not(#_) :is(.bx-name[data-player], .roster-name[data-player] strong, .starters-name[data-player] strong) { color: var(--ink); }
+@media (hover: hover) {
+  body:not(#_) :is(.schedule-opponent:hover strong, .bx-name[data-player]:hover, .roster-name[data-player]:hover strong, .starters-name[data-player]:hover strong, .drawer-name-link:hover) { color: var(--accent-ink); text-decoration: none; }
+  body:not(#_) .drawer-name-link:hover { color: #fff; opacity: .85; }
+}
+
+/* the team card's header */
+body:not(#_) .drawer-team h2 { font-size: 30px; }
+body:not(#_) .drawer-team p { font-size: 13px; }
+body:not(#_) .drawer-hero .drawer-stat { border-radius: 12px; }
+body:not(#_) .drawer-stat small { font-size: 9.5px; opacity: .9; }
+body:not(#_) .drawer-stat strong { font-size: 18px; }
+body:not(#_) .drawer-stats-body .drawer-stat { border-radius: 12px; }
+
+/* the box score: the head in navy, the score line white, the winner's
+   total in the blue the rest of the site gives a winner */
+body:not(#_) .bx-head h3 { font-size: 24px; }
+body:not(#_) .bx-sb { background: rgba(255, 255, 255, .9); border-bottom-color: var(--line); }
+body:not(#_) .bx-sb .bx-name { font-weight: 600; font-size: 14px; }
+body:not(#_) .bx-total b { font-weight: 700; color: var(--ink-3); }
+body:not(#_) .bx-total.bx-won b { color: var(--accent-ink); }
+body:not(#_) .bx-row { background: #fff; border-top-color: var(--line); }
+body:not(#_) .bx-grouphead,
+body:not(#_) .bx-grouphead .bx-slot { background: var(--surface-2); color: var(--ink-3); font-weight: 700; letter-spacing: .08em; }
+body:not(#_) .bx-slot { background: var(--surface-2); color: var(--ink-3); font-weight: 600; }
+body:not(#_) .bx-foot { background: #fff; color: var(--ink-3); border-top-color: var(--line); }
+
+/* the player card's header: the name in the display face */
+body:not(#_) .pc-id h2 {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+body:not(#_) .pc-id h2.pc-gold { padding: 4px 10px 2px; border-radius: 8px; }
+body:not(#_) .pc.pc-small .pc-id h2 { font-size: 22px; }
+body:not(#_) .pc-tag { font-weight: 600; letter-spacing: .02em; }
+body:not(#_) .pc-champ { font-weight: 700; letter-spacing: .08em; }
+@media (max-width: 760px) {
+  body:not(#_) .pc-id h2 { font-size: 28px; }
+  body:not(#_) .drawer-team h2 { font-size: 26px; }
+  body:not(#_) .bx-head h3 { font-size: 22px; }
+}
+/* the empty middle cell of the box score's score line */
+body:not(#_) .bx-sb .bx-slot { background: transparent; }
+/* "Week 10" on one line in a team card's schedule */
+body:not(#_) .schedule-week { white-space: nowrap; letter-spacing: .03em; }
+}
+/* in the desktop sidebar the result line has about 275px to itself */
+@media (min-width: 1200px) {
+  body:not(#_) .outcome-score { column-gap: 7px; }
+  body:not(#_) .outcome-score strong { font-size: 20px; }
+  body:not(#_) .outcome-status { padding: 3px 6px; }
+  body:not(#_) .outcome-margin { padding: 3px 7px; font-size: 11px; }
+}
+
+/* ---------------------------------------------------------------
+   A team's card on a phone
+
+   Room first. The four numbers sit two by two instead of four abreast
+   (four across broke "Points Against" and its total over two lines).
+   A schedule row puts its week above the opponent, so a name gets the
+   row's width instead of losing a column to "Week 10". A starter takes
+   two lines: the name and his starts on top, his season's strip of weeks
+   the full width of the card underneath.
+   --------------------------------------------------------------- */
+@media (max-width: 700px) {
+  body:not(#_) .drawer-body { padding: 14px 12px 24px; }
+  body:not(#_) .drawer-stats-body { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 18px; }
+  body:not(#_) .drawer-stats-body .drawer-stat { padding: 10px 12px; }
+  /* record and the season's standing along the top, the points under
+     them: Record | Final place (or Current seed), Points for | Points against */
+  body:not(#_) .drawer-stats-body .drawer-stat:nth-child(4) { order: 1; }
+  body:not(#_) .drawer-stats-body .drawer-stat:nth-child(2) { order: 2; }
+  body:not(#_) .drawer-stats-body .drawer-stat:nth-child(3) { order: 3; }
+  body:not(#_) .drawer-stats-body .drawer-stat small { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body:not(#_) .drawer-stats-body .drawer-stat strong { display: block; margin-top: 2px; font-size: 20px; line-height: 1.1; }
+
+  body:not(#_) .schedule-section { margin-bottom: 18px; }
+  body:not(#_) .schedule-row,
+  body:not(#_) .schedule-row.post {
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    grid-template-areas: "pill week score" "pill team score";
+    column-gap: 11px;
+    row-gap: 1px;
+    padding: 10px 12px;
+  }
+  body:not(#_) .schedule-row > .schedule-week { grid-area: week; font-size: 9.5px; line-height: 1.2; }
+  body:not(#_) .schedule-row > .result-pill { grid-area: pill; width: 26px; height: 26px; font-size: 10px; }
+  body:not(#_) .schedule-row > .schedule-opponent { grid-area: team; }
+  body:not(#_) .schedule-row > .schedule-score { grid-area: score; align-self: center; }
+  body:not(#_) .schedule-opponent strong { font-size: 14px; line-height: 1.3; }
+  body:not(#_) .schedule-opponent span { font-size: 11.5px; }
+  body:not(#_) .schedule-score strong { font-size: 13px; font-weight: 600; }
+  body:not(#_) .schedule-score span { font-size: 11px; }
+  /* a game still to come says so once, without a dash over it */
+  body:not(#_) .schedule-score:has(> span) > strong { display: none; }
+  body:not(#_) .schedule-score > span { color: var(--ink-3); }
+
+  body:not(#_) .roster-row {
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    grid-template-areas: "club name gs" ". strip strip";
+    column-gap: 10px;
+    row-gap: 7px;
+    padding: 10px 12px;
+  }
+  body:not(#_) .roster-row > :nth-child(1) { grid-area: club; }
+  body:not(#_) .roster-row > :nth-child(2) { grid-area: name; }
+  body:not(#_) .roster-row > .roster-strip { grid-area: strip; gap: 2px; grid-template-columns: repeat(var(--reg), minmax(0, 1fr)) 5px repeat(var(--po), minmax(0, 1fr)); }
+  body:not(#_) .roster-row > :nth-child(4) { grid-area: gs; }
+  body:not(#_) .roster-row > :nth-child(5) { display: none; }
+  body:not(#_) .roster-row .bx-nfl-logo { width: 26px; height: 19px; }
+  body:not(#_) .roster-name { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+  body:not(#_) .roster-name strong { display: block; flex: 0 1 auto; min-width: 0; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body:not(#_) .roster-name small { flex: none; color: var(--ink-3); font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+  body:not(#_) .roster-row:not(.header) .roster-num strong { font-size: 14px; font-weight: 700; }
+  body:not(#_) .roster-row:not(.header) .roster-num strong::after { content: " GS"; color: var(--ink-3); font-size: 9.5px; font-weight: 700; letter-spacing: .06em; }
+  body:not(#_) .roster-wk { height: 15px; border-radius: 3px; }
+  /* the header: the week numbers over the strips, GS where the starts sit */
+  body:not(#_) .roster-row.header { padding-top: 8px; padding-bottom: 6px; row-gap: 3px; }
+  body:not(#_) .roster-row.header > :nth-child(2),
+  body:not(#_) .roster-row.header > :nth-child(4) { display: none; }
+  body:not(#_) .roster-row.header .roster-wk { height: auto; font-size: 8px; letter-spacing: -.02em; }
+}
+
+/* A season's team card lists its opponents by team alone, as the
+   standings do; each is a tap away from its own card. */
+body:not(#_) #drawerBody .schedule-row .schedule-opponent > span { display: none; }
+
+/* ---------------------------------------------------------------
+   Loading and failure notes, while a page reads its league from
+   Sleeper. The same card as an empty state on every page.
+   --------------------------------------------------------------- */
+body:not(#_) .lh-status {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 34px 22px;
+  background: #fff;
+  border: 1px dashed var(--line);
+  border-radius: var(--card-radius);
+  color: var(--muted);
+  text-align: center;
+}
+body:not(#_) .lh-status strong { display: block; color: var(--ink); font-size: 16px; font-weight: 700; }
+body:not(#_) .lh-status p { margin: 0 auto; max-width: 52ch; font-size: 13.5px; line-height: 1.55; }
+body:not(#_) .lh-status.lh-error { border-style: solid; border-color: rgba(215, 25, 32, .28); }
+body:not(#_) .lh-status-link {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+body:not(#_) .lh-spinner {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  border: 3px solid var(--surface-3);
+  border-top-color: var(--accent);
+  animation: lhSpin .8s linear infinite;
+}
+@keyframes lhSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { body:not(#_) .lh-spinner { animation-duration: 2.4s; } }
+
+/* A league's own Sleeper avatar in the brand mark, cropped round like
+   Sleeper shows it, in place of the site's crest. */
+body:not(#_) .brand-mark.league-avatar img { border-radius: 50%; object-fit: cover; background: #fff; }
+
+/* A bracket slot nobody fills (a team entering later than the round). */
+body:not(#_) .bk-slot { min-height: 1px; }
