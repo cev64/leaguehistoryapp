@@ -300,7 +300,9 @@
     const rounds = Math.max(0, ...(winners || []).map((m) => m.r));
     const lbRounds = Math.max(0, ...(losers || []).map((m) => m.r));
     const type = Number(s.playoff_round_type) || 0;
-    let lastWeek = 17;
+    // A league with no playoffs plays its whole schedule as regular season:
+    // through week 18 since the NFL went to eighteen weeks in 2021, 17 before.
+    let lastWeek = Number(league.season) >= 2021 ? 18 : 17;
     if (pws) {
       const settings = { playoffWeekStart: pws, playoffRoundType: type };
       const r = Math.max(rounds, lbRounds);
@@ -310,8 +312,11 @@
     const final = lastFinalWeek(league, state);
     const startWeek = Math.max(1, Number(s.start_week) || 1);
 
+    // Every week from the first is read, even when the league says it starts
+    // later: a start week can be changed after a season is played, so which
+    // weeks actually counted is settled against Sleeper's records (below).
     const weeks = [];
-    for (let w = startWeek; w <= lastWeek; w++) weeks.push(w);
+    for (let w = 1; w <= lastWeek; w++) weeks.push(w);
     const matchups = {};
     await Promise.all(weeks.map(async (w) => {
       // A week already final keeps for a day even in a live season (stat
@@ -408,6 +413,35 @@
         }
       }
     });
+
+    /* The week the league's season really began. Usually the start week in
+       its settings, but that setting can be edited after the fact (a 2019
+       league now "starting" in week 2 whose records all count week 1), and
+       weeks before it may carry scores that never counted. Sleeper's own
+       win-loss records say how many games were played, so the start week is
+       the one whose games add up to them: the configured week if it does,
+       otherwise the nearest week that does, otherwise the configured week.
+       Finished seasons only: mid-season, Sleeper's records can trail the
+       scores by a week, which would read as a later start. */
+    const officialGames = rosters.reduce((sum, r) => {
+      const rs = r.settings || {};
+      return sum + (rs.wins || 0) + (rs.losses || 0) + (rs.ties || 0);
+    }, 0);
+    const gamesIn = (w) => (results[w] ? results[w].length * 2 : 0) + Object.keys(medianResults[w] || {}).length;
+    const gamesFrom = (start) => Object.keys(results).map(Number).filter((w) => w >= start).reduce((sum, w) => sum + gamesIn(w), 0);
+    let firstWeek = raw.startWeek;
+    if (league.status === "complete" && officialGames && gamesFrom(firstWeek) !== officialGames) {
+      const fits = [];
+      for (let w = 1; w <= Math.max(1, settings.regularWeeks); w++) if (gamesFrom(w) === officialGames) fits.push(w);
+      if (fits.length) firstWeek = fits.sort((a, b) => Math.abs(a - raw.startWeek) - Math.abs(b - raw.startWeek) || a - b)[0];
+    }
+    settings.startWeek = firstWeek;
+    // Box scores and player histories read the matchups too, so the weeks
+    // that never counted go from there as well.
+    [schedule, results, medianResults, matchups].forEach((byWk) => {
+      Object.keys(byWk).map(Number).filter((w) => w < firstWeek).forEach((w) => { delete byWk[w]; });
+    });
+
     const playedWeeks = Object.keys(results).map(Number).sort((a, b) => a - b);
 
     // Regular-season records, the median games counted as Sleeper counts them.
@@ -446,9 +480,33 @@
       return sum + (m ? pointsOf(m) : 0);
     }, 0));
     const lbRounds = Math.max(0, ...losers.map((m) => m.r));
+    /* A game Sleeper paired and scored but never settled: a finished league
+       whose title game still has no winner. It is settled from the scores,
+       but only when the two teams really met each other that week (the same
+       matchup in Sleeper's weekly results) and did not tie, so a bracket
+       game that was never played stays unplayed. Returns [w, l] in Sleeper's
+       own sense of who went on. */
+    const settle = (g, weeks, flip) => {
+      if (league.status !== "complete" || g.t1 == null || g.t2 == null) return null;
+      const met = weeks.every((w) => {
+        if (w > raw.final || !byWeek[w]) return false;
+        const x = byWeek[w].get(g.t1), y = byWeek[w].get(g.t2);
+        return x && y && x.matchup_id != null && x.matchup_id === y.matchup_id && (pointsOf(x) > 0 || pointsOf(y) > 0);
+      });
+      if (!met) return null;
+      const s1 = scoreFor(g.t1, weeks), s2 = scoreFor(g.t2, weeks);
+      if (s1 === s2) return null;
+      const [hi, lo] = s1 > s2 ? [g.t1, g.t2] : [g.t2, g.t1];
+      return flip ? [lo, hi] : [hi, lo];
+    };
     [["W", winners, rounds], ["L", losers, lbRounds]].forEach(([bracket, games, count]) => {
       games.forEach((g) => {
         const weeks = roundWeeks(settings, g.r, count);
+        if (g.w == null || g.l == null) {
+          const settled = settle(g, weeks, bracket === "L" && toilet);
+          // Written into the bracket itself: the pages draw from it too.
+          if (settled) { g.w = settled[0]; g.l = settled[1]; }
+        }
         const played = g.w != null && g.l != null && weeks.every((w) => w <= raw.final);
         const a = g.t1 != null ? known(g.t1) : null;
         const b = g.t2 != null ? known(g.t2) : null;
@@ -522,6 +580,8 @@
       finished,
       live: !finished,
       preseason: !finished && playedWeeks.length === 0,
+      // Closed by Sleeper without a game ever scored: it will never start.
+      unplayed: league.status === "complete" && !finished,
       settings,
       teams,
       schedule,
@@ -554,6 +614,45 @@
 
   const models = new Map();
 
+  /* Seasons a league's own chain skips. A commissioner who renews an old
+     league rather than last year's (a league that sat out a year or two and
+     came back) leaves the seasons in between on a side branch: they point
+     back into the chain, but nothing in the chain points at them. They are
+     found the only way Sleeper allows, through the members' own league
+     lists for the missing years, and taken when they descend from a league
+     already in the history. Costs nothing for a history without gaps. */
+  async function siblingSeasons(chain) {
+    const leagues = await Promise.all(chain.map((lid) => cached(`league:${lid}`, TTL.live, `${API}/league/${lid}`)));
+    const years = leagues.map((l) => Number(l.season));
+    const have = new Set(years);
+    const missing = [];
+    for (let y = Math.min(...years) + 1; y < Math.max(...years); y++) if (!have.has(y)) missing.push(y);
+    if (!missing.length) return [];
+    const members = (await cached(`users:${chain[0]}`, TTL.live, `${API}/league/${chain[0]}/users`).catch(() => null)) || [];
+    const everyone = members.map((u) => u.user_id);
+    const known = new Set(chain);
+    const found = [];
+    for (const year of missing) {
+      // A few members at a time, stopping at the first who played that year:
+      // not everyone in today's league was there for the seasons in between.
+      const candidates = [];
+      for (let i = 0; i < everyone.length && !candidates.length; i += 4) {
+        const lists = await Promise.all(everyone.slice(i, i + 4).map((uid) =>
+          cached(`userleagues:${uid}:${year}`, DAY, `${API}/user/${uid}/leagues/nfl/${year}`).catch(() => [])));
+        lists.forEach((list) => (list || []).forEach((l) => {
+          if (Number(l.season) === year && known.has(l.previous_league_id) && !candidates.some((c) => c.league_id === l.league_id)) candidates.push(l);
+        }));
+      }
+      if (!candidates.length) continue;
+      // Two branches the same year: the one still wearing the league's name.
+      const name = (leagues[0].name || "").trim().toLowerCase();
+      const pick = candidates.find((l) => (l.name || "").trim().toLowerCase() === name) || candidates[0];
+      known.add(pick.league_id);
+      found.push(pick.league_id);
+    }
+    return found;
+  }
+
   /* The league and every season before it. `onProgress(done, total)` hears
      as seasons arrive, for a loading line. */
   function load(leagueId, { onProgress } = {}) {
@@ -573,6 +672,7 @@
           next = league.previous_league_id;
         }
         if (!chain.length) throw new Error("Sleeper has no league with that id.");
+        chain.push(...(await siblingSeasons(chain)));
         let done = 0;
         if (onProgress) onProgress(0, chain.length);
         const raws = await Promise.all(chain.map(async (lid) => {
@@ -593,7 +693,11 @@
           const had = byYear.get(season.year);
           if (!had || (!hasGames(had) && hasGames(season))) byYear.set(season.year, season);
         });
-        return buildModel(id, [...byYear.values()].sort((a, b) => a.year - b.year), st);
+        const model = buildModel(id, [...byYear.values()].sort((a, b) => a.year - b.year), st);
+        // The account gate (account.js): resolves once this visitor may see
+        // the league, holding the page at its loading line until then.
+        if (window.Account && window.Account.admit) await window.Account.admit(model);
+        return model;
       })();
       models.set(id, job);
       job.catch(() => models.delete(id));
@@ -942,6 +1046,20 @@
     lists.forEach((list) => (list || []).forEach((l) => all.push(l)));
     const byId = new Map(all.map((l) => [l.league_id, l]));
     const continued = new Set(all.map((l) => l.previous_league_id).filter((p) => p && byId.has(p)));
+    // A league renewed from an older season than last year's leaves the
+    // seasons in between as a side branch off the same league. The history
+    // page folds them into the newest branch, so only that one is listed.
+    const newestFrom = new Map();
+    all.forEach((l) => {
+      const p = l.previous_league_id;
+      if (!p || p === "0") return;
+      const had = newestFrom.get(p);
+      if (!had || Number(l.season) > Number(had.season)) newestFrom.set(p, l);
+    });
+    all.forEach((l) => {
+      const p = l.previous_league_id;
+      if (p && p !== "0" && Number(newestFrom.get(p).season) > Number(l.season)) continued.add(l.league_id);
+    });
     const heads = all.filter((l) => !continued.has(l.league_id));
     const seasonsBack = (l) => {
       let n = 1, first = Number(l.season), cur = l;

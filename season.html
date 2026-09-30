@@ -3935,6 +3935,9 @@
   </style>
   <link rel="stylesheet" href="ui.css" />
   <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="account.css" />
+  <script src="account-config.js"></script>
+  <script src="account.js"></script>
   <script src="ui.js"></script>
   <script src="sleeper.js"></script>
 </head>
@@ -3966,6 +3969,9 @@
         <p></p>
       </div>
     </div>
+    <!-- Ads: 300×250 in the desktop sidebar, and a banner at the top and the
+         foot of every view (account.css has the sizes). -->
+    <div class="ad-wrap ad-sidebar" data-ad="season-sidebar"><div class="ad-slot"></div></div>
   </section>
 
   <!-- The season's views across the top and the week wheel under them,
@@ -3973,6 +3979,7 @@
   <nav id="seasonNav" aria-label="Weeks and views"></nav>
 
   <main>
+    <div class="ad-wrap ad-top" data-ad="season-top"><div class="ad-slot"></div></div>
 
     <div class="page-toolbar">
       <div class="page-title">
@@ -4032,6 +4039,8 @@
     <section id="panel-picture" class="view-panel" role="tabpanel"></section>
     <section id="panel-playoffs" class="view-panel" role="tabpanel"></section>
     <section id="panel-sos" class="view-panel" role="tabpanel"></section>
+
+    <div class="ad-wrap ad-bottom" data-ad="season-bottom"><div class="ad-slot"></div></div>
   </main>
 
   <footer class="footer">
@@ -4681,6 +4690,9 @@
       } else if (lastPlayedWeek) {
         badge = `Through Week ${lastPlayedWeek}`;
         sub = `Week ${lastPlayedWeek} of ${REGULAR_WEEKS}.${P ? ` ${capital(numberWord(P))} make the playoffs${out ? `, ${numberWord(out)} play in the losers bracket` : ""}.` : ""}`;
+      } else if (season.unplayed) {
+        badge = "Not played";
+        sub = "Sleeper closed this season before a single game was scored.";
       } else {
         badge = "Preseason";
         sub = `${capital(numberWord(n))} teams. ${REGULAR_WEEKS} weeks.${P ? ` ${capital(numberWord(P))} make the playoffs.` : ""}`;
@@ -4890,7 +4902,7 @@
     function renderViewTabs() {
       SeasonNav.render({ views: viewsFor(state.week), view: state.view });
       UI.roll(document.getElementById("weekTitle"), state.week === 0
-        ? (FINISHED ? `${SEASON} Season` : `Preseason · ${SEASON}`)
+        ? (FINISHED ? `${SEASON} Season` : season.unplayed ? `${SEASON} · Not played` : `Preseason · ${SEASON}`)
         : `Week ${state.week} · ${SEASON}`, SeasonNav.dir);
     }
 
@@ -4950,7 +4962,9 @@
 
       if (week === 0) {
         if (!weeks.length) {
-          panel.innerHTML = emptyState("No schedule yet", "Sleeper draws the season's matchups once the league has its teams. They will appear here as soon as it does.");
+          panel.innerHTML = season.unplayed
+            ? emptyState("This season wasn't played", "Sleeper closed it before any matchups were scored, so there is nothing to show. Earlier seasons are in the season menu.")
+            : emptyState("No schedule yet", "Sleeper draws the season's matchups once the league has its teams. They will appear here as soon as it does.");
           return;
         }
         const games = weeks.reduce((n, w) => n + schedule[w].length, 0);

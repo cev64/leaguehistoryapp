@@ -16,6 +16,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="account.css" />
+  <script src="account-config.js"></script>
+  <script src="account.js"></script>
   <script src="sleeper.js"></script>
   <script src="pwa.js" defer></script>
   <style>
@@ -137,6 +140,23 @@
     .back span[aria-hidden] { color: var(--accent); font-size: 14px; line-height: 1; }
 
     .wordmark { text-align: right; line-height: 1.1; }
+    .top-right { display: flex; align-items: flex-start; gap: 14px; }
+    .hud-account { pointer-events: auto; }
+    .hud-account .acct-button { background: rgba(9, 16, 27, .55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+    @media (max-width: 560px) { .hud-account .acct-button-label { display: none; } .hud-account .acct-button:has(.acct-button-label) { width: 38px; padding: 0; justify-content: center; border-radius: 50%; } }
+    #sheet .ad-wrap { margin: 4px 0 0; }
+    #hud .ad-wrap, #sheet .ad-wrap { pointer-events: auto; }
+    #loader .ad-wrap { margin: 0; }
+    /* On a big screen the hall's bottom-left corner is empty floor: one more
+       slot lives there, clear of the plate and the wing tabs in the middle.
+       Anywhere smaller it would sit on them, so it isn't shown. */
+    .hud-ad { display: none; }
+    @media (min-width: 1400px) and (min-height: 760px) {
+      .hud-ad { display: flex; position: absolute; left: var(--pad-left); bottom: var(--pad-bottom); margin: 0; }
+      #stage.focused .hud-ad { opacity: 0; pointer-events: none; }
+      .hud-ad { transition: opacity .3s ease; }
+    }
+    @media (max-height: 640px) { #loader .ad-wrap { display: none; } }
     .wordmark .mark {
       font-family: var(--display);
       font-size: clamp(18px, 2.8vw, 23px);
@@ -787,16 +807,21 @@
       <div class="top">
         <a class="back hall-only" href="alltime.html"><span aria-hidden="true">←</span> All-Time</a>
         <button class="back locker-only" id="lockerBack" type="button"><span aria-hidden="true">←</span> <span id="lockerBackLabel">Hall of Fame</span></button>
-        <div class="wordmark hall-only">
-          <div class="mark">The Hall</div>
-          <div class="sub">League Trophy Room</div>
-        </div>
-        <div class="wordmark locker-only">
-          <div class="mark">Team Locker</div>
+        <div class="top-right">
+          <div class="wordmark hall-only">
+            <div class="mark">The Hall</div>
+            <div class="sub">League Trophy Room</div>
+          </div>
+          <div class="wordmark locker-only">
+            <div class="mark">Team Locker</div>
+          </div>
+          <div class="hud-account" data-account-slot></div>
         </div>
       </div>
 
       <div id="lockerHint" class="locker-only">Drag to look around the wall · tap anything to see it up close</div>
+
+      <div class="ad-wrap ad-rect ad-dark hud-ad" data-ad="trophy-corner"><div class="ad-slot"></div></div>
 
       <div class="bottom">
         <div id="hint">Drag to walk the hall · tap a trophy to inspect it</div>
@@ -836,6 +861,7 @@
         <p id="sheetBlurb"></p>
         <dl id="sheetStats"></dl>
         <div id="sheetLinks"></div>
+        <div class="ad-wrap ad-rect ad-dark" data-ad="trophy-sheet"><div class="ad-slot"></div></div>
       </div>
       <div class="sheet-foot">
         <span class="sheet-foot-hint">Drag to turn · pinch to zoom</span>
@@ -865,6 +891,7 @@
         </div>
         <p id="loaderNote">Championships, the managers who won them, the records nobody has beaten, and the seats at the very bottom of the table.</p>
         <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="ad-wrap ad-rect ad-dark" data-ad="trophy-loader"><div class="ad-slot"></div></div>
         <a class="doorway-exit" id="loaderExit" href="alltime.html">← Back to All-Time</a>
         <p class="doorway-fine">Not affiliated with or endorsed by Sleeper. League data from the Sleeper API.</p>
       </div>
