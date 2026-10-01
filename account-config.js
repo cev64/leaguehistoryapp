@@ -21,6 +21,13 @@ window.ACCOUNT_CONFIG = {
   // leagues and every Sleeper league never use it.
   ESPN_PROXY_URL: "",
 
+  // The Connect ESPN browser extension (extension/, packaged with
+  // tools/build-extension.py), once it is published: its Chrome Web Store
+  // page and its Firefox Add-ons page. Empty, the front page doesn't offer
+  // it; a visitor who has it installed can still use it.
+  ESPN_EXTENSION_URL: "",
+  ESPN_EXTENSION_FIREFOX_URL: "",
+
   // Sign-in methods shown on the sign-in screen. Email + password is always
   // on; Google needs the Google provider switched on in Supabase ▸
   // Authentication ▸ Providers first.

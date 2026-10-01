@@ -139,6 +139,92 @@
     access.clear();
   }
 
+  /* ------------------------------------------------------------ connecting */
+
+  /* The Connect ESPN extension (extension/): installed, it marks the page
+     (<html data-lh-espn-connect="<version>">) and answers "espn:connect"
+     with the two cookies, read from the browser's own espn.com sign-in, and
+     the member's leagues where ESPN lists them. Nothing to type. */
+  // Where to get it: its Chrome Web Store page (Chrome, Edge, Brave,
+  // Opera), or its Firefox Add-ons page for Firefox.
+  const extensionUrl = () => (typeof navigator !== "undefined" && /Firefox\//.test(navigator.userAgent)
+    ? CFG.ESPN_EXTENSION_FIREFOX_URL || ""
+    : CFG.ESPN_EXTENSION_URL || "");
+  const extensionVersion = () => (typeof document !== "undefined" && document.documentElement.dataset.lhEspnConnect) || null;
+  function connectExtension({ openLogin = true } = {}) {
+    if (!extensionVersion()) return Promise.resolve({ ok: false, reason: "no-extension" });
+    return new Promise((resolve) => {
+      const nonce = Math.random().toString(36).slice(2);
+      const done = (answer) => { window.removeEventListener("message", heard); clearTimeout(timer); resolve(answer); };
+      const heard = (event) => {
+        const a = event.data;
+        if (event.source !== window || !a || a.source !== "league-history-extension" || a.nonce !== nonce) return;
+        done(a);
+      };
+      const timer = setTimeout(() => done({ ok: false, reason: "no-answer" }), 20000);
+      window.addEventListener("message", heard);
+      window.postMessage({ source: "league-history", type: "espn:connect", nonce, openLogin }, location.origin);
+    }).then((a) => {
+      if (!a.ok) return { ok: false, reason: a.reason || "extension-error" };
+      if (!saveAuth(a.s2, a.swid)) return { ok: false, reason: "bad-cookies" };
+      const leagues = Array.isArray(a.leagues)
+        ? a.leagues.filter((l) => l && /^\d{1,12}$/.test(String(l.id))).map((l) => ({
+          id: String(l.id), name: String(l.name || "").slice(0, 120), season: Number(l.season) || 0, team: String(l.team || "").slice(0, 120),
+        }))
+        : null;
+      return { ok: true, leagues };
+    });
+  }
+
+  /* A phone has no extension. A visitor connected on a computer passes the
+     connection on with a link (shown as a QR code) whose #fragment carries
+     the two cookies: a fragment never leaves the browser, so the cookies
+     go from one of the visitor's devices to the other without passing
+     through any server. The phone keeps them, as the computer does, in its
+     own browser. */
+  const PAIR = "#espn-pair=";
+  const b64 = (text) => btoa(unescape(encodeURIComponent(text))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const unb64 = (text) => decodeURIComponent(escape(atob(text.replace(/-/g, "+").replace(/_/g, "/"))));
+  function pairLink(n) {
+    const auth = savedAuth();
+    if (!auth) return null;
+    const base = location.href.split("#")[0].split("?")[0].replace(/[^/]*$/, "");
+    return `${base}index.html${PAIR}${b64(JSON.stringify({ s2: auth.s2, swid: auth.swid, l: n || undefined }))}`;
+  }
+  // Taken off the address at once, before anything else on the page
+  // (an ad script) could read it.
+  let paired = null;
+  if (typeof location !== "undefined" && String(location.hash).startsWith(PAIR)) {
+    try {
+      const data = JSON.parse(unb64(location.hash.slice(PAIR.length)));
+      const ok = saveAuthNow(data.s2, data.swid);
+      paired = { ok: Boolean(ok), league: /^\d{1,12}$/.test(String(data.l || "")) ? String(data.l) : null };
+    } catch (err) {
+      paired = { ok: false, league: null };
+    }
+    try { history.replaceState(null, "", location.href.split("#")[0]); } catch (err) { /* ignore */ }
+  }
+  function saveAuthNow(s2, swid) {
+    // saveAuth also resets the relay's per-league access map, which isn't
+    // set up yet this early in the file; a fresh page has nothing to reset.
+    const a = tidyAuth(s2, swid);
+    if (!a) return null;
+    try { localStorage.setItem(AUTH_KEY, JSON.stringify(a)); } catch (err) { /* ignore */ }
+    return a;
+  }
+
+  /* For the league manager: what to do, and the link to send round once
+     it's done. */
+  function commissionerMessage(n) {
+    const base = location.href.split("#")[0].split("?")[0].replace(/[^/]*$/, "");
+    const link = n ? `${base}season.html?league=${PREFIX}${n}` : `${base}index.html`;
+    return [
+      "Can you make our ESPN fantasy league viewable to the public? It doesn't make it joinable, just readable with the link.",
+      "On espn.com: League ▸ Settings ▸ Basic Settings ▸ Edit Basic Settings ▸ Make League Viewable to Public: Yes ▸ Save.",
+      `Then everyone can see our whole league history here: ${link}`,
+    ].join("\n\n");
+  }
+
   /* ------------------------------------------------------------ requests */
 
   const access = new Map(); // ESPN league number -> "public" | "browser" | "proxy"
@@ -205,7 +291,11 @@
         if (mode !== prefer) hint(n, mode);
         return value;
       } catch (err) {
-        if (err.status !== 401 && err.status !== 403) throw err;
+        // A refusal means try the next way. So does a request the browser
+        // itself blocked while trying the visitor's own cookies (a privacy
+        // setting can stop a credentialed request outright).
+        const refused = err.status === 401 || err.status === 403;
+        if (!refused && !(mode === "browser" && !err.status)) throw err;
       }
     }
     throw privateError(n);
@@ -959,5 +1049,7 @@
     parseLeague, isEspnId, leagueId: (n) => `${PREFIX}${n}`,
     savedAuth, saveAuth, clearAuth, tidyAuth,
     proxyAvailable: Boolean(PROXY),
+    extensionVersion, extensionUrl, connectExtension,
+    pairLink, paired: () => paired, commissionerMessage,
   };
 })();

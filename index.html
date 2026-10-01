@@ -1723,6 +1723,27 @@
     .espn-private ol { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
     .espn-private strong { color: var(--ink); }
     .espn-private code { font-size: 12px; padding: 0 4px; border-radius: 4px; background: rgba(11, 23, 38, .06); color: var(--ink); }
+    .espn-way { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+    .espn-way:first-of-type { padding-top: 0; border-top: 0; }
+    .espn-way > strong { font-size: 13px; }
+    .espn-done > strong { color: #1d7a3f; }
+    .espn-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; }
+    .espn-actions .signin-go { height: 38px; padding: 0 16px; }
+    .espn-btn {
+      display: inline-flex; align-items: center; height: 38px; padding: 0 14px;
+      border: 1px solid var(--line); border-radius: 10px; background: #fff;
+      color: var(--ink); font: inherit; font-size: 13px; font-weight: 800; text-decoration: none; cursor: pointer;
+    }
+    .espn-btn:hover { border-color: var(--blue); }
+    .espn-quiet { color: var(--muted); font-weight: 700; }
+    .espn-said { color: #1d7a3f; font-weight: 700; }
+    .espn-qr { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 6px; }
+    .espn-qr-code { width: 196px; height: 196px; padding: 8px; box-sizing: border-box; border-radius: 12px; background: #fff; border: 1px solid var(--line); }
+    .espn-qr-code svg { display: block; width: 100%; height: 100%; }
+    .espn-qr-copy { display: grid; gap: 8px; justify-items: start; }
+    .espn-manual summary { cursor: pointer; color: var(--blue); font-weight: 700; }
+    .espn-manual[open] { display: grid; gap: 8px; }
+    .espn-manual ol { margin-top: 8px; }
     .espn-cookie-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; }
     .espn-cookie-fields input {
       width: 100%;
@@ -1738,11 +1759,6 @@
     }
     .espn-cookie-fields input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(23, 105, 224, .14); }
     .espn-cookie-fields .signin-go { height: 40px; padding: 0 16px; }
-    .espn-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink); font-weight: 700; }
-    .espn-saved button {
-      height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
-      background: #fff; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
-    }
     .espn-fine { font-size: 11.5px; }
 
     .league-list { display: grid; }
@@ -1816,6 +1832,7 @@
       .signin-form { grid-template-columns: minmax(0, 1fr); padding: 14px; }
       .signin-go { width: 100%; }
       .espn-cookie-fields { grid-template-columns: minmax(0, 1fr); }
+      .espn-qr { grid-template-columns: minmax(0, 1fr); }
       .league-row { padding: 11px 14px; }
       .signin-points { padding: 14px; }
       /* the record book hides its hero on phones; the sign-in page keeps a line of it */
@@ -1910,26 +1927,57 @@
           <p class="signin-note" id="espnNote">Your league ID is the number after <code>leagueId=</code> in your league's address on fantasy.espn.com; pasting the whole link works too. A league that's viewable to the public needs nothing else. <a href="#" id="espnPrivateLink">Private league?</a></p>
           <div class="espn-private" id="espnPrivate" hidden>
             <h4>Opening a private ESPN league</h4>
-            <p><strong>The easy way, for the whole league:</strong> your league manager turns on <em>Make League Viewable to Public</em> (ESPN ▸ League ▸ Settings ▸ Basic Settings). Then the league ID alone opens it for every member. Only people with the ID can find it.</p>
-            <p>If you're signed in to ESPN in this browser, the site tries your ESPN sign-in first. Some browsers block that.</p>
-            <div id="espnCookieHelp">
-              <p><strong>Or connect it with your own ESPN sign-in</strong>, on a computer:</p>
+
+            <section class="espn-way">
+              <strong>Easiest, for everyone on every device: make it public</strong>
+              <p>Your league manager turns on <em>Make League Viewable to Public</em> once (espn.com ▸ League ▸ Settings ▸ Basic Settings ▸ Edit Basic Settings). The league stays unjoinable, and the league ID alone then opens it here for every member, on a phone or a computer.</p>
+              <div class="espn-actions">
+                <button type="button" class="espn-btn" id="espnAskLm">Send this to your league manager</button>
+                <span class="espn-said" id="espnAskSaid" role="status"></span>
+              </div>
+            </section>
+
+            <section class="espn-way" id="espnConnectWay">
+              <strong>Or connect your own ESPN sign-in</strong>
+              <p id="espnConnectText"></p>
+              <div class="espn-actions">
+                <button type="button" class="signin-go" id="espnConnect">Connect ESPN</button>
+                <a class="espn-btn" id="espnGetExt" target="_blank" rel="noopener" hidden>Add the extension</a>
+              </div>
+            </section>
+
+            <section class="espn-way espn-done" id="espnConnected" hidden>
+              <strong>✓ ESPN connected in this browser</strong>
+              <p>Private leagues you're in now open here like any other. To use them on your phone too, press <em>Open on my phone</em> and scan the code with the phone's camera.</p>
+              <div class="espn-actions">
+                <button type="button" class="espn-btn" id="espnToPhone">Open on my phone</button>
+                <button type="button" class="espn-btn espn-quiet" id="espnForget">Disconnect</button>
+              </div>
+              <div class="espn-qr" id="espnQr" hidden>
+                <div class="espn-qr-code" id="espnQrCode" aria-label="QR code that opens League History on your phone, connected to ESPN"></div>
+                <div class="espn-qr-copy">
+                  <p><strong>Scan this with your phone's camera.</strong> League History opens there already connected to ESPN, with nothing to type.</p>
+                  <button type="button" class="espn-btn espn-quiet" id="espnCopyPair">Copy the link instead</button>
+                  <p class="espn-fine">This code carries your ESPN sign-in, so only scan it with your own phone and don't share a picture of it. It goes straight from this screen to your phone; it never passes through our servers.</p>
+                </div>
+              </div>
+            </section>
+
+            <details class="espn-manual" id="espnManual">
+              <summary>No extension? Enter ESPN's two sign-in cookies by hand</summary>
               <ol>
-                <li>Sign in at <a href="https://fantasy.espn.com/football/" target="_blank" rel="noopener">fantasy.espn.com</a> and open your league.</li>
+                <li>On a computer, sign in at <a href="https://fantasy.espn.com/football/" target="_blank" rel="noopener">fantasy.espn.com</a> and open your league.</li>
                 <li>Open the browser's developer tools (F12, or ⌥⌘I on a Mac) ▸ <strong>Application</strong> (Chrome, Edge) or <strong>Storage</strong> (Firefox, Safari) ▸ Cookies ▸ espn.com.</li>
                 <li>Copy the values of <code>espn_s2</code> and <code>SWID</code> into the boxes below.</li>
               </ol>
-            </div>
-            <div class="espn-cookie-fields" id="espnCookieFields">
-              <input id="espnS2" type="password" autocomplete="off" spellcheck="false" placeholder="espn_s2" aria-label="espn_s2 cookie" />
-              <input id="espnSwid" type="text" autocomplete="off" spellcheck="false" placeholder="SWID  {XXXXXXXX-XXXX-…}" aria-label="SWID cookie" />
-              <button class="signin-go" id="espnSave" type="button">Save</button>
-            </div>
-            <div class="espn-saved" id="espnSaved" hidden>
-              <span>✓ ESPN sign-in saved in this browser</span>
-              <button type="button" id="espnForget">Forget it</button>
-            </div>
-            <p class="espn-fine" id="espnFine">These two cookies work like your ESPN sign-in, so treat them like a password. They stay in this browser only, and are sent only to read your league: through this site's relay to ESPN, never stored on our servers. Signing out of ESPN ends them, and <em>Forget it</em> removes them here.</p>
+              <div class="espn-cookie-fields">
+                <input id="espnS2" type="password" autocomplete="off" spellcheck="false" placeholder="espn_s2" aria-label="espn_s2 cookie" />
+                <input id="espnSwid" type="text" autocomplete="off" spellcheck="false" placeholder="SWID  {XXXXXXXX-XXXX-…}" aria-label="SWID cookie" />
+                <button class="signin-go" id="espnSave" type="button">Save</button>
+              </div>
+            </details>
+
+            <p class="espn-fine" id="espnFine">Connecting keeps your ESPN sign-in in this browser only, and uses it only to read your leagues: through this site's relay to ESPN, never stored on our servers. It works like your ESPN password, so Disconnect on a shared computer. Signing out of ESPN also ends it.</p>
           </div>
         </form>
       </article>
@@ -2008,6 +2056,7 @@
 
       function showLeagues(user, leagues) {
         const card = document.getElementById("leaguesCard");
+        listing = "sleeper";
         // Still hidden while the ESPN tab is showing.
         card.hidden = form.hidden;
         document.getElementById("leaguesTitle").textContent = `${user.name}'s Leagues`;
@@ -2088,17 +2137,25 @@
         renderRecent();
       });
 
-      /* ESPN: a league ID or link opens the league. A private league needs
-         the visitor's ESPN cookies (espn.js keeps them in this browser and
-         sends them through the site's relay); the panel says how to find
-         them, and the easier way of making the league public. */
+      /* ESPN: a league ID or link opens the league. A public league needs
+         nothing more. A private one is opened, best first, by making it
+         public (a message for the league manager), by the Connect ESPN
+         extension (one click, and a list of the member's leagues), or by
+         pasting ESPN's two cookies. A connection is kept in this browser
+         only (espn.js) and passed to a phone with a QR code. */
+      const ESPN = window.ESPN;
       const espnForm = document.getElementById("espnForm");
       const espnInput = document.getElementById("espnLeague");
       const espnNote = document.getElementById("espnNote");
       const espnDefault = espnNote.innerHTML;
       const espnPrivate = document.getElementById("espnPrivate");
+      const leaguesCard = document.getElementById("leaguesCard");
       const tabs = { sleeper: document.getElementById("tabSleeper"), espn: document.getElementById("tabEspn") };
       const PLATFORM_KEY = "lh-platform";
+      const $ = (id) => document.getElementById(id);
+      // Which platform's leagues the list card is showing.
+      let listing = null;
+      const PHONE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
 
       function choose(platform, { focus = true } = {}) {
         const espn = platform === "espn";
@@ -2106,19 +2163,47 @@
         tabs.espn.setAttribute("aria-selected", String(espn));
         form.hidden = espn;
         espnForm.hidden = !espn;
-        document.getElementById("leaguesCard").hidden = espn || !document.getElementById("leagueList").innerHTML;
+        leaguesCard.hidden = listing !== platform;
         try { localStorage.setItem(PLATFORM_KEY, platform); } catch (err) { /* ignore */ }
         if (focus) (espn ? espnInput : input).focus({ preventScroll: true });
       }
-      tabs.sleeper.addEventListener("click", () => choose("sleeper"));
+      tabs.sleeper.addEventListener("click", () => {
+        if (listing === "espn") listing = null;
+        choose("sleeper");
+      });
       tabs.espn.addEventListener("click", () => choose("espn"));
 
+      function say(text, { error = false, html = false } = {}) {
+        espnNote.className = `signin-note${error ? " error" : ""}`;
+        if (html) espnNote.innerHTML = text; else espnNote.textContent = text;
+      }
+
+      // The panel as it stands: connected or not, extension or not, phone or not.
       function drawPrivate() {
-        const relay = window.ESPN && window.ESPN.proxyAvailable;
-        const saved = relay && window.ESPN.savedAuth();
-        // Without the relay, cookies can't be used: only the public route.
-        ["espnCookieHelp", "espnCookieFields", "espnFine"].forEach((id) => { document.getElementById(id).hidden = !relay || Boolean(saved && id !== "espnFine"); });
-        document.getElementById("espnSaved").hidden = !saved;
+        const relay = ESPN.proxyAvailable;
+        const connected = relay && Boolean(ESPN.savedAuth());
+        const ext = ESPN.extensionVersion();
+        const store = ESPN.extensionUrl();
+        // A private league's sign-in is used through the relay; without it
+        // only the public route is open.
+        $("espnConnectWay").hidden = !relay || connected || (!ext && !store && !PHONE);
+        $("espnConnected").hidden = !connected;
+        // Copying cookies needs a computer's developer tools.
+        $("espnManual").hidden = !relay || connected || PHONE;
+        $("espnFine").hidden = !relay;
+        const button = $("espnConnect"), get = $("espnGetExt"), text = $("espnConnectText");
+        button.hidden = !ext;
+        get.hidden = ext || !store;
+        if (store) get.href = store;
+        if (ext) {
+          text.textContent = "One click: the League History extension reads your ESPN sign-in from this browser and lists your leagues. Not signed in to ESPN? It opens ESPN for you first.";
+        } else if (PHONE) {
+          text.textContent = "Phones can't run browser extensions. Connect once on a computer, then press Open on my phone there and scan the code with this phone's camera: it arrives connected, with nothing to type.";
+          get.hidden = !(store && /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent));
+        } else {
+          text.textContent = "Add the free League History extension to Chrome, Edge, Brave or Firefox, then reload this page and press Connect ESPN. It reads only ESPN's two sign-in cookies, and only when you press it.";
+        }
+        $("espnQr").hidden = true;
       }
       function openPrivate(open = true) {
         espnPrivate.hidden = !open;
@@ -2130,46 +2215,148 @@
         event.preventDefault();
         openPrivate(espnPrivate.hidden);
       });
-      document.getElementById("espnSave").addEventListener("click", () => {
-        const s2 = document.getElementById("espnS2");
-        const swid = document.getElementById("espnSwid");
-        const ok = window.ESPN.saveAuth(s2.value, swid.value);
-        if (!ok) {
-          espnNote.className = "signin-note error";
-          espnNote.textContent = "Those don't look like ESPN's cookies: espn_s2 is a long string of letters and numbers, and SWID looks like {1A2B3C4D-…}.";
+
+      // A connection made: the member's leagues if ESPN listed them,
+      // otherwise on with the league ID typed, or ask for one.
+      function connected(leagues) {
+        drawPrivate();
+        if (leagues && leagues.length) {
+          showEspnLeagues(leagues);
+          say("✓ Connected to ESPN. Pick a league below, or enter a league ID.");
+          return;
+        }
+        if (espnInput.value.trim()) { espnForm.requestSubmit(); return; }
+        say("✓ Connected to ESPN. Now enter your league's ID or link above.");
+        espnInput.focus();
+      }
+      function showEspnLeagues(leagues) {
+        listing = "espn";
+        $("leaguesTitle").textContent = "Your ESPN Leagues";
+        $("leaguesMeta").textContent = `${leagues.length} found`;
+        $("leagueList").innerHTML = leagues.map((l) => `
+          <a class="league-row" href="${leagueHref(ESPN.leagueId(l.id))}">
+            ${badge(null, l.name || "E")}
+            <span class="league-name">
+              <strong>${esc(l.name || `ESPN league ${l.id}`)}</strong>
+              <span>${[l.season ? `Season ${l.season}` : "", l.team].filter(Boolean).map(esc).join(" · ")}</span>
+            </span>
+            <span class="league-go" aria-hidden="true">›</span>
+          </a>`).join("");
+        leaguesCard.hidden = false;
+      }
+
+      let waitingForLogin = false;
+      async function connect({ openLogin = true } = {}) {
+        const button = $("espnConnect");
+        button.disabled = true;
+        say("Asking the extension…");
+        const answer = await ESPN.connectExtension({ openLogin });
+        button.disabled = false;
+        if (answer.ok) { waitingForLogin = false; connected(answer.leagues); return; }
+        if (answer.reason === "signed-out") {
+          // ESPN opened in a new tab: try again when the visitor is back.
+          waitingForLogin = true;
+          say("Sign in to ESPN in the tab that just opened, then come back to this one: it connects by itself.");
+          return;
+        }
+        say("The extension didn't answer. Reload this page and press Connect ESPN again.", { error: true });
+      }
+      $("espnConnect").addEventListener("click", () => connect());
+      window.addEventListener("focus", () => { if (waitingForLogin) connect({ openLogin: false }); });
+
+      $("espnAskLm").addEventListener("click", async () => {
+        const text = ESPN.commissionerMessage(ESPN.parseLeague(espnInput.value));
+        const said = $("espnAskSaid");
+        try {
+          if (navigator.share && PHONE) { await navigator.share({ text }); said.textContent = ""; return; }
+          await navigator.clipboard.writeText(text);
+          said.textContent = "Copied: paste it in your league's group chat.";
+        } catch (err) {
+          if (err && err.name === "AbortError") return;
+          window.prompt("Copy this and send it to your league manager:", text);
+        }
+      });
+
+      // The connection, to a phone: a QR code of a link that carries it.
+      function phoneLink() {
+        const typed = ESPN.parseLeague(espnInput.value);
+        const recent = League.recent().find((l) => ESPN.isEspnId(l.id));
+        return ESPN.pairLink(typed || (recent && recent.id.replace(/^espn-/, "")));
+      }
+      let qrLoading = null;
+      const loadQr = () => qrLoading || (qrLoading = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "vendor/qrcode.js";
+        script.onload = () => resolve(window.qrcode);
+        script.onerror = reject;
+        document.head.appendChild(script);
+      }));
+      $("espnToPhone").addEventListener("click", async () => {
+        const box = $("espnQr");
+        if (!box.hidden) { box.hidden = true; return; }
+        const link = phoneLink();
+        if (!link) return;
+        try {
+          const qrcode = await loadQr();
+          const qr = qrcode(0, "L");
+          qr.addData(link);
+          qr.make();
+          $("espnQrCode").innerHTML = qr.createSvgTag(4, 0);
+        } catch (err) {
+          $("espnQrCode").textContent = "The code couldn't be drawn: copy the link instead.";
+        }
+        box.hidden = false;
+      });
+      $("espnCopyPair").addEventListener("click", async () => {
+        const link = phoneLink();
+        try { await navigator.clipboard.writeText(link); $("espnCopyPair").textContent = "Copied: open it on your phone"; }
+        catch (err) { window.prompt("Open this link on your phone:", link); }
+      });
+      $("espnForget").addEventListener("click", () => {
+        ESPN.clearAuth();
+        if (listing === "espn") { listing = null; leaguesCard.hidden = true; }
+        say(espnDefault, { html: true });
+        drawPrivate();
+      });
+
+      $("espnSave").addEventListener("click", () => {
+        const s2 = $("espnS2"), swid = $("espnSwid");
+        if (!ESPN.saveAuth(s2.value, swid.value)) {
+          say("Those don't look like ESPN's cookies: espn_s2 is a long string of letters and numbers, and SWID looks like {1A2B3C4D-…}.", { error: true });
           return;
         }
         s2.value = "";
         swid.value = "";
-        espnNote.className = "signin-note";
-        espnNote.innerHTML = espnDefault;
-        drawPrivate();
-        if (espnInput.value.trim()) espnForm.requestSubmit();
-      });
-      document.getElementById("espnForget").addEventListener("click", () => {
-        window.ESPN.clearAuth();
-        drawPrivate();
+        connected(null);
       });
 
       espnForm.addEventListener("submit", (event) => {
         event.preventDefault();
-        const n = window.ESPN && window.ESPN.parseLeague(espnInput.value);
+        const n = ESPN.parseLeague(espnInput.value);
         if (!n) {
-          espnNote.className = "signin-note error";
-          espnNote.innerHTML = `That isn't an ESPN league ID. It's the number after <code>leagueId=</code> in your league's address on fantasy.espn.com. <a href="#" id="espnPrivateLink">Private league?</a>`;
+          say(`That isn't an ESPN league ID. It's the number after <code>leagueId=</code> in your league's address on fantasy.espn.com. <a href="#" id="espnPrivateLink">Private league?</a>`, { error: true, html: true });
           return;
         }
-        location.href = leagueHref(window.ESPN.leagueId(n));
+        location.href = leagueHref(ESPN.leagueId(n));
       });
 
       renderRecent();
-      // Sent back from a private ESPN league: ESPN, its id filled in, and
-      // the private-league panel open.
-      const fromEspn = League.param("espn");
       let platform = "sleeper";
       try { platform = localStorage.getItem(PLATFORM_KEY) || "sleeper"; } catch (err) { /* ignore */ }
-      if (fromEspn && window.ESPN && window.ESPN.parseLeague(fromEspn)) {
-        espnInput.value = window.ESPN.parseLeague(fromEspn);
+      // Arrived from a computer's QR code: connected; straight to the league.
+      const paired = ESPN.paired();
+      const fromEspn = League.param("espn");
+      if (paired && paired.ok && paired.league) {
+        location.replace(leagueHref(ESPN.leagueId(paired.league)));
+      } else if (paired) {
+        choose("espn", { focus: false });
+        openPrivate(true);
+        if (paired.ok) say("✓ This phone is connected to ESPN. Enter your league's ID or link above.");
+        else say("That link didn't carry a working ESPN connection. Make a new code on your computer and scan it again.", { error: true });
+      } else if (fromEspn && ESPN.parseLeague(fromEspn)) {
+        // Sent back from a private ESPN league: ESPN, its id filled in, and
+        // the private-league panel open.
+        espnInput.value = ESPN.parseLeague(fromEspn);
         choose("espn", { focus: false });
         openPrivate(true);
         espnPrivate.scrollIntoView({ block: "center" });

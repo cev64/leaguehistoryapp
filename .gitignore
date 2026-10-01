@@ -4,3 +4,6 @@ season_*.json
 
 # Python bytecode from tools/boxscores/fetch-season.py
 __pycache__/
+
+# Packaged browser extension (tools/build-extension.py)
+dist/

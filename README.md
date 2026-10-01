@@ -110,25 +110,42 @@ Basic Settings) to anyone, from the browser, like Sleeper. That is the
 easiest setup and the one the front page recommends: the league manager
 flips it once and every member can open the league with its ID.
 
-A private league needs a member's ESPN sign-in cookies, `espn_s2` and
-`SWID`. `espn.js` tries three ways in turn and remembers which one worked:
+A private league needs a member's ESPN sign-in, which ESPN keeps in two
+cookies (`espn_s2` and `SWID`) that no website can read. The front page's
+private-league panel offers, best first:
 
-1. **Public**: a plain request.
-2. **The visitor's own ESPN sign-in**: the same request with the browser's
-   espn.com cookies. This works where the browser allows third-party cookies
-   and the visitor is signed in to ESPN. Safari and Firefox usually block it.
-3. **The relay**: the visitor pastes `espn_s2` and `SWID` on the front page
-   (instructions are there). They're kept in that browser's localStorage only.
-   Requests go to `supabase/functions/espn-proxy`, which adds them as
-   cookies, asks ESPN, and passes the answer straight back. It only makes
-   read-only GETs to ESPN's fantasy football league and player addresses.
-   It stores and logs nothing, and `ALLOWED_ORIGINS` limits it to this site.
+1. **Make it public.** "Send this to your league manager" copies (or, on a
+   phone, shares) a message with the exact steps and the league's link
+   here. Once the manager flips the setting, every member opens the league
+   on any device with nothing else to do. The league stays unjoinable.
+2. **Connect ESPN**, with the browser extension in `extension/` (what
+   FantasyPros does too). It reads the two cookies from the visitor's own
+   espn.com sign-in when they press the button, opens ESPN to sign in if
+   needed, and lists the visitor's ESPN leagues where ESPN provides that
+   list. No typing. Works in desktop Chrome, Edge, Brave, Opera and
+   Firefox, and Firefox for Android. See [extension/README.md](extension/README.md).
+3. **Open on my phone.** Phones can't run these extensions (Chrome for
+   Android has none; Safari's need an App Store app). Once a visitor is
+   connected on a computer, this shows a QR code. The phone's camera opens
+   the site already connected and goes straight to the league. The
+   connection travels in the link's `#` fragment, which browsers never send
+   to a server, and `espn.js` takes it off the address before any other
+   script on the page can read it.
+4. **Enter the cookies by hand**, folded away at the bottom, for desktop
+   browsers without the extension.
+
+Whichever way it arrives, the connection is kept in that browser's
+localStorage only. `espn.js` then tries, in turn: a plain request (public
+leagues); the browser's own espn.com cookies (works where third-party
+cookies are allowed); and the relay, `supabase/functions/espn-proxy`, which
+adds the two cookies to a read-only request to ESPN's fantasy football
+league and player addresses and passes the answer straight back. It stores
+and logs nothing, and `ALLOWED_ORIGINS` limits it to this site. Whichever
+way works is remembered.
 
 A private league that none of these open fails with a note that links back
-to the front page's private-league form. Each member of a private league
-connects it on their own device; the cookies are never shared with the rest
-of the league or kept on the server. That is deliberate, because `espn_s2`
-works like an ESPN password.
+to the front page's private-league panel. The connection is never kept on
+the server, which is deliberate: `espn_s2` works like an ESPN password.
 
 ### Known limits
 
@@ -300,6 +317,11 @@ Going live:
    `account-config.js`). Public ESPN leagues and Sleeper don't need it.
    Run the second migration too (`20261001000000_espn_leagues.sql`), which
    lets an ESPN league (`espn-<id>`) be synced to an account.
+   For one-click Connect ESPN, package the extension with
+   `python tools/build-extension.py --site https://your-site.example`, publish
+   the zip to the Chrome Web Store and Firefox Add-ons, and put their
+   addresses in `ESPN_EXTENSION_URL` / `ESPN_EXTENSION_FIREFOX_URL` (see
+   [extension/README.md](extension/README.md)).
 7. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
    config.
 
@@ -341,6 +363,8 @@ ones. Pro members see none.
 
 - `tools/update-players.py` refreshes `data/players.json` from Sleeper (the
   daily Action runs it; standard library only).
+- `tools/build-extension.py` packages the Connect ESPN extension for the
+  browser stores, with the site's address in it.
 - `tools/build-icons.py` rebuilds every icon from `icons/crest-master.png`
   (needs Pillow).
 - `tools/check-scripts.mjs` parses every page's inline script without running
