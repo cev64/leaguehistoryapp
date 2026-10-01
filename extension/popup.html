@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Connect ESPN</title>
+  <style>
+    body { margin: 0; width: 300px; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: #0b1726; background: #f4f6f9; }
+    header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #0b1726; color: #fff; }
+    header img { width: 28px; height: 28px; }
+    header strong { display: block; font-size: 14px; letter-spacing: .02em; }
+    header span { font-size: 11.5px; opacity: .75; }
+    main { padding: 12px 14px 14px; display: grid; gap: 10px; }
+    .status { padding: 10px 12px; border-radius: 10px; background: #fff; border: 1px solid #dde3ea; font-weight: 700; }
+    .status.ok { border-color: #8fd1a6; background: #effaf2; color: #135c2c; }
+    .status.no { border-color: #f2c38f; background: #fff7ee; color: #7a4510; }
+    p { margin: 0; color: #4b5b6e; }
+    a.button, button { display: block; width: 100%; box-sizing: border-box; padding: 9px 12px; border: 0; border-radius: 9px; background: #0b1726; color: #fff; font: inherit; font-weight: 800; text-align: center; text-decoration: none; cursor: pointer; }
+    a.quiet { background: #fff; color: #0b1726; border: 1px solid #dde3ea; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icons/icon-48.png" alt="">
+    <div><strong>Connect ESPN</strong><span>for League History</span></div>
+  </header>
+  <main>
+    <div class="status" id="status">Checking…</div>
+    <p id="how">On League History, open the ESPN tab and press <strong>Connect ESPN</strong>. This extension reads your ESPN sign-in only then, and only for League History's pages.</p>
+    <button type="button" id="allow" hidden>Allow access to League History</button>
+    <a class="button" id="site" target="_blank" rel="noopener" hidden>Open League History</a>
+    <a class="button quiet" id="signin" href="https://fantasy.espn.com/football/" target="_blank" rel="noopener" hidden>Sign in to ESPN</a>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

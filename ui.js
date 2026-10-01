@@ -283,7 +283,9 @@
     const tell = (has) => { if (has !== shown) { shown = has; if (onChange) onChange(has); } };
     const photo = (h) => {
       if (h.headshot && h.pos !== "DST") {
-        return `<img src="https://sleepercdn.com/content/nfl/players/thumb/${esc(h.headshot)}.jpg" alt="" loading="lazy" data-club="${esc(h.club)}">`;
+        const src = window.League && window.League.headshot ? window.League.headshot(h.headshot)
+          : `https://sleepercdn.com/content/nfl/players/thumb/${h.headshot}.jpg`;
+        return `<img src="${esc(src)}" alt="" loading="lazy" data-club="${esc(h.club)}">`;
       }
       return window.PlayerCard && window.PlayerCard.nflLogo ? window.PlayerCard.nflLogo(h.club, "pr-logo") : "";
     };
