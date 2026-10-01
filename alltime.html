@@ -1510,9 +1510,14 @@
       .schedule-list .team-name { font-size: 10px; }
       .schedule-list .owner { font-size: 8px; }
       .starters-row {
-        grid-template-columns: 16px 20px minmax(0, 1fr) var(--year-cols-sm) 30px;
+        grid-template-columns: 14px 26px minmax(0, 1fr) var(--year-cols-sm) 26px;
         gap: 5px; padding: 6px 7px;
       }
+      /* the club chips sized to their columns: the player's own, and one
+         inside each season's cell */
+      .starters-row > .starters-chip { width: 26px; padding: 3px 0; font-size: 7px; }
+      .starters-year { min-width: 0; }
+      .starters-year .starters-chip { width: calc(100% - 4px); max-width: 22px; padding: 2px 0; border-radius: 3px; font-size: 6px; letter-spacing: -.01em; }
       .starters-row.header { font-size: 7px; }
       .starters-rank { font-size: 9px; }
       .starters-name strong { font-size: 10px; }

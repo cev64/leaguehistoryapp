@@ -1090,21 +1090,61 @@
      the mid-page one, then the one at the foot — while they fit. A short
      page simply shows fewer. Runs with the other slot work, before paint, so
      a slot is never seen to vanish; a slot is only ever in or out, never
-     resized. Desktops have no density rule. */
+     resized. Desktops have no density rule.
+
+     A slot already scrolled past is never switched in or out: everything
+     on screen would move by its height (Safari doesn't anchor the scroll).
+     It keeps its state until the content around it is redrawn. And the
+     page's height is its content's, not the screen's, so the browser's bar
+     sliding away mid-scroll changes nothing. */
   const PHONE = matchMedia("(max-width: 767px)");
   const DENSITY = 0.25;
   const rank = (el) => (el.classList.contains("ad-top") ? 0 : el.classList.contains("ad-bottom") ? 2 : 1);
+  // the bottom of the page's content, without <main>'s held height (UI.holdHeight)
+  function contentHeight() {
+    let h = 0;
+    for (const el of document.body.children) {
+      if (!el.getClientRects().length) continue;
+      const pos = getComputedStyle(el).position;
+      if (pos === "fixed" || pos === "absolute" || pos === "sticky") continue;
+      h = Math.max(h, el.getBoundingClientRect().bottom + window.scrollY);
+    }
+    return h - (window.UI && UI.heldSpace ? UI.heldSpace() : 0);
+  }
+  // has the reader scrolled past it? (an "off" slot has no box: ask its neighbour)
+  function passed(el, top) {
+    for (let n = el; n; n = n.nextElementSibling) {
+      if (n.getClientRects().length) return n.getBoundingClientRect().top <= top;
+    }
+    const host = el.parentElement;
+    return !!host && host.getClientRects().length > 0 && host.getBoundingClientRect().bottom <= top;
+  }
   function budgetAds() {
-    const scopes = [[document.documentElement, [...document.querySelectorAll("main .ad-wrap")]],
+    const scopes = [[null, [...document.querySelectorAll("main .ad-wrap")]],
       ...[...document.querySelectorAll(".drawer-body")].map((el) => [el, [...el.querySelectorAll(".ad-wrap")]])];
     for (const [root, slots] of scopes) {
       if (!slots.length) continue;
       if (!PHONE.matches) { slots.forEach((el) => el.classList.remove("ad-off")); continue; }
-      slots.forEach((el) => el.classList.add("ad-off"));
-      let room = root.scrollHeight * DENSITY / (1 - DENSITY);
-      slots.sort((a, b) => rank(a) - rank(b)).forEach((el) => {
-        el.classList.remove("ad-off");
-        if (!el.getClientRects().length) return; // in a view not on screen
+      const top = root ? root.getBoundingClientRect().top : 0;
+      const scrolled = root ? root.scrollTop > 0 : window.scrollY > 0;
+      const fixed = new Set(scrolled ? slots.filter((el) => el.dataset.budget && passed(el, top)) : []);
+      const free = slots.filter((el) => !fixed.has(el));
+      // Measured with every slot in and the ads' own space taken off: the
+      // page only ever grows while it's measured. (Taking the slots out to
+      // measure would shrink it for a moment, and a shorter page pulls the
+      // scroll up with it even though nothing is painted in between.)
+      free.forEach((el) => el.classList.remove("ad-off"));
+      const box = (el) => {
+        if (!el.getClientRects().length) return 0; // in a view not on screen
+        const cs = getComputedStyle(el);
+        return el.getBoundingClientRect().height + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+      };
+      const content = (root ? root.scrollHeight : contentHeight()) - slots.reduce((sum, el) => sum + box(el), 0);
+      let room = content * DENSITY / (1 - DENSITY);
+      fixed.forEach((el) => { if (el.getClientRects().length) room -= el.getBoundingClientRect().height; });
+      free.sort((a, b) => rank(a) - rank(b)).forEach((el) => {
+        if (!el.getClientRects().length) return;
+        el.dataset.budget = "1";
         const height = el.getBoundingClientRect().height;
         if (height <= room) room -= height;
         else el.classList.add("ad-off");
@@ -1210,7 +1250,9 @@
       queued = true;
       requestAnimationFrame(() => { queued = false; budgetAds(); fillAds(); });
     };
-    addEventListener("resize", rebudget);
+    // a phone's browser bar sliding in and out changes only the height
+    let lastWidth = innerWidth;
+    addEventListener("resize", () => { if (innerWidth !== lastWidth) { lastWidth = innerWidth; rebudget(); } });
     if (window.ResizeObserver) new ResizeObserver(rebudget).observe(document.body);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);

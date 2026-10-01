@@ -336,20 +336,23 @@
       });
     });
     out.sort((a, b) => (b.created || 0) - (a.created || 0));
+    return { trades: out, traders: tradersOf(out) };
+  }
 
-    // Each manager across all their trades: what they got, and what what
-    // they gave away went on to score for whoever took it.
+  /* Each manager across a set of trades (all of them, or one season's):
+     what they got, and what what they gave away went on to score for
+     whoever took it. */
+  function tradersOf(list) {
     const owners = {};
-    out.forEach((tr) => tr.sides.forEach((s) => {
-      const o = (owners[s.ownerId] = owners[s.ownerId] || { ownerId: s.ownerId, trades: 0, won: 0, got: 0, gave: 0 });
+    list.forEach((tr) => tr.sides.forEach((s) => {
+      const o = (owners[s.ownerId] = owners[s.ownerId] || { ownerId: s.ownerId, teamId: s.teamId, trades: 0, won: 0, got: 0, gave: 0 });
       o.trades++;
       if (tr.winner === s.teamId) o.won++;
       o.got += s.total;
       tr.sides.filter((x) => x !== s).forEach((x) => x.got.filter((g) => g.from === s.teamId).forEach((g) => { o.gave += g.pts; }));
     }));
-    const traders = Object.values(owners).map((o) => ({ ...o, got: round2(o.got), gave: round2(o.gave), net: round2(o.got - o.gave) }))
+    return Object.values(owners).map((o) => ({ ...o, got: round2(o.got), gave: round2(o.gave), net: round2(o.got - o.gave) }))
       .sort((a, b) => b.net - a.net);
-    return { trades: out, traders };
   }
 
   /* ------------------------------------------------------------ waivers */
@@ -438,12 +441,14 @@
           if (!picks.some((p) => p.year === year && p.round === round && p.origin === id)) lost.push({ year, round });
         }
       });
-      return { teamId: id, ownerId: newest.teams[id].ownerId, picks, lost, capital: picks.reduce((s, p) => s + weight(p.round), 0) };
+      const byYear = Object.fromEntries(seasons.map((year) => [year, picks.filter((p) => p.year === year).reduce((s, p) => s + weight(p.round), 0)]));
+      return { teamId: id, ownerId: newest.teams[id].ownerId, picks, lost, byYear, capital: picks.reduce((s, p) => s + weight(p.round), 0) };
     });
-    const par = seasons.length * [...Array(rounds)].reduce((s, _, i) => s + weight(i + 1), 0);
+    const parYear = [...Array(rounds)].reduce((s, _, i) => s + weight(i + 1), 0);
+    const par = seasons.length * parYear;
     rows.forEach((r) => { r.vsPar = par ? r.capital / par : 1; });
-    return { year: newest.year, seasons, rounds, rows: rows.sort((a, b) => b.capital - a.capital), anyTraded: traded.length > 0 };
+    return { year: newest.year, seasons, rounds, parYear, rows: rows.sort((a, b) => b.capital - a.capital), anyTraded: traded.length > 0 };
   }
 
-  window.Insights = { lineupWeek, lineupSeason, lineupAllTime, trades, waivers, pickLedger, bestLineup };
+  window.Insights = { lineupWeek, lineupSeason, lineupAllTime, trades, tradersOf, waivers, pickLedger, bestLineup };
 })();

@@ -211,6 +211,64 @@
     return { sentinel, top, measure, watch, toTop };
   }
 
+  /* ---------------------------------------------------------------
+     Keeping the reader's place.
+
+     Swapping what a page shows for something shorter (a quiet week after
+     a busy one, a tab still being worked out) would pull the page up under
+     the reader: the browser has to bring the scroll back inside the
+     shorter page. holdHeight() keeps <main> at least as tall as it was
+     before the swap and lets go only once the space it holds is out of
+     sight below the screen, or the new content has grown into it, so
+     nothing on screen moves when it does.
+     --------------------------------------------------------------- */
+  let held = null, heldWatch = null, heldRaf = 0;
+  /* Its height without the hold, read from where its content ends. (Taking
+     the hold off to measure would itself move the page: laying out the
+     shorter page pulls the scroll back inside it, before anything paints.) */
+  function naturalHeight(el) {
+    const box = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    let end = box.top + parseFloat(cs.paddingTop) + parseFloat(cs.borderTopWidth);
+    for (const c of el.children) {
+      if (!c.getClientRects().length) continue;
+      const ccs = getComputedStyle(c);
+      if (ccs.position === "absolute" || ccs.position === "fixed") continue;
+      end = Math.max(end, c.getBoundingClientRect().bottom + parseFloat(ccs.marginBottom));
+    }
+    return Math.min(box.height, end - box.top + parseFloat(cs.paddingBottom) + parseFloat(cs.borderBottomWidth));
+  }
+  /* how much of the screen the held space fills (blank under the content) */
+  function shortfall() {
+    if (!held) return 0;
+    return Math.max(0, innerHeight - (held.getBoundingClientRect().top + naturalHeight(held)));
+  }
+  function releaseHold() {
+    if (!held) return;
+    held.style.minHeight = "";
+    held = null;
+    removeEventListener("scroll", queueHoldCheck);
+    removeEventListener("resize", queueHoldCheck);
+    if (heldWatch) { heldWatch.disconnect(); heldWatch = null; }
+  }
+  function holdCheck() {
+    heldRaf = 0;
+    if (!held) return;
+    const want = parseFloat(held.style.minHeight) || 0;
+    if (naturalHeight(held) >= want - 1 || shortfall() <= 0) releaseHold();
+  }
+  function queueHoldCheck() { if (!heldRaf) heldRaf = requestAnimationFrame(holdCheck); }
+  function holdHeight(el = document.querySelector("main")) {
+    if (!el) return;
+    if (held && held !== el) releaseHold();
+    el.style.minHeight = `${el.offsetHeight}px`;
+    if (held === el) return;
+    held = el;
+    addEventListener("scroll", queueHoldCheck, { passive: true });
+    addEventListener("resize", queueHoldCheck);
+    heldWatch = new MutationObserver(queueHoldCheck);
+    heldWatch.observe(el, { childList: true, subtree: true, characterData: true });
+  }
+
   const ICON_FIND = '<svg class="ic-find" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>';
   const ICON_X = '<svg class="ic-x" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 
@@ -495,8 +553,10 @@
     }
     function goWeek(w) {
       if (w === week) return;
+      holdHeight();
       if (opts.onWeek) opts.onWeek(w);
       toContentTop(false);
+      requestAnimationFrame(settled);
     }
 
     /* ---- pinning (shared with the all-time search: pinnable) -------- */
@@ -509,6 +569,12 @@
        away under the header so the content gets the screen. A new week
        only ever scrolls down: flipping weeks mid-table keeps your place. */
     const toContentTop = (up = true) => pin && pin.toTop({ up, down: !!opts.hideHero && PHONE.matches });
+    /* After a swap: if the new content is so much shorter that the screen
+       shows the space held under it, glide back up to its top. A page that
+       draws asynchronously calls this (SeasonNav.settled) once it has. */
+    function settled() {
+      if (shortfall() > 24) toContentTop(true);
+    }
 
     /* ---- search ----------------------------------------------------
        The magnifier opens a search field across the capsule: the views
@@ -577,6 +643,7 @@
         // the view you're already on: back to its top, like a tab bar
         if (b.dataset.view === view) { toContentTop(); return; }
         haptic("tap");
+        holdHeight();
         if (opts.onView) opts.onView(b.dataset.view);
         toContentTop();
       });
@@ -736,6 +803,9 @@
       /* which way the week just moved, for rolling a heading with it */
       get dir() { return prevWeek != null && week < prevWeek ? "down" : "up"; },
       relayout,
+      settled,
+      // back to the top of the content, as changing view from the capsule does
+      toTop: () => { holdHeight(); toContentTop(true); },
     };
   })();
 
@@ -1087,6 +1157,8 @@
     host.addEventListener("focusout", (e) => { if (isOpen() && !host.contains(e.relatedTarget)) close(false); });
   }
 
-  window.UI = { roll, measureRows, shuffleRows, haptic, findPill, seasonMenu, reduced: () => REDUCE.matches };
+  window.UI = { roll, measureRows, shuffleRows, haptic, findPill, seasonMenu, holdHeight,
+    // how much of the page is <main>'s held space (account.js measures around it)
+    heldSpace: () => (held ? Math.max(0, held.offsetHeight - naturalHeight(held)) : 0), reduced: () => REDUCE.matches };
   window.SeasonNav = SeasonNav;
 })();

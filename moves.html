@@ -19,6 +19,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <script src="sleeper.js"></script>
   <script src="pwa.js" defer></script>
+  <script src="player-card.js" defer></script>
   <style>
     /* Moving between pages crossfades where the browser supports it. */
     @view-transition { navigation: auto; }
@@ -1613,22 +1614,8 @@
   <style>
     /* ---- Front office ----------------------------------------------------
        Lists rather than wide tables: every row reads on a phone as it is. */
-    .fo-tabs {
-      display: flex; gap: 2px; padding: 3px; margin: 0 0 14px; border-radius: 12px;
-      background: var(--surface-3, #eef1f5); overflow-x: auto; scrollbar-width: none;
-    }
-    .fo-tabs::-webkit-scrollbar { display: none; }
-    .fo-tabs button {
-      flex: 1 0 auto; min-height: 38px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent;
-      color: var(--ink-2, #475467); font: 700 13px/1 var(--font-body, Inter, sans-serif); cursor: pointer; white-space: nowrap;
-    }
-    .fo-tabs button[aria-selected="true"] { background: #fff; color: var(--ink, #0b1f3f); box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
-    .fo-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
-    .fo-chips button {
-      min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line, #e4e7ec); background: #fff;
-      color: var(--ink-2, #475467); font: 700 12.5px/1 var(--font-body, Inter, sans-serif); cursor: pointer;
-    }
-    .fo-chips button[aria-pressed="true"] { background: var(--navy, #071827); border-color: var(--navy, #071827); color: #fff; }
+    #foPanel { transition: opacity .2s var(--ease, ease); }
+    #foPanel.fo-busy { opacity: .45; pointer-events: none; }
     .fo-stack { display: grid; gap: 16px; }
     .fo-note { margin: 0; padding: 12px 16px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
     .fo-list { display: grid; }
@@ -1739,6 +1726,12 @@
     <div class="ad-wrap ad-sidebar" data-ad="moves-sidebar"><div class="ad-slot"></div></div>
   </section>
 
+  <!-- The front office's tabs across the top and the season wheel under
+       them, in the same capsule as a season's views and weeks (ui.js,
+       SeasonNav): it pins under the header, or floats at the foot of a
+       phone's screen. -->
+  <nav id="seasonNav" aria-label="Seasons and views"></nav>
+
   <main>
     <div class="ad-wrap ad-top" data-ad="moves-top"><div class="ad-slot"></div></div>
     <div class="page-toolbar">
@@ -1747,9 +1740,7 @@
       </div>
     </div>
 
-    <nav class="fo-tabs" role="tablist" aria-label="Front office" id="foTabs" hidden></nav>
     <div id="pageStatus"></div>
-    <div id="foChips"></div>
     <section id="foPanel" data-ad-feed="moves-mid" role="tabpanel" aria-live="polite"></section>
 
     <div class="ad-wrap ad-bottom" data-ad="moves-bottom"><div class="ad-slot"></div></div>
@@ -1791,8 +1782,6 @@
       const fmt = (n) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
       const pctTxt = (n) => `${(n * 100).toFixed(1)}%`;
       const panel = document.getElementById("foPanel");
-      const chipsEl = document.getElementById("foChips");
-      const tabsEl = document.getElementById("foTabs");
       const played = model.seasons.filter((s) => s.playedWeeks.length);
       const years = played.map((s) => s.year).sort((a, b) => b - a);
       const newest = model.seasons[model.seasons.length - 1];
@@ -1833,86 +1822,108 @@
       let db = {};
       const player = (pid) => esc(db[pid] ? db[pid][0] : `Player ${pid}`);
 
-      /* ------------------------------------------------ tabs and state */
+      /* ------------------------------------------------ tabs and seasons
+
+         The capsule's views are the tabs; its wheel is the seasons, with
+         ALL (every season together) first where a tab has one. Each tab
+         keeps its own season. The address is #<tab>/<season>. */
       const TABS = [
         { id: "lineups", label: "Lineups" },
         { id: "trades", label: "Trades" },
         { id: "waivers", label: "Waivers" },
-        ...(picksShown ? [{ id: "picks", label: "Draft Picks" }] : []),
+        ...(picksShown ? [{ id: "picks", label: "Draft Picks", short: "Picks" }] : []),
       ];
-      const state = { tab: "lineups", year: years[0] || null, tradeYear: "all" };
+      const ALL = 0;
+      const live = new Set(model.seasons.filter((s) => s.live).map((s) => s.year));
+      const state = {
+        tab: "lineups",
+        year: { lineups: years[0] || ALL, trades: ALL, waivers: years[0] || ALL, picks: ALL },
+        shown: 20,
+      };
+      let tradeYears = null;   // seasons with a trade, once the trades are read
+      let pickYears = null;    // drafts still to come, once the ledger is read
       const [hashTab, hashYear] = location.hash.slice(1).split("/");
       if (TABS.some((t) => t.id === hashTab)) state.tab = hashTab;
-      if (hashYear === "all" || years.includes(Number(hashYear))) {
-        if (state.tab === "trades") state.tradeYear = hashYear === "all" ? "all" : Number(hashYear);
-        else state.year = hashYear === "all" ? "all" : Number(hashYear);
-      }
+      if (hashYear === "all") state.year[state.tab] = ALL;
+      else if (Number(hashYear)) state.year[state.tab] = Number(hashYear);
 
-      tabsEl.hidden = false;
-      function drawTabs() {
-        tabsEl.innerHTML = TABS.map((t) => `<button type="button" role="tab" data-tab="${t.id}" aria-selected="${t.id === state.tab}">${t.label}</button>`).join("");
+      const asc = years.slice().sort((a, b) => a - b);
+      function wheelFor(tab) {
+        const all = { w: ALL, num: "ALL", played: true, label: "All-time" };
+        const season = (y, extra = {}) => ({ w: y, num: String(y), played: true, now: live.has(y), label: `${y} season${live.has(y) ? " · in progress" : ""}`, ...extra });
+        if (tab === "lineups") return [...(asc.length > 1 ? [all] : []), ...asc.map((y) => season(y))];
+        if (tab === "waivers") return asc.map((y) => season(y));
+        if (tab === "trades") return [all, ...asc.map((y) => season(y, tradeYears && !tradeYears.has(y) ? { played: false, label: `${y} · no trades` } : {}))];
+        return [all, ...(pickYears || []).map((y) => ({ w: y, num: String(y), played: false, label: `${y} draft` }))];
       }
-      tabsEl.addEventListener("click", (e) => {
-        const b = e.target.closest("[data-tab]");
-        if (!b || b.dataset.tab === state.tab) return;
-        state.tab = b.dataset.tab;
-        state.shown = 20;
-        render();
+      function yearNow() {
+        const items = wheelFor(state.tab);
+        let y = state.year[state.tab];
+        // (a draft year from the address waits for the picks to be read)
+        if (state.tab === "picks" && !pickYears) return y;
+        if (!items.some((k) => k.w === y)) y = state.year[state.tab] = items.length ? items[items.length - 1].w : ALL;
+        return y;
+      }
+      const titleEl = document.getElementById("pageTitle");
+      function drawNav() {
+        const y = yearNow();
+        SeasonNav.render({ weeks: wheelFor(state.tab), week: y, views: TABS, view: state.tab });
+        const tab = TABS.find((t) => t.id === state.tab);
+        UI.roll(titleEl, `${tab.label} · ${y === ALL ? "All-time" : state.tab === "picks" ? `${y} draft` : y}`, SeasonNav.dir);
+        history.replaceState(null, "", `#${state.tab}/${y === ALL ? "all" : y}`);
+      }
+      SeasonNav.mount("#seasonNav", {
+        viewsLabel: "Front office",
+        onView: (tab) => { state.tab = tab; state.shown = 20; drawNav(); render(); },
+        onWeek: (w) => { state.year[state.tab] = w; state.shown = 20; drawNav(); render(); },
       });
-      const onPick = (e) => {
-        const y = e.target.closest("[data-year]");
-        if (y) {
-          const v = y.dataset.year === "all" ? "all" : Number(y.dataset.year);
-          if (state.tab === "trades") state.tradeYear = v; else state.year = v;
-          state.shown = 20;
-          render();
-          return;
-        }
-        const more = e.target.closest("[data-more]");
-        if (more) { state.shown = (state.shown || 20) + 20; render(); }
-      };
-      panel.addEventListener("click", onPick);
-      chipsEl.addEventListener("click", onPick);
+      panel.addEventListener("click", (e) => {
+        if (e.target.closest("[data-more]")) { state.shown += 20; render(); }
+      });
 
-      const yearChips = (current, withAll) => `<div class="fo-chips" role="group" aria-label="Season">
-        ${withAll ? `<button type="button" data-year="all" aria-pressed="${current === "all"}">All-time</button>` : ""}
-        ${years.map((y) => `<button type="button" data-year="${y}" aria-pressed="${current === y}">${y}</button>`).join("")}
-      </div>`;
       const loading = (what) => `<div class="card"><div class="empty-state lh-status"><span class="lh-spinner" aria-hidden="true"></span><strong>${what}</strong><p>Working through every week&hellip;</p></div></div>`;
 
+      /* What's on screen stays (dimmed) while the next view is worked out,
+         so the page never collapses to a spinner and back; only a slow
+         first read shows one. */
       let drawId = 0;
-      let drawnTab = null;
       async function render() {
         const id = ++drawId;
-        drawTabs();
-        const year = state.tab === "trades" ? state.tradeYear : state.year;
-        history.replaceState(null, "", `#${state.tab}${year != null ? `/${year}` : ""}`);
         if (!years.length) {
           panel.innerHTML = `<div class="card"><div class="fo-empty">No games have been played in this league yet.</div></div>`;
           return;
         }
-        if (drawnTab !== state.tab) chipsEl.innerHTML = "";
-        drawnTab = state.tab;
-        panel.innerHTML = loading({ lineups: "Checking every lineup", trades: "Reading every trade", waivers: "Reading the waiver wire", picks: "Counting draft picks" }[state.tab]);
+        const what = { lineups: "Checking every lineup", trades: "Reading every trade", waivers: "Reading the waiver wire", picks: "Counting draft picks" }[state.tab];
+        if (!panel.firstElementChild) panel.innerHTML = loading(what);
+        else panel.classList.add("fo-busy");
+        const slow = setTimeout(() => { if (id === drawId) { panel.classList.remove("fo-busy"); panel.innerHTML = loading(what); } }, 900);
+        panel.setAttribute("aria-busy", "true");
         try {
           db = await League.players();
-          const [chips, html] = await ({ lineups: drawLineups, trades: drawTrades, waivers: drawWaivers, picks: drawPicks }[state.tab])();
-          if (id === drawId) { chipsEl.innerHTML = chips; panel.innerHTML = html; }
+          const html = await ({ lineups: drawLineups, trades: drawTrades, waivers: drawWaivers, picks: drawPicks }[state.tab])();
+          if (id !== drawId) return;
+          panel.innerHTML = html;
         } catch (err) {
           console.error(err);
           if (id === drawId) panel.innerHTML = `<div class="card"><div class="fo-empty">Sleeper didn't answer. Try again in a moment.</div></div>`;
+        } finally {
+          if (id === drawId) {
+            clearTimeout(slow);
+            panel.classList.remove("fo-busy");
+            panel.removeAttribute("aria-busy");
+            requestAnimationFrame(SeasonNav.settled);
+          }
         }
       }
 
       /* ------------------------------------------------ lineups */
       async function drawLineups() {
-        const all = state.year === "all";
-        const chips = yearChips(state.year, played.length > 1);
+        const all = state.year.lineups === ALL;
         const note = `<p class="fo-note">Hindsight: the best lineup each team could have set from the players it had that week, against the one it set. Players who stayed on a taxi squad all season aren't counted.</p>`;
         if (all) {
           const rows = await Insights.lineupAllTime(model);
           const best = Math.max(...rows.map((r) => r.efficiency), 0);
-          return [chips, `<div class="fo-stack" data-ad-feed-into>${card("Lineup efficiency · All-time", "lineup", `${played.length} seasons`, `
+          return `<div class="fo-stack" data-ad-feed-into>${card("Lineup efficiency · All-time", "lineup", `${played.length} seasons`, `
             <div class="fo-list">${rows.map((r, i) => `
               <div class="fo-row">
                 <span class="fo-rank">${i + 1}</span>${manager(r.ownerId)}
@@ -1920,10 +1931,10 @@
                 <span class="fo-meter"><i style="width:${(100 * r.efficiency / (best || 1)).toFixed(1)}%"></i></span>
                 <span class="fo-stats"><span>Left on the bench <b>${fmt(r.left)}</b></span><span>Games lost to the lineup <b>${r.costGames}</b></span><span>Perfect weeks <b>${r.perfect}</b> of ${r.weeks}</span></span>
               </div>`).join("")}
-            </div>${note}`)}</div>`];
+            </div>${note}`)}</div>`;
         }
-        const s = await Insights.lineupSeason(model, state.year);
-        const y = state.year;
+        const y = state.year.lineups;
+        const s = await Insights.lineupSeason(model, y);
         const best = Math.max(...s.rows.map((r) => r.efficiency), 0);
         const table = card(`Lineup efficiency · ${y}`, "lineup", `${s.weeks.length} week${s.weeks.length === 1 ? "" : "s"}`, `
           <div class="fo-list">${s.rows.map((r, i) => `
@@ -1956,32 +1967,31 @@
               <span class="fo-big"><strong>${fmt(g.left)}</strong><span>on the bench</span></span>
             </div>`;
           }).join("")}</div>`) : "";
-        return [chips, `<div class="fo-stack" data-ad-feed-into>${table}${blunders}${games}</div>`];
+        return `<div class="fo-stack" data-ad-feed-into>${table}${blunders}${games}</div>`;
       }
 
       /* ------------------------------------------------ trades */
       let tradesJob = null;
       async function drawTrades() {
         tradesJob = tradesJob || Insights.trades(model);
-        const { trades, traders } = await tradesJob;
-        if (!trades.length) return ["", `<div class="card"><div class="fo-empty">No trades in this league's history yet.</div></div>`];
-        const tradeYears = [...new Set(trades.map((t) => t.year))];
-        const chips = `<div class="fo-chips" role="group" aria-label="Season">
-          <button type="button" data-year="all" aria-pressed="${state.tradeYear === "all"}">All-time</button>
-          ${years.filter((y) => tradeYears.includes(y)).map((y) => `<button type="button" data-year="${y}" aria-pressed="${state.tradeYear === y}">${y}</button>`).join("")}
-        </div>`;
-        const board = card("Best and worst traders", "trade", "All-time", `
+        const { trades, traders: allTime } = await tradesJob;
+        if (!tradeYears) { tradeYears = new Set(trades.map((t) => t.year)); drawNav(); }
+        if (!trades.length) return `<div class="card"><div class="fo-empty">No trades in this league's history yet.</div></div>`;
+        const ty = state.year.trades;
+        const list = trades.filter((t) => ty === ALL || t.year === ty);
+        if (!list.length) return `<div class="card"><div class="fo-empty">No trades were made in ${ty}.</div></div>`;
+        const traders = ty === ALL ? allTime : Insights.tradersOf(list);
+        const board = card("Best and worst traders", "trade", ty === ALL ? "All-time" : ty, `
           <div class="fo-list">${traders.map((o, i) => `
             <div class="fo-row">
-              <span class="fo-rank">${i + 1}</span>${manager(o.ownerId)}
+              <span class="fo-rank">${i + 1}</span>${ty === ALL ? manager(o.ownerId) : seasonTeam(ty, o.teamId)}
               <span class="fo-big"><strong class="${o.net > 0 ? "fo-good" : o.net < 0 ? "fo-bad" : ""}">${o.net > 0 ? "+" : ""}${fmt(o.net)}</strong><span>net points</span></span>
               <span class="fo-stats"><span>Trades <b>${o.trades}</b></span><span>Won <b>${o.won}</b></span><span>Got <b>${fmt(o.got)}</b></span><span>Gave away <b>${fmt(o.gave)}</b></span></span>
             </div>`).join("")}
           </div>
           <p class="fo-note">A trade is scored by the points each side's players went on to put up in its starting lineup. A traded pick counts once it's used, through the player drafted with it.</p>`);
 
-        const list = trades.filter((t) => state.tradeYear === "all" || t.year === state.tradeYear);
-        const shown = list.slice(0, state.shown || 20);
+        const shown = list.slice(0, state.shown);
         const item = (g, year) => {
           if (g.kind === "player") return `<li><span>${esc(g.name)} <span class="muted">${esc(g.pos)}</span></span><span>${fmt(g.pts)}</span></li>`;
           if (g.kind === "faab") return `<li><span>$${g.amount} FAAB</span><span class="muted">—</span></li>`;
@@ -1993,7 +2003,7 @@
           if (!t.winner) return `<span class="fo-verdict">${t.sides.every((s) => !s.total) ? "Too early to call" : "Dead even"}</span>`;
           return `<span class="fo-verdict won">${teamName(t.year, t.winner)} +${fmt(t.margin)}${t.pending || t.live ? " so far" : ""}</span>`;
         };
-        const tradeCards = card(state.tradeYear === "all" ? "Every trade" : `${state.tradeYear} trades`, "trade", `${list.length}`, `
+        const tradeCards = card(ty === ALL ? "Every trade" : `${ty} trades`, "trade", `${list.length}`, `
           <div>${shown.map((t) => `
             <div class="fo-trade">
               <div class="fo-trade-head"><span>${t.year} · ${t.created ? new Date(t.created).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : `Week ${t.week}`}</span>${verdict(t)}</div>
@@ -2006,16 +2016,14 @@
             </div>`).join("")}
           </div>
           ${list.length > shown.length ? `<button type="button" class="fo-more" data-more>Show more trades (${list.length - shown.length})</button>` : ""}`);
-        return [chips, `<div class="fo-stack" data-ad-feed-into>${board}${tradeCards}</div>`];
+        return `<div class="fo-stack" data-ad-feed-into>${board}${tradeCards}</div>`;
       }
 
       /* ------------------------------------------------ waivers */
       async function drawWaivers() {
-        if (state.year === "all") state.year = years[0];
-        const y = state.year;
+        const y = state.year.waivers;
         const w = await Insights.waivers(model, y);
-        const chips = yearChips(y, false);
-        if (!w || !w.pickups.length) return [chips, `<div class="card"><div class="fo-empty">No waiver claims or free-agent pickups in ${y}.</div></div>`];
+        if (!w || !w.pickups.length) return `<div class="card"><div class="fo-empty">No waiver claims or free-agent pickups in ${y}.</div></div>`;
         const report = card(`Waiver report · ${y}`, "wire", w.faab ? `$${w.budget} FAAB budget` : "Rolling waivers", `
           <div class="fo-list">${w.rows.map((r, i) => `
             <div class="fo-row">
@@ -2039,30 +2047,39 @@
           const big = w.pickups.filter((p) => p.bid).sort((a, b) => b.bid - a.bid).slice(0, 10);
           if (big.length) spends = card("Biggest bids", "wire", "and what they bought", `<div class="fo-list">${big.map(pickupRow).join("")}</div>`);
         }
-        return [chips, `<div class="fo-stack" data-ad-feed-into>${report}${best}${spends}</div>`];
+        return `<div class="fo-stack" data-ad-feed-into>${report}${best}${spends}</div>`;
       }
 
       /* ------------------------------------------------ draft picks */
       async function drawPicks() {
         const ledger = await Insights.pickLedger(model);
-        if (!ledger) return ["", `<div class="card"><div class="fo-empty">This league has no rookie draft picks to track.</div></div>`];
+        if (!ledger) return `<div class="card"><div class="fo-empty">This league has no rookie draft picks to track.</div></div>`;
+        if (!pickYears) { pickYears = ledger.seasons; drawNav(); }
         const y = ledger.year;
+        const one = state.year.picks === ALL ? null : state.year.picks;
+        const seasons = one ? [one] : ledger.seasons;
+        const value = (r) => (one ? (ledger.parYear ? r.byYear[one] / ledger.parYear : 1) : r.vsPar);
         const chip = (p) => `<span class="fo-chip${p.own ? "" : " got"}" title="${p.own ? "Own pick" : `From ${teamName(y, p.origin)}`}">${p.round}${p.own ? "" : "*"}</span>`;
-        const rows = ledger.rows.map((r, i) => `
+        const rows = ledger.rows.slice().sort((a, b) => value(b) - value(a)).map((r, i) => {
+          const v = value(r);
+          return `
           <div class="fo-row">
             <span class="fo-rank">${i + 1}</span>${seasonTeam(y, r.teamId)}
-            <span class="fo-big"><strong class="${r.vsPar > 1.001 ? "fo-good" : r.vsPar < 0.999 ? "fo-bad" : ""}">${Math.round(r.vsPar * 100)}%</strong><span>pick capital</span></span>
-            <span class="fo-picks">${ledger.seasons.map((year) => {
+            <span class="fo-big"><strong class="${v > 1.001 ? "fo-good" : v < 0.999 ? "fo-bad" : ""}">${Math.round(v * 100)}%</strong><span>pick capital</span></span>
+            <span class="fo-picks">${seasons.map((year) => {
               const mine = r.picks.filter((p) => p.year === year).sort((a, b) => a.round - b.round);
               const gone = r.lost.filter((p) => p.year === year);
               return `<span class="fo-pick-year"><b>${year}</b>${mine.map(chip).join("")}${gone.map((p) => `<span class="fo-chip lost" title="Traded away">${p.round}</span>`).join("")}</span>`;
             }).join("")}</span>
-          </div>`).join("");
-        return ["", `<div class="fo-stack" data-ad-feed-into>${card("Future draft picks", "pick", `${ledger.seasons[0]}–${ledger.seasons[ledger.seasons.length - 1]} · ${ledger.rounds} rounds`, `
+          </div>`;
+        }).join("");
+        const span = one ? `${one} · ${ledger.rounds} rounds` : `${ledger.seasons[0]}–${ledger.seasons[ledger.seasons.length - 1]} · ${ledger.rounds} rounds`;
+        return `<div class="fo-stack" data-ad-feed-into>${card(one ? `${one} draft picks` : "Future draft picks", "pick", span, `
           <div class="fo-list">${rows}</div>
-          <p class="fo-note">Each number is a round. Blue with a * came in a trade (hover or long-press for whose); dashed and struck through was traded away. Pick capital weighs a first-round pick most and each later round a little over half the one before; 100% is a team's own picks.</p>`)}</div>`];
+          <p class="fo-note">Each number is a round. Blue with a * came in a trade (hover or long-press for whose); dashed and struck through was traded away. Pick capital weighs a first-round pick most and each later round a little over half the one before; 100% is a team's own picks.</p>`)}</div>`;
       }
 
+      drawNav();
       render();
     }
   </script>
