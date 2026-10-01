@@ -3947,7 +3947,7 @@
       .scenario-note { padding: 10px 12px 12px; }
     }
     .recap-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 16px 14px; border-top: 1px solid var(--line); }
-    .recap-link { color: var(--blue-2); font-size: 13px; font-weight: 700; text-decoration: none; }
+    .recap-link { padding: 0; border: 0; background: none; color: var(--blue-2); font: 700 13px/1.3 inherit; text-decoration: none; cursor: pointer; }
     .recap-link:hover { text-decoration: underline; }
     .recap-open { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 0; border-radius: 11px; background: var(--navy); color: #fff; font: 800 13px/1 inherit; cursor: pointer; }
     .recap-open svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -3960,6 +3960,112 @@
     .recap-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .recap-btn { flex: 1 1 120px; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px; border-radius: 11px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: 800 13.5px/1 inherit; text-decoration: none; cursor: pointer; }
     .recap-btn.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+    .recap-shots { display: grid; grid-auto-flow: column; grid-auto-columns: 100%; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+    .recap-shots::-webkit-scrollbar { display: none; }
+    .recap-shots img { scroll-snap-align: center; }
+    .recap-hint { margin: -4px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+
+    /* ---- the Recap view: the week in review ---------------------------- */
+    .rc .card { overflow: hidden; }
+    /* (.card.rc-lead: design.css, loaded after this, sets every card white) */
+    .card.rc-lead { padding: 22px 22px 18px; background: linear-gradient(160deg, #102b43, #071827 70%); color: #fff; border: 0; }
+    .card.rc-lead .rc-title { color: #fff; }
+    .rc-kicker { color: #f6b73c; font-size: 11.5px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .rc-title { margin: 8px 0 6px; font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: clamp(30px, 5vw, 44px); line-height: 1; letter-spacing: .005em; text-transform: uppercase; }
+    .rc-dek { margin: 0; color: rgba(219, 229, 238, .82); font-size: 15px; line-height: 1.45; }
+    .rc-also { margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid rgba(255, 255, 255, .12); list-style: none; display: grid; gap: 6px; color: rgba(219, 229, 238, .9); font-size: 13px; font-weight: 600; }
+    .rc-also li::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 9px; border-radius: 50%; background: #d71920; vertical-align: 2px; }
+    .rc-actions { margin-top: 16px; }
+    .rc-lead .recap-open { background: #fff; color: var(--navy); }
+
+    .rc-team { display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+    .rc-team > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+    @media (hover: hover) { .rc-team:hover > span:last-child { color: var(--blue-2); } }
+
+    .rc-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
+    .rc-game { display: grid; gap: 6px; align-content: start; padding: 14px 16px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
+    .rc-game-label { color: var(--muted); font-size: 10.5px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .rc-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 14px; }
+    .rc-line.won { color: var(--ink); }
+    .rc-line b { font-variant-numeric: tabular-nums; font-size: 15px; }
+    .rc-line.won b { color: var(--ink); }
+    .rc-story { margin: 4px 0 0; color: var(--ink); font-size: 13.5px; line-height: 1.45; font-weight: 600; }
+    .rc-story span { color: var(--muted); font-weight: 500; }
+    .rc-stars { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; color: var(--muted); font-size: 12px; }
+    .rc-stars b { color: var(--ink); font-variant-numeric: tabular-nums; }
+    .rc-stars i { font-style: normal; opacity: .5; }
+    .rc-player strong { color: var(--ink); font-weight: 700; }
+    .rc-player em { color: var(--muted); font-style: normal; font-size: .85em; font-weight: 700; }
+    @media (hover: hover) { .rc-player:hover strong { color: var(--blue-2); } }
+    .rc-box { justify-self: start; display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; padding: 0; border: 0; background: none; color: var(--blue-2); font: 700 12px/1 inherit; cursor: pointer; }
+    .rc-box svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+    .rc-box i { font-style: normal; }
+
+    .rc-power { display: grid; font-variant-numeric: tabular-nums; }
+    .rc-prow { display: grid; grid-template-columns: 26px 34px minmax(0, 1fr) 62px 62px 52px; gap: 8px; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .rc-prow > span:nth-child(n+4) { text-align: right; }
+    .rc-prow.head { padding-top: 8px; padding-bottom: 8px; background: #f6f8fa; color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .rc-rank { color: var(--muted); font-weight: 900; text-align: center; }
+    .rc-move { color: var(--muted); font-size: 11px; font-weight: 900; text-align: center; }
+    .rc-move.up { color: #12804a; }
+    .rc-move.down { color: #c73535; }
+    .rc-pteam { display: grid; gap: 5px; min-width: 0; }
+    .rc-bar { display: block; height: 3px; width: var(--w); border-radius: 2px; background: linear-gradient(90deg, #f6b73c, #e08a2e); }
+    .rc-foot { margin: 0; padding: 12px 16px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+
+    .rc-mvp { display: grid; gap: 4px; padding: 16px; border-bottom: 1px solid var(--line); background: linear-gradient(135deg, #fff8e6, #fff); }
+    .rc-mvp small { color: #a26a00; font-size: 10.5px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+    .rc-mvp div { font-size: 20px; }
+    .rc-mvp div b { color: var(--ink); font-variant-numeric: tabular-nums; }
+    .rc-mvp > span { color: var(--muted); font-size: 12.5px; }
+    .rc-list { display: grid; }
+    .rc-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 4px 10px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .rc-item:last-child { border-bottom: 0; }
+    .rc-item > b { font-variant-numeric: tabular-nums; }
+    .rc-item .muted { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rc-item.block { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+    .rc-item.block p { margin: 0 0 3px; line-height: 1.45; }
+    .rc-tag { padding: 3px 7px; border-radius: 6px; background: var(--navy); color: #fff; font-size: 9.5px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+    .rc-tag.soft { background: #e8eef6; color: #304f91; }
+    .rc-tag.bad { background: #fdecec; color: #b42318; }
+    .rc-more { display: block; padding: 12px 16px 14px; border-top: 1px solid var(--line); color: var(--blue-2); font-size: 13px; font-weight: 700; text-decoration: none; }
+
+    .rc-race { display: grid; }
+    .rc-seed { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto 56px; gap: 10px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 13px; font-variant-numeric: tabular-nums; }
+    .rc-seed > span:last-child { text-align: right; font-weight: 700; }
+    .rc-seed.cut { border-bottom: 2px dashed #c3ccd5; }
+    .rc-seed.out { opacity: .6; }
+    .rc-flag { padding: 2px 6px; border-radius: 5px; background: #e8eef6; color: #304f91; font-size: 10px; font-weight: 900; text-transform: lowercase; }
+    .rc-flag.z, .rc-flag.x { background: #e6f6ec; color: #12804a; }
+    .rc-flag.e { background: #fdecec; color: #b42318; }
+
+    .rc-gotw { display: grid; gap: 8px; padding: 16px; border-bottom: 1px solid var(--line); background: linear-gradient(135deg, #f1f6ff, #fff); }
+    .rc-gotw small { color: #304f91; font-size: 10.5px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+    .rc-gotw-teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: center; font-size: 15px; }
+    .rc-gotw-teams > span { display: grid; gap: 3px; min-width: 0; }
+    .rc-gotw-teams > span:last-child { justify-items: end; text-align: right; }
+    .rc-gotw-teams em, .rc-vs em { flex: 0 0 auto; color: var(--muted); font-size: 12px; font-style: normal; font-weight: 700; white-space: nowrap; }
+    .rc-gotw-teams b { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+    .rc-gotw p { margin: 0; color: var(--muted); font-size: 12.5px; }
+    .rc-item .rc-vs { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .rc-item > i { color: var(--muted); font-size: 11px; font-style: normal; text-transform: uppercase; }
+    .rc-list .rc-item:has(.rc-vs) { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+    .rc-list .rc-item:has(.rc-vs) > .rc-vs:last-child { justify-content: flex-end; }
+    @media (max-width: 700px) {
+      .card.rc-lead { padding: 18px 16px 16px; }
+      .rc-game { padding: 12px; border-right: 0; }
+      .rc-prow { grid-template-columns: 20px 28px minmax(0, 1fr) 48px 48px; gap: 6px; padding: 8px 12px; font-size: 12px; }
+      .rc-prow > span:nth-child(6) { display: none; }
+      .rc-item { grid-template-columns: auto minmax(0, 1fr) auto; padding: 10px 12px; }
+      .rc-item > .muted { grid-column: 2 / 3; }
+      .rc-item .rc-tag { grid-row: span 2; align-self: start; }
+      .rc-seed { padding: 8px 12px; }
+      .rc-mvp, .rc-gotw { padding: 14px 12px; }
+      .rc .summary-superlatives { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .rc-list .rc-item:has(.rc-vs) { gap: 4px 6px; }
+      .rc-vs em { font-size: 11px; }
+      .rc-foot, .rc-more { padding-left: 12px; padding-right: 12px; }
+    }
   </style>
   <link rel="stylesheet" href="ui.css" />
   <link rel="stylesheet" href="design.css" />
@@ -4068,6 +4174,7 @@
     <section id="panel-picture" class="view-panel" data-ad-feed="season-mid" role="tabpanel"></section>
     <section id="panel-playoffs" class="view-panel" data-ad-feed="season-mid" role="tabpanel"></section>
     <section id="panel-sos" class="view-panel" data-ad-feed="season-mid" role="tabpanel"></section>
+    <section id="panel-recap" class="view-panel" data-ad-feed="season-mid" role="tabpanel"></section>
 
     <div class="ad-wrap ad-bottom" data-ad="season-bottom"><div class="ad-slot"></div></div>
   </main>
@@ -4623,217 +4730,798 @@
       }).catch(() => { tile.remove(); });
     }
 
-    /* Everything the recap says about a week, for the image and the text. */
-    async function recapFacts(week) {
-      const games = results[week] || [];
-      const [lw, db, txns] = await Promise.all([
-        window.Insights ? Insights.lineupWeek(model, SEASON, week) : null,
+    /* =================================================================
+       THE WEEK IN REVIEW
+
+       weekRecap(week) reads everything the league did in a week and writes
+       it up: a headline, every game with its story (an upset, a streak
+       snapped, a score for the record books, the bench that would have
+       won it), power rankings, the luck report, the players of the week,
+       the front office's moves, the playoff race and next week's games.
+       The Recap view draws it as a page; the share sheet as two pictures
+       for a group chat and as plain text.
+
+       Nothing here is a projection: every story is told from what Sleeper
+       has already scored. "League history" means every season this league
+       has played up to and including the week, so an old week reads as it
+       would have that Monday.
+       ================================================================= */
+
+    const plain = (id) => teams[id].name;
+    const ordinal = (n) => { const s = ["th", "st", "nd", "rd"], v = n % 100; return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`; };
+    const ordWord = (n) => (n === 1 ? "" : `${ordinal(n)}-`);
+    const recordText = (w, l, t) => (t ? `${w}–${l}–${t}` : `${w}–${l}`);
+    const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+    const verbS = (name, verb) => (/s$/i.test(name) ? verb : `${verb}s`);   // "the Dawgs beat", "MCM22 beats"
+
+    // A week's played games: the regular season's, or the playoffs' (a
+    // two-week round counts in the week it ends).
+    function gamesOfWeek(w) {
+      if (w <= REGULAR_WEEKS) return (results[w] || []).map(([a, as, b, bs]) => ({ a, as, b, bs, label: "", final: false }));
+      return season.postseason
+        .filter((g) => g.played && g.week === w && g.a && g.b)
+        .sort((x, y) => (x.bracket === y.bracket ? (x.p || 99) - (y.p || 99) : x.bracket === "W" ? -1 : 1))
+        .map((g) => ({
+          a: g.a, as: g.aScore, b: g.b, bs: g.bScore, label: g.label, multi: g.weeks.length > 1,
+          final: g.bracket === "W" && g.titlePath && g.r === WB_ROUNDS,
+          consolation: g.bracket === "L",
+        }));
+    }
+
+    /* Every game this league has played, all seasons, as owners (so a
+       manager's history follows them from team name to team name). */
+    let historyGames = null;
+    function leagueGames() {
+      if (historyGames) return historyGames;
+      historyGames = [];
+      model.seasons.forEach((s) => {
+        Object.keys(s.results).map(Number).forEach((w) => (s.results[w] || []).forEach(([a, as, b, bs]) => {
+          if (!s.teams[a] || !s.teams[b]) return;
+          historyGames.push({ year: s.year, week: w, oa: s.teams[a].ownerId, ob: s.teams[b].ownerId, as, bs, playoff: false, multi: false });
+        }));
+        s.postseason.filter((g) => g.played && g.a && g.b && s.teams[g.a] && s.teams[g.b]).forEach((g) => {
+          historyGames.push({ year: s.year, week: g.week, oa: s.teams[g.a].ownerId, ob: s.teams[g.b].ownerId, as: g.aScore, bs: g.bScore, playoff: true, multi: g.weeks.length > 1 });
+        });
+      });
+      return historyGames;
+    }
+
+    /* All-play: every team against every other team's score, week by week,
+       across the regular-season weeks from..through. */
+    function allPlay(through, from = 1) {
+      const out = Object.fromEntries(TEAM_IDS.map((id) => [id, { w: 0, n: 0 }]));
+      playedWeeks.filter((w) => w >= from && w <= through).forEach((w) => {
+        const sc = [];
+        (results[w] || []).forEach(([a, as, b, bs]) => { sc.push([a, as]); sc.push([b, bs]); });
+        sc.forEach(([id, p]) => sc.forEach(([o, q]) => {
+          if (o === id) return;
+          out[id].n++;
+          out[id].w += p > q ? 1 : p === q ? 0.5 : 0;
+        }));
+      });
+      return out;
+    }
+
+    /* Power rankings through a week: all-play win rate (how a team would
+       fare against everyone, every week) counts most, then the actual
+       record, the last three weeks' all-play, and points per game. */
+    const powerCache = {};
+    function powerRankings(through) {
+      if (through < 1) return null;
+      if (powerCache[through]) return powerCache[through];
+      const st = computeStats(through);
+      const ap = allPlay(through);
+      const recent = allPlay(through, Math.max(1, through - 2));
+      const live = TEAM_IDS.filter((id) => st[id].gp);
+      const pfgs = live.map((id) => st[id].pfg);
+      const lo = Math.min(...pfgs), hi = Math.max(...pfgs);
+      const rows = live.map((id) => {
+        const apPct = ap[id].n ? ap[id].w / ap[id].n : 0;
+        const rcPct = recent[id].n ? recent[id].w / recent[id].n : apPct;
+        const pts = hi > lo ? (st[id].pfg - lo) / (hi - lo) : 0.5;
+        const h2h = st[id].form.reduce((n, r) => n + (r === "W" ? 1 : r === "T" ? 0.5 : 0), 0);
+        const expected = apPct * st[id].form.length;
+        return {
+          id, score: 100 * (0.4 * apPct + 0.25 * st[id].pct + 0.2 * rcPct + 0.15 * pts),
+          record: st[id].record, pf: st[id].pf, pfg: st[id].pfg, apPct, rcPct,
+          apRecord: recordText(Math.round(ap[id].w), Math.round(ap[id].n - ap[id].w)),
+          luck: h2h - expected,
+        };
+      }).sort((a, b) => b.score - a.score);
+      rows.forEach((r, i) => { r.rank = i + 1; });
+      powerCache[through] = rows;
+      return rows;
+    }
+
+    const streakOf = (form) => {
+      if (!form.length) return { kind: null, n: 0 };
+      const kind = form[form.length - 1];
+      let n = 0;
+      for (let i = form.length - 1; i >= 0 && form[i] === kind; i--) n++;
+      return { kind, n };
+    };
+
+    const recapCache = {};
+    function weekRecap(week) {
+      if (!recapCache[week]) recapCache[week] = buildRecap(week).catch((err) => { delete recapCache[week]; throw err; });
+      return recapCache[week];
+    }
+
+    async function buildRecap(week) {
+      const playoff = week > REGULAR_WEEKS;
+      const games = gamesOfWeek(week);
+      const [lw, db, txns, box, wire] = await Promise.all([
+        window.Insights ? Insights.lineupWeek(model, SEASON, week).catch(() => null) : null,
         League.players(),
         model.transactions().catch(() => ({})),
+        boxWeek(week),
+        window.Insights && !playoff ? Insights.waivers(model, SEASON).catch(() => null) : null,
       ]);
+      const pname = (pid) => (db[pid] ? db[pid][0] : `Player ${pid}`);
+      const oid = (id) => teams[id].ownerId;
+
+      /* ---- the week's scores ---------------------------------------- */
       const scores = [];
-      games.forEach(([a, as, b, bs]) => { scores.push({ id: a, score: as }); scores.push({ id: b, score: bs }); });
-      scores.sort((x, y) => y.score - x.score);
-      const byMargin = games.slice().sort((x, y) => Math.abs(y[1] - y[3]) - Math.abs(x[1] - x[3]));
-      const w = (g) => (g[1] >= g[3] ? [g[0], g[1], g[2], g[3]] : [g[2], g[3], g[0], g[1]]);
-      const plain = (id) => teams[id].name;
-      const facts = [];
-      if (scores.length) facts.push({ label: "High score", main: plain(scores[0].id), sub: fmt(scores[0].score) });
-      if (byMargin.length) {
-        const [wi, ws, li, ls] = w(byMargin[0]);
-        facts.push({ label: "Biggest blowout", main: `${plain(wi)} over ${plain(li)}`, sub: `${fmt(ws)}–${fmt(ls)}` });
-        const [ci, cs, cl, cls] = w(byMargin[byMargin.length - 1]);
-        facts.push({ label: "Closest game", main: `${plain(ci)} over ${plain(cl)}`, sub: `by ${fmt(cs - cls)}` });
-      }
-      const worst = lw && lw.rows.filter((r) => r.blunder && r.blunder.cost > 0).sort((a, b) => b.blunder.cost - a.blunder.cost)[0];
-      if (worst) {
-        const b = worst.blunder;
-        const nm = (pid) => (db[pid] ? db[pid][0] : `Player ${pid}`);
-        facts.push({ label: "Bench blunder", main: `${plain(worst.teamId)} benched ${nm(b.benched.pid)}`, sub: `${fmt(b.benched.pts)} pts on the bench${worst.costGame ? " · cost the game" : ""}` });
-      }
-      const trades = ((txns || {})[SEASON] || []).filter((t) => t.type === "trade" && t.status === "complete" && Number(t.leg) === week);
-      if (trades.length) {
-        const t = trades[trades.length - 1];
-        const ids = (t.roster_ids || []).map((r) => `r${r}`).filter((id) => teams[id]);
-        const got = (id) => Object.entries(t.adds || {}).filter(([, r]) => `r${r}` === id).map(([pid]) => (db[pid] ? db[pid][0] : "a player"));
-        const main = ids.length === 2 ? `${plain(ids[0])} and ${plain(ids[1])}` : ids.map(plain).join(", ");
-        const sub = ids.map((id) => { const g = got(id); return g.length ? `${plain(id)} get ${g.slice(0, 2).join(", ")}${g.length > 2 ? " and more" : ""}` : null; }).filter(Boolean).join(" · ") || "Draft picks changed hands";
-        facts.push({ label: trades.length > 1 ? `Trades (${trades.length})` : "Trade of the week", main, sub });
-      }
-      // Standings after the week, and who moved most.
-      const after = buildPicture(Math.min(week, REGULAR_WEEKS));
-      const before = week > 1 ? buildPicture(Math.min(week - 1, REGULAR_WEEKS)) : null;
-      const top = after.seeds.slice(0, 4).map((id, i) => ({ rank: i + 1, id, name: plain(id), record: after.stats[id].record }));
-      let mover = null;
-      if (before && week <= REGULAR_WEEKS) {
-        after.seeds.forEach((id, i) => {
-          const was = before.seeds.indexOf(id);
-          if (was > i && (!mover || was - i > mover.up)) mover = { id, up: was - i, now: i + 1 };
+      games.forEach((g) => {
+        scores.push({ id: g.a, pts: g.as, opp: g.b, oppPts: g.bs, game: g });
+        scores.push({ id: g.b, pts: g.bs, opp: g.a, oppPts: g.as, game: g });
+      });
+      const single = scores.filter((s) => !s.game.multi);
+      single.forEach((s) => {
+        s.ap = single.reduce((n, o) => n + (o === s ? 0 : o.pts < s.pts ? 1 : o.pts === s.pts ? 0.5 : 0), 0);
+        s.apOf = single.length - 1;
+        s.rank = 1 + single.filter((o) => o.pts > s.pts).length;
+      });
+      const byPts = single.slice().sort((x, y) => y.pts - x.pts);
+      const total = single.reduce((n, s) => n + s.pts, 0);
+      const avg = single.length ? total / single.length : 0;
+      const sorted = single.map((s) => s.pts).sort((x, y) => x - y);
+      const median = sorted.length ? (sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2) : 0;
+
+      /* ---- league history, as it stood that week ---------------------- */
+      const H = leagueGames();
+      const upTo = (g) => g.year < SEASON || (g.year === SEASON && g.week <= week);
+      const before = (g) => g.year < SEASON || (g.year === SEASON && g.week < week);
+      const histScores = [], seasonScores = [], histMargins = [];
+      H.forEach((g) => {
+        if (g.multi || !upTo(g)) return;
+        histScores.push(g.as, g.bs);
+        histMargins.push(Math.abs(g.as - g.bs));
+        if (g.year === SEASON) seasonScores.push(g.as, g.bs);
+      });
+      const yearsOfHistory = new Set(H.filter(upTo).map((g) => g.year)).size;
+      const highRank = (p) => 1 + histScores.filter((x) => x > p).length;
+      const lowRank = (p) => 1 + histScores.filter((x) => x < p).length;
+      const marginRank = (m) => 1 + histMargins.filter((x) => x > m).length;
+      const seasonHigh = (p) => week > 1 && seasonScores.every((x) => x <= p);
+      function series(oa, ob) {
+        const s = { a: 0, b: 0, t: 0, lastA: null, lastB: null };
+        H.forEach((g) => {
+          if (!before(g)) return;
+          const m = g.oa === oa && g.ob === ob ? [g.as, g.bs] : g.oa === ob && g.ob === oa ? [g.bs, g.as] : null;
+          if (!m) return;
+          if (m[0] > m[1]) { s.a++; s.lastA = g.year; } else if (m[0] < m[1]) { s.b++; s.lastB = g.year; } else s.t++;
         });
+        s.n = s.a + s.b + s.t;
+        return s;
       }
-      // The ones only this site can tell first: the benching and the trade.
-      const order = ["High score", "Bench blunder", "Trade of the week", "Biggest blowout", "Closest game"];
-      facts.sort((a, b) => (order.indexOf(a.label) < 0 ? 2.5 : order.indexOf(a.label)) - (order.indexOf(b.label) < 0 ? 2.5 : order.indexOf(b.label)));
+      const careerWins = (owner, pred) => H.reduce((n, g) => n + (pred(g) && ((g.oa === owner && g.as > g.bs) || (g.ob === owner && g.bs > g.as)) ? 1 : 0), 0);
+
+      /* ---- records and form, before and after the week --------------- */
+      const statsBefore = !playoff ? computeStats(Math.max(0, week - 1)) : null;
+      const statsAfter = computeStats(Math.min(week, REGULAR_WEEKS));
+      const lineupOf = (id) => (lw && lw.byTeam[id]) || null;
+
+      /* ---- the players ----------------------------------------------- */
+      const lineups = {};
+      ((box && box.games) || []).forEach((g) => Object.entries(g.lineups).forEach(([id, list]) => { lineups[id] = list; }));
+      const starters = [], bench = [];
+      Object.entries(lineups).forEach(([id, list]) => list.forEach((p) => (p.starter ? starters : bench).push({ ...p, teamId: id })));
+      starters.sort((a, b) => b.pts - a.pts);
+      bench.sort((a, b) => b.pts - a.pts);
+      const topOf = (id) => (lineups[id] || []).filter((p) => p.starter).sort((a, b) => b.pts - a.pts)[0] || null;
+      const POS = ["QB", "RB", "WR", "TE", "K", "DEF"];
+      const byPos = POS.map((pos) => starters.find((p) => p.pos === pos)).filter(Boolean);
+      const duds = starters.filter((p) => ["QB", "RB", "WR", "TE"].includes(p.pos)).sort((a, b) => a.pts - b.pts);
+
+      /* ---- every game, with its story ---------------------------------- */
+      const notesFor = [];
+      const gameStories = games.map((g) => {
+        const tie = g.as === g.bs;
+        const [w, ws, l, ls] = g.as >= g.bs ? [g.a, g.as, g.b, g.bs] : [g.b, g.bs, g.a, g.as];
+        const m = ws - ls;
+        const W = plain(w), L = plain(l);
+        const notes = [];   // { pri, note, head: a headline it could carry, kind }
+        const add = (pri, note, head, kind = "") => notes.push({ pri, note, head, kind });
+        const verb = tie ? "tied" : m < 2 ? "edged" : m < 12 ? "beat" : m < 35 ? "handled" : "crushed";
+        const line = tie ? `${W} and ${L} tied at ${fmt(ws)}` : `${W} ${verb} ${L}, ${fmt(ws)}–${fmt(ls)}`;
+        if (g.final && !tie) add(100, `${W} are champions`, { title: `${W} are champions`, dek: `${W} beat ${L} ${fmt(ws)}–${fmt(ls)} in the final.` }, "title");
+        if (!g.multi && !tie) {
+          const hr = highRank(ws);
+          if (hr === 1 && yearsOfHistory > 1) add(95, `The highest score in league history`, { title: `${W} hang ${fmt(ws)} on ${L}`, dek: `The highest score in the league's ${plural(yearsOfHistory, "season")}.` }, "high");
+          else if (hr <= 5 && yearsOfHistory > 1) add(78, `The ${ordinal(hr)}-highest score in league history`, { title: `${W} put up ${fmt(ws)}`, dek: `The ${ordinal(hr)}-highest score in league history, in a win over ${L}.` }, "high");
+          else if (seasonHigh(ws)) add(55, `A season-high score`, { title: `${W} drop a season-high ${fmt(ws)}`, dek: `${L} were the ones in the way, ${fmt(ws)}–${fmt(ls)}.` }, "high");
+          const lr = lowRank(ls);
+          if (lr <= 3 && yearsOfHistory > 1) add(70, `${L}'s ${fmt(ls)} is the ${ordWord(lr)}lowest score in league history`, { title: `${L} manage just ${fmt(ls)}`, dek: `The ${ordWord(lr)}lowest score in league history.` }, "low");
+          const mr = marginRank(m);
+          if (mr <= 3 && yearsOfHistory > 1) add(76, `The ${ordWord(mr)}biggest blowout in league history`, { title: `${W} crush ${L} by ${fmt(m)}`, dek: `The ${ordWord(mr)}biggest margin the league has seen.` }, "margin");
+          else if (m >= 50) add(30, "", { title: `${W} rout ${L}`, dek: `A ${fmt(m)}-point win, ${fmt(ws)}–${fmt(ls)}.` }, "margin");
+          if (m < 2) add(64, "", { title: `${W} survive ${L} by ${fmt(m)}`, dek: `${fmt(ws)}–${fmt(ls)}, the week's closest finish.` }, "close");
+        }
+        if (statsBefore && !tie) {
+          const bw = statsBefore[w], bl = statsBefore[l];
+          if (bw.gp >= 3 && bl.gp >= 3 && bl.pct - bw.pct >= 0.25) {
+            add(74 + Math.round(40 * (bl.pct - bw.pct)), `An upset: ${bw.record} over ${bl.record}`, { title: `${W} stun ${L}`, dek: `${W} (${bw.record}) took down ${L} (${bl.record}), ${fmt(ws)}–${fmt(ls)}.` }, "upset");
+          }
+          const sl = streakOf(bl.form), sw = streakOf(bw.form);
+          if (sl.kind === "W" && sl.n >= 3) add(66 + sl.n, `Snapped ${L}'s ${sl.n}-game winning streak`, { title: `${W} end ${L}'s ${sl.n}-game run`, dek: `${fmt(ws)}–${fmt(ls)}.` }, "streak");
+          if (sw.kind === "L" && sw.n >= 3) add(56 + sw.n, `Ended a ${sw.n}-game losing streak`, { title: `${W} snap a ${sw.n}-game skid`, dek: `${verbS(W, "beat")} ${L}, ${fmt(ws)}–${fmt(ls)}.` }, "streak");
+          const aw = streakOf(statsAfter[w].form), al = streakOf(statsAfter[l].form);
+          if (aw.kind === "W" && aw.n >= 4) add(40 + aw.n, `${aw.n} wins in a row for ${W}`, aw.n >= 6 ? { title: `${W} make it ${aw.n} straight`, dek: `${verbS(W, "beat")} ${L}, ${fmt(ws)}–${fmt(ls)}.` } : null, "streak");
+          if (al.kind === "L" && al.n >= 4) add(36 + al.n, `${al.n} losses in a row for ${L}`, null, "streak");
+        }
+        // The rivalry, owner against owner, every season.
+        if (!tie) {
+          const sr = series(oid(w), oid(l));
+          if (!sr.n && yearsOfHistory > 1) add(20, `Their first ever meeting`);
+          else if (!sr.a && sr.n >= 3) add(68, `${W}'s first win over ${L} in ${sr.n + 1} tries`, { title: `${W} finally beat ${L}`, dek: `A first win in ${sr.n + 1} meetings, ${fmt(ws)}–${fmt(ls)}.` }, "series");
+          else if (sr.lastA && sr.lastA < SEASON - 1) add(52, `${W}'s first win over ${L} since ${sr.lastA}`);
+          else if (sr.n >= 2) {
+            const a = sr.a + 1, b = sr.b;
+            add(22, a > b ? `${W} lead the all-time series ${recordText(a, b, sr.t)}` : a === b ? `The all-time series is tied ${recordText(a, b, sr.t)}` : `${L} still lead the all-time series ${recordText(b, a, sr.t)}`);
+          }
+          const now = careerWins(oid(w), before) + 1;
+          if (now % 25 === 0) add(60, `${teams[w].owner}'s ${ordinal(now)} career win`, { title: `${teams[w].owner} reaches ${now} wins`, dek: `${verbS(W, "beat")} ${L} for career win number ${now}.` }, "milestone");
+        }
+        // Luck, and the bench.
+        const sw2 = single.find((s) => s.id === w), sl2 = single.find((s) => s.id === l);
+        if (!tie && sw2 && sw2.apOf >= 5 && sw2.ap / sw2.apOf < 0.35) add(50, `${W} won with only the week's ${ordinal(sw2.rank)}-best score`);
+        if (!tie && sl2 && sl2.apOf >= 5 && sl2.ap / sl2.apOf > 0.65) add(53, `${L} lost with the week's ${ordWord(sl2.rank)}highest score`);
+        const lu = lineupOf(l);
+        if (!tie && lu && lu.costGame) add(62, `${L}'s best lineup would have scored ${fmt(lu.optimal)} and won`, { title: `${L}'s bench costs them`, dek: `Their best lineup would have scored ${fmt(lu.optimal)} to ${W}'s ${fmt(ws)}.`, weight: lu.optimal - ws }, "bench");
+        notes.sort((a, b) => b.pri - a.pri);
+        notes.forEach((n) => { if (n.head) notesFor.push({ ...n.head, pri: n.pri + (n.kind === "margin" ? m / 100 : 0) + (n.head.weight || 0) / 100, kind: n.kind }); });
+        return {
+          a: g.a, as: g.as, b: g.b, bs: g.bs, w, l, ws, ls, tie, label: g.label, final: g.final, consolation: g.consolation,
+          line, notes: notes.filter((n) => n.note).slice(0, 2).map((n) => n.note),
+          stars: [topOf(g.a), topOf(g.b)],
+        };
+      });
+
+      /* ---- power rankings and luck ------------------------------------ */
+      const power = !playoff ? powerRankings(week) : null;
+      const prev = !playoff && week > 1 ? powerRankings(week - 1) : null;
+      if (power) power.forEach((r) => {
+        const p = prev && prev.find((x) => x.id === r.id);
+        r.move = p ? p.rank - r.rank : 0;
+      });
+      const luckSeason = power ? power.slice().sort((a, b) => b.luck - a.luck) : [];
+      const winners = single.filter((s) => s.pts > s.oppPts), losers = single.filter((s) => s.pts < s.oppPts);
+      const luckyWin = winners.slice().sort((a, b) => a.ap - b.ap)[0] || null;
+      const unluckyLoss = losers.slice().sort((a, b) => b.ap - a.ap)[0] || null;
+      const toughest = single.slice().sort((a, b) => b.oppPts - a.oppPts)[0] || null;
+
+      /* ---- lineups ------------------------------------------------------ */
+      const lrows = lw ? lw.rows.filter((r) => single.some((s) => s.id === r.teamId)) : [];
+      const eff = (r) => (r.optimal ? r.actual / r.optimal : 1);
+      const lineup = lrows.length ? {
+        best: lrows.slice().sort((a, b) => eff(b) - eff(a))[0],
+        worst: lrows.slice().sort((a, b) => b.left - a.left)[0],
+        perfect: lrows.filter((r) => r.left < 0.005).map((r) => r.teamId),
+        left: lrows.reduce((n, r) => n + r.left, 0),
+        cost: lrows.filter((r) => r.costGame).map((r) => r.teamId),
+        blunder: lrows.filter((r) => r.blunder && r.blunder.cost > 0).sort((a, b) => b.blunder.cost - a.blunder.cost)[0] || null,
+        eff,
+      } : null;
+
+      /* ---- the front office ------------------------------------------- */
+      const weekTx = ((txns || {})[SEASON] || []).filter((t) => t.status === "complete" && Number(t.leg) === week);
+      const trades = weekTx.filter((t) => t.type === "trade").map((t) => {
+        const ids = (t.roster_ids || []).map((r) => `r${r}`).filter((id) => teams[id]);
+        return {
+          teams: ids,
+          sides: ids.map((id) => ({
+            id,
+            got: [
+              ...Object.entries(t.adds || {}).filter(([, r]) => `r${r}` === id).map(([pid]) => pname(pid)),
+              ...(t.draft_picks || []).filter((pk) => `r${pk.owner_id}` === id).map((pk) => `${pk.season} round ${pk.round} pick`),
+              ...(t.waiver_budget || []).filter((x) => `r${x.receiver}` === id).map((x) => `$${x.amount} FAAB`),
+            ],
+          })),
+        };
+      });
+      const adds = weekTx.filter((t) => t.type === "waiver" || t.type === "free_agent");
+      const faab = S.waiverType === 2;
+      const bids = adds.filter((t) => t.type === "waiver" && t.settings && t.settings.waiver_bid != null)
+        .map((t) => ({ id: `r${Object.values(t.adds || {})[0]}`, pid: Object.keys(t.adds || {})[0], bid: Number(t.settings.waiver_bid) }))
+        .filter((x) => teams[x.id] && x.pid).sort((a, b) => b.bid - a.bid);
+      const busy = {};
+      adds.forEach((t) => Object.values(t.adds || {}).forEach((r) => { busy[`r${r}`] = (busy[`r${r}`] || 0) + 1; }));
+      const busiest = Object.entries(busy).filter(([id]) => teams[id]).sort((a, b) => b[1] - a[1])[0] || null;
+      // The pickup who paid off this week: added this season, started, scored.
+      const newcomers = wire ? wire.pickups.filter((p) => p.week <= week && (week - p.week) <= 4) : [];
+      const wireHero = starters.filter((s) => newcomers.some((p) => p.pid === s.id && p.teamId === s.teamId)).sort((a, b) => b.pts - a.pts)[0] || null;
+
+      /* ---- the playoff race --------------------------------------------- */
+      let race = null;
+      if (!playoff && HAS_PLAYOFFS) {
+        const pic = buildPicture(week);
+        const was = week > 1 ? buildPicture(week - 1) : null;
+        const lastIn = pic.seeds[PLAYOFF_TEAMS - 1], firstOut = pic.seeds[PLAYOFF_TEAMS];
+        const changes = [];
+        TEAM_IDS.forEach((id) => {
+          const f = pic.flags[id], o = was ? was.flags[id] : null;
+          if (f === o) return;
+          if (f === "z") changes.push({ id, what: BYES ? "clinched a first-round bye" : HAS_DIVISIONS ? "clinched the division" : "clinched the top seed" });
+          else if (f === "x") changes.push({ id, what: "clinched a playoff spot" });
+          else if (f === "e") changes.push({ id, what: "was eliminated from playoff contention" });
+        });
+        const sc = !FINISHED && week === lastPlayedWeek ? playoffScenarios(week) : null;
+        race = {
+          seeds: pic.seeds.slice(0, Math.min(pic.seeds.length, PLAYOFF_TEAMS + 2)).map((id, i) => ({ id, seed: i + 1, record: pic.stats[id].record, flag: pic.flags[id] || "", in: i < PLAYOFF_TEAMS })),
+          bubble: lastIn && firstOut ? { lastIn, firstOut, gap: pic.stats[lastIn].score - pic.stats[firstOut].score } : null,
+          changes,
+          stakes: sc && sc.rows.length ? sc : null,
+          weeksLeft: REGULAR_WEEKS - week,
+        };
+        race.changes.forEach((c) => notesFor.push({
+          kind: `race-${c.id}`,
+          pri: c.what.includes("eliminated") ? 48 : 58,
+          title: c.what.includes("eliminated") ? `${plain(c.id)} are out` : `${plain(c.id)} ${c.what.replace("clinched", "clinch")}`,
+          dek: c.what.includes("eliminated") ? `${plain(c.id)} can no longer reach the playoffs.` : `With ${plural(race.weeksLeft, "week")} of the regular season left.`,
+        }));
+      }
+
+      /* ---- next week --------------------------------------------------- */
+      let next = null;
+      const nextWeek = week + 1;
+      if (!playoff && nextWeek <= REGULAR_WEEKS && (schedule[nextWeek] || []).length) {
+        const rank = (id) => (power ? (power.find((r) => r.id === id) || { rank: 99 }).rank : 99);
+        const games2 = schedule[nextWeek].map(([a, b]) => ({ a, b, ra: rank(a), rb: rank(b), sa: statsAfter[a].record, sb: statsAfter[b].record }));
+        const gotw = games2.slice().sort((x, y) => (x.ra + x.rb) - (y.ra + y.rb) || Math.abs(x.ra - x.rb) - Math.abs(y.ra - y.rb))[0];
+        const sr = gotw ? series(oid(gotw.a), oid(gotw.b)) : null;
+        next = { week: nextWeek, games: games2, gotw, series: sr };
+      } else if (!playoff && nextWeek > REGULAR_WEEKS && HAS_PLAYOFFS) {
+        next = { week: nextWeek, playoffs: true, games: [] };
+      }
+
+      /* ---- the headline ------------------------------------------------ */
+      notesFor.sort((a, b) => b.pri - a.pri);
+      const kinds = new Set();
+      const heads = notesFor.filter((h) => { if (h.kind && kinds.has(h.kind)) return false; kinds.add(h.kind); return true; });
+      let headline = heads[0] || null;
+      if (!headline && byPts.length) {
+        const t = byPts[0];
+        headline = { title: `${plain(t.id)} lead the week with ${fmt(t.pts)}`, dek: `${t.pts > t.oppPts ? `${verbS(plain(t.id), "beat")}` : "Still lost to"} ${plain(t.opp)}, ${fmt(t.pts)}–${fmt(t.oppPts)}.` };
+      }
+      const alsoNotes = heads.slice(1, 4).map((n) => n.title);
+
       return {
-        week, games: games.map(w), facts, top, mover,
-        league: model.name, season: SEASON, playoff: week > REGULAR_WEEKS,
+        week, season: SEASON, league: model.name, playoff, hasBox: !!box,
+        headline, also: alsoNotes,
+        games: gameStories,
+        numbers: {
+          avg, median, total, high: byPts[0] || null, low: byPts[byPts.length - 1] || null,
+          luckyWin, unluckyLoss, toughest,
+          luckiest: luckSeason[0] || null, unluckiest: luckSeason[luckSeason.length - 1] || null,
+        },
+        power,
+        players: {
+          mvp: starters[0] || null,
+          byPos,
+          bench: bench[0] || null,
+          dud: duds[0] && duds[0].pts < 5 ? duds[0] : null,
+          wireHero,
+        },
+        lineup,
+        moves: { trades, adds: adds.length, bids: faab ? bids.slice(0, 3) : [], busiest, faab, pname },
+        race, next,
       };
     }
 
-    function recapText(f) {
-      const lines = [`${f.league} · Week ${f.week} recap`, ""];
-      f.games.forEach(([wi, ws, li, ls]) => lines.push(`${teams[wi].name} ${fmt(ws)} – ${fmt(ls)} ${teams[li].name}`));
-      lines.push("");
-      f.facts.forEach((x) => lines.push(`${x.label}: ${x.main} (${x.sub})`));
-      if (f.top.length && !f.playoff) {
-        lines.push("", "Standings:");
-        f.top.forEach((t) => lines.push(`${t.rank}. ${t.name} ${t.record}`));
+    /* ---- the Recap view ------------------------------------------------ */
+    const moveTag = (n) => (n > 0 ? `<span class="rc-move up" title="Up ${n}">▲${n}</span>` : n < 0 ? `<span class="rc-move down" title="Down ${-n}">▼${-n}</span>` : `<span class="rc-move" title="No change">–</span>`);
+    const recapTeam = (id) => `<button type="button" class="rc-team" data-team="${id}">${miniTeam(id)}<span>${nameOf(id)}</span></button>`;
+    const playerChip = (p) => `<span class="rc-player" data-player="${encodeURIComponent(p.id)}" role="button" tabindex="0"><strong>${esc(p.name)}</strong> <em>${esc(p.pos || "")}</em></span>`;
+
+    function recapHtml(r) {
+      const n = r.numbers;
+      const parts = [];
+      parts.push(`<article class="card rc-lead">
+        <div class="rc-kicker">${r.playoff ? "Playoffs · " : ""}Week ${r.week} recap · ${r.season}</div>
+        ${r.headline ? `<h3 class="rc-title">${esc(r.headline.title)}</h3><p class="rc-dek">${esc(r.headline.dek)}</p>` : ""}
+        ${r.also.length ? `<ul class="rc-also">${r.also.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+        <div class="rc-actions">
+          <button type="button" class="recap-open" data-recap="${r.week}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.6M5 5.4l3-3 3 3M3.2 9v3.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>Share the recap</button>
+        </div>
+      </article>`);
+
+      parts.push(`<article class="card">
+        ${cardHead("Every game", "versus", plural(r.games.length, "game"))}
+        <div class="rc-games">${r.games.map((g) => `
+          <div class="rc-game">
+            ${g.label ? `<div class="rc-game-label">${esc(g.label)}</div>` : ""}
+            <div class="rc-line${g.tie || g.w === g.a ? " won" : ""}">${recapTeam(g.a)}<b>${fmt(g.as)}</b></div>
+            <div class="rc-line${g.tie || g.w === g.b ? " won" : ""}">${recapTeam(g.b)}<b>${fmt(g.bs)}</b></div>
+            <p class="rc-story">${esc(g.line)}.${g.notes.length ? ` <span>${g.notes.map(esc).join(". ")}.</span>` : ""}</p>
+            ${g.stars.some(Boolean) ? `<div class="rc-stars">${g.stars.filter(Boolean).map((p) => `${playerChip(p)} <b>${fmt(p.pts)}</b>`).join('<i aria-hidden="true">·</i>')}</div>` : ""}
+            ${r.hasBox ? bxButton(r.week, g.a, g.b, "rc-box") : ""}
+          </div>`).join("")}
+        </div>
+      </article>`);
+
+      if (r.power) {
+        const top = r.power[0];
+        const riser = r.power.slice().sort((a, b) => b.move - a.move)[0];
+        const faller = r.power.slice().sort((a, b) => a.move - b.move)[0];
+        const best = Math.max(...r.power.map((x) => x.score), 1);
+        parts.push(`<article class="card">
+          ${cardHead("Power rankings", "standings", `After week ${r.week}`)}
+          <div class="rc-power">
+            <div class="rc-prow head"><span>#</span><span></span><span>Team</span><span>Record</span><span title="Record against every team, every week">All-play</span><span>PF/G</span></div>
+            ${r.power.map((p) => `
+            <div class="rc-prow">
+              <span class="rc-rank">${p.rank}</span>${moveTag(p.move)}
+              <span class="rc-pteam">${recapTeam(p.id)}<i class="rc-bar" style="--w:${(100 * p.score / best).toFixed(1)}%"></i></span>
+              <span>${p.record}</span><span>${p.apRecord}</span><span>${fmt1(p.pfg)}</span>
+            </div>`).join("")}
+          </div>
+          <p class="rc-foot">${esc(plain(top.id))} ${top.move > 0 ? `climb to the top` : "hold the top spot"}${riser && riser.move >= 2 ? `; ${esc(plain(riser.id))} jump ${riser.move}` : ""}${faller && faller.move <= -2 ? `; ${esc(plain(faller.id))} slide ${-faller.move}` : ""}. Ranked on all-play record (every team against every other team's score, every week), the actual record, the last three weeks and points per game.</p>
+        </article>`);
       }
-      if (f.mover) lines.push(`Biggest climb: ${teams[f.mover.id].name}, up ${f.mover.up} to #${f.mover.now}`);
-      lines.push("", location.href.split("#")[0]);
-      return lines.join("\n");
+
+      const tiles = [];
+      const tile = (label, strong, sub) => tiles.push(`<div class="superlative"><small>${label}</small><strong>${strong}</strong><span>${sub}</span></div>`);
+      if (n.high) tile("High score", nameOf(n.high.id), `${fmt(n.high.pts)} · ${n.high.pts > n.high.oppPts ? "won" : "lost"}`);
+      tile("League average", `${fmt1(n.avg)} per team`, `median ${fmt1(n.median)}`);
+      if (n.luckyWin && n.luckyWin.apOf) tile("Luckiest win", nameOf(n.luckyWin.id), `${fmt(n.luckyWin.pts)} would have beaten ${n.luckyWin.ap} of ${n.luckyWin.apOf}`);
+      if (n.unluckyLoss && n.unluckyLoss.apOf) tile("Unluckiest loss", nameOf(n.unluckyLoss.id), `${fmt(n.unluckyLoss.pts)} would have beaten ${n.unluckyLoss.ap} of ${n.unluckyLoss.apOf}`);
+      if (n.toughest) tile("Toughest draw", nameOf(n.toughest.id), `faced ${fmt(n.toughest.oppPts)}`);
+      if (n.luckiest && n.luckiest.luck > 0.5) tile("Luckiest season", nameOf(n.luckiest.id), `${n.luckiest.luck.toFixed(1)} wins above all-play`);
+      if (n.unluckiest && n.unluckiest.luck < -0.5) tile("Unluckiest season", nameOf(n.unluckiest.id), `${(-n.unluckiest.luck).toFixed(1)} wins below all-play`);
+      if (r.lineup) {
+        const L = r.lineup;
+        tile("Best-set lineup", nameOf(L.best.teamId), `${(100 * L.eff(L.best)).toFixed(1)}% of the best possible`);
+        if (L.worst.left > 0) tile("Most left on the bench", nameOf(L.worst.teamId), `${fmt(L.worst.left)} points`);
+        tile("Left on benches", `${fmt1(L.left)} points`, L.perfect.length ? `${plural(L.perfect.length, "perfect lineup")}` : "no perfect lineups");
+      }
+      parts.push(`<article class="card">${cardHead("By the numbers", "notes", "All-play and luck")}<div class="summary-superlatives">${tiles.join("")}</div></article>`);
+
+      const P = r.players;
+      if (P.mvp) {
+        parts.push(`<article class="card">
+          ${cardHead("Players of the week", "notes", "Starters only")}
+          <div class="rc-mvp">
+            <small>Player of the week</small>
+            <div>${playerChip(P.mvp)} <b>${fmt(P.mvp.pts)}</b></div>
+            <span>for ${nameOf(P.mvp.teamId)}</span>
+          </div>
+          <div class="rc-list">
+            ${P.byPos.filter((p) => p !== P.mvp).map((p) => `<div class="rc-item"><span class="rc-tag">Top ${esc(p.pos)}</span>${playerChip(p)}<span class="muted">${nameOf(p.teamId)}</span><b>${fmt(p.pts)}</b></div>`).join("")}
+            ${P.bench && !(r.lineup && r.lineup.blunder && r.lineup.blunder.blunder.benched.pid === P.bench.id) ? `<div class="rc-item"><span class="rc-tag soft">Best on a bench</span>${playerChip(P.bench)}<span class="muted">${nameOf(P.bench.teamId)}</span><b>${fmt(P.bench.pts)}</b></div>` : ""}
+            ${P.wireHero ? `<div class="rc-item"><span class="rc-tag soft">Waiver-wire hero</span>${playerChip(P.wireHero)}<span class="muted">${nameOf(P.wireHero.teamId)}</span><b>${fmt(P.wireHero.pts)}</b></div>` : ""}
+            ${P.dud ? `<div class="rc-item"><span class="rc-tag bad">Dud of the week</span>${playerChip(P.dud)}<span class="muted">started by ${nameOf(P.dud.teamId)}</span><b>${fmt(P.dud.pts)}</b></div>` : ""}
+          </div>
+        </article>`);
+      }
+
+      const M = r.moves;
+      const office = [];
+      M.trades.forEach((t) => office.push(`<div class="rc-item block"><span class="rc-tag">Trade</span><div>${t.sides.map((s) => `<p><strong>${nameOf(s.id)}</strong> get ${s.got.length ? esc(s.got.join(", ")) : "nothing"}</p>`).join("")}</div></div>`));
+      if (r.lineup && r.lineup.blunder) {
+        const b = r.lineup.blunder.blunder;
+        office.push(`<div class="rc-item block"><span class="rc-tag bad">Bench blunder</span><div><p><strong>${nameOf(r.lineup.blunder.teamId)}</strong> benched ${esc(M.pname(b.benched.pid))} (${fmt(b.benched.pts)})${b.started ? ` and started ${esc(M.pname(b.started.pid))} (${fmt(b.started.pts)})` : ""}${r.lineup.blunder.costGame ? ". It cost them the game" : ""}.</p></div></div>`);
+      }
+      if (M.adds) office.push(`<div class="rc-item block"><span class="rc-tag soft">Waiver wire</span><div><p>${plural(M.adds, "pickup")} this week${M.busiest ? `; ${nameOf(M.busiest[0])} made ${M.busiest[1]}` : ""}.${M.bids.length ? ` Biggest bid: ${nameOf(M.bids[0].id)}, $${M.bids[0].bid} on ${esc(M.pname(M.bids[0].pid))}.` : ""}</p></div></div>`);
+      if (office.length) parts.push(`<article class="card">${cardHead("Front office", "document", `Week ${r.week} moves`)}<div class="rc-list">${office.join("")}</div>
+        <a class="rc-more" href="${League.url("moves", {}, `lineups/${SEASON}`)}">Every lineup, trade and pickup, graded →</a></article>`);
+
+      if (r.race) {
+        const R = r.race;
+        const flag = (f) => (f ? `<span class="rc-flag ${f}">${f}</span>` : "");
+        parts.push(`<article class="card">
+          ${cardHead("The playoff race", "shield", R.weeksLeft ? `${plural(R.weeksLeft, "week")} left` : "Regular season over")}
+          <div class="rc-race">${R.seeds.map((s) => `
+            <div class="rc-seed${s.in ? "" : " out"}${s.seed === PLAYOFF_TEAMS ? " cut" : ""}"><span class="rc-rank">${s.seed}</span>${recapTeam(s.id)}${flag(s.flag)}<span>${s.record}</span></div>`).join("")}
+          </div>
+          ${R.bubble ? `<p class="rc-foot">${R.bubble.gap > 0 ? `${esc(plain(R.bubble.lastIn))} hold the last spot by ${R.bubble.gap % 1 ? R.bubble.gap.toFixed(1) : R.bubble.gap} ${R.bubble.gap === 1 ? "game" : "games"} over ${esc(plain(R.bubble.firstOut))}.` : `${esc(plain(R.bubble.lastIn))} and ${esc(plain(R.bubble.firstOut))} are level for the last spot; points for decides it for now.`}${R.changes.length ? ` This week: ${R.changes.map((c) => `${esc(plain(c.id))} ${c.what}`).join("; ")}.` : ""}</p>` : ""}
+          ${R.stakes ? `<div class="scenario-list">${R.stakes.rows.slice(0, 6).map((x) => `
+            <div class="scenario-row"><span class="scenario-team">${miniTeam(x.id)}<strong>${nameOf(x.id)}</strong></span><ul>${x.lines.map((l) => `<li>${l}.</li>`).join("")}</ul></div>`).join("")}</div>` : ""}
+        </article>`);
+      }
+
+      if (r.next && r.next.games.length) {
+        const X = r.next, g = X.gotw;
+        const rk = (n) => (n < 99 ? `#${n}` : "");
+        parts.push(`<article class="card">
+          ${cardHead(`Next up · Week ${X.week}`, "versus", "Game of the week first")}
+          ${g ? `<div class="rc-gotw">
+            <small>Game of the week</small>
+            <div class="rc-gotw-teams">
+              <span>${recapTeam(g.a)}<em>${rk(g.ra)} · ${g.sa}</em></span>
+              <b>vs</b>
+              <span>${recapTeam(g.b)}<em>${rk(g.rb)} · ${g.sb}</em></span>
+            </div>
+            ${X.series && X.series.n ? `<p>${X.series.a === X.series.b ? `All square at ${recordText(X.series.a, X.series.b, X.series.t)} all-time.` : `${esc(plain(X.series.a > X.series.b ? g.a : g.b))} lead the all-time series ${recordText(Math.max(X.series.a, X.series.b), Math.min(X.series.a, X.series.b), X.series.t)}.`}</p>` : `<p>Their first ever meeting.</p>`}
+          </div>` : ""}
+          <div class="rc-list">${X.games.filter((x) => x !== g).map((x) => `
+            <div class="rc-item"><span class="rc-vs">${recapTeam(x.a)}<em>${x.sa}</em></span><i>vs</i><span class="rc-vs">${recapTeam(x.b)}<em>${x.sb}</em></span></div>`).join("")}
+          </div>
+        </article>`);
+      }
+      return `<div class="panel-stack rc">${parts.join("")}</div>`;
     }
 
-    /* The recap as a 1080 × 1350 image, the shape a group chat shows best.
-       Team marks are drawn as their colours and initials, not avatars: an
-       image from another site would make the picture unsaveable. */
-    async function recapImage(f) {
+    function renderRecapPanel(week) {
+      const panel = document.getElementById("panel-recap");
+      if (!panel) return;
+      panel.innerHTML = `<div class="card"><div class="empty-state lh-status"><span class="lh-spinner" aria-hidden="true"></span><strong>Writing the week ${week} recap</strong><p>Reading every lineup and every move&hellip;</p></div></div>`;
+      weekRecap(week).then((r) => {
+        if (state.week !== week || !panel.isConnected) return;
+        panel.innerHTML = recapHtml(r);
+        if (window.SeasonNav && SeasonNav.settled) requestAnimationFrame(SeasonNav.settled);
+      }).catch((err) => {
+        console.error(err);
+        if (state.week === week) panel.innerHTML = emptyState("The recap couldn't be written", "Sleeper didn't answer. Try again in a moment.");
+      });
+    }
+
+    /* ---- the recap as text, for a group chat ---------------------------- */
+    function recapText(r) {
+      const L = [`${r.league} · Week ${r.week} recap`];
+      if (r.headline) L.push("", r.headline.title.toUpperCase(), r.headline.dek);
+      r.also.forEach((t) => L.push(`• ${t}`));
+      L.push("", "SCORES");
+      r.games.forEach((g) => {
+        L.push(`${g.label ? `${g.label}: ` : ""}${plain(g.w)} ${fmt(g.ws)} – ${fmt(g.ls)} ${plain(g.l)}`);
+        if (g.notes.length) L.push(`   ${g.notes.join(". ")}.`);
+      });
+      if (r.power) {
+        L.push("", "POWER RANKINGS");
+        r.power.forEach((p) => L.push(`${p.rank}. ${plain(p.id)} (${p.record})${p.move ? ` ${p.move > 0 ? "▲" : "▼"}${Math.abs(p.move)}` : ""}`));
+      }
+      const n = r.numbers;
+      L.push("", "BY THE NUMBERS");
+      if (n.high) L.push(`High score: ${plain(n.high.id)}, ${fmt(n.high.pts)}`);
+      L.push(`League average: ${fmt1(n.avg)}`);
+      if (n.luckyWin && n.luckyWin.apOf) L.push(`Luckiest win: ${plain(n.luckyWin.id)}, ${fmt(n.luckyWin.pts)} (beats ${n.luckyWin.ap} of ${n.luckyWin.apOf})`);
+      if (n.unluckyLoss && n.unluckyLoss.apOf) L.push(`Unluckiest loss: ${plain(n.unluckyLoss.id)}, ${fmt(n.unluckyLoss.pts)} (beats ${n.unluckyLoss.ap} of ${n.unluckyLoss.apOf})`);
+      if (r.lineup) {
+        L.push(`Best-set lineup: ${plain(r.lineup.best.teamId)} (${(100 * r.lineup.eff(r.lineup.best)).toFixed(1)}%)`);
+        if (r.lineup.blunder) {
+          const b = r.lineup.blunder.blunder;
+          L.push(`Bench blunder: ${plain(r.lineup.blunder.teamId)} benched ${r.moves.pname(b.benched.pid)} (${fmt(b.benched.pts)})${r.lineup.blunder.costGame ? ", and it cost the game" : ""}`);
+        }
+      }
+      if (r.players.mvp) {
+        const P = r.players;
+        L.push("", "PLAYERS OF THE WEEK", `MVP: ${P.mvp.name} ${fmt(P.mvp.pts)} (${plain(P.mvp.teamId)})`);
+        if (P.wireHero) L.push(`Waiver-wire hero: ${P.wireHero.name} ${fmt(P.wireHero.pts)} (${plain(P.wireHero.teamId)})`);
+        if (P.bench) L.push(`Best on a bench: ${P.bench.name} ${fmt(P.bench.pts)} (${plain(P.bench.teamId)})`);
+      }
+      if (r.moves.trades.length) {
+        L.push("", "TRADES");
+        r.moves.trades.forEach((t) => L.push(t.sides.map((s) => `${plain(s.id)} get ${s.got.join(", ") || "nothing"}`).join(" / ")));
+      }
+      if (r.race) {
+        L.push("", "PLAYOFF RACE");
+        r.race.seeds.forEach((s) => L.push(`${s.seed}. ${plain(s.id)} ${s.record}${s.flag ? ` (${s.flag})` : ""}${s.seed === PLAYOFF_TEAMS ? "\n   ---" : ""}`));
+        r.race.changes.forEach((c) => L.push(`${plain(c.id)} ${c.what}.`));
+      }
+      if (r.next && r.next.gotw) L.push("", `NEXT WEEK'S GAME: ${plain(r.next.gotw.a)} (${r.next.gotw.sa}) vs ${plain(r.next.gotw.b)} (${r.next.gotw.sb})`);
+      L.push("", location.href.split("#")[0]);
+      return L.join("\n");
+    }
+
+    /* ---- the recap as pictures ------------------------------------------
+       1080 × 1350, the shape a group chat shows best: the week (headline,
+       scores and players) and, in the regular season, the table (power
+       rankings and the numbers). Team marks are drawn as their colours and
+       initials, not avatars: an image from another site would make the
+       picture unsaveable. */
+    async function recapImages(r) {
       const W = 1080, H = 1350, PAD = 72;
-      const c = document.createElement("canvas");
-      c.width = W; c.height = H;
-      const ctx = c.getContext("2d");
-      if (!ctx.roundRect) ctx.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
       try { await Promise.all(['700 96px "Barlow Condensed"', '600 30px Inter', '700 30px Inter'].map((x) => document.fonts.load(x))); } catch (err) { /* system fonts */ }
       const DISPLAY = '"Barlow Condensed", "Arial Narrow", sans-serif';
       const BODY = 'Inter, "Segoe UI", Roboto, sans-serif';
-      const fit = (text, max, font) => {
-        ctx.font = font;
-        if (ctx.measureText(text).width <= max) return text;
-        let t = text;
-        while (t.length > 1 && ctx.measureText(`${t}…`).width > max) t = t.slice(0, -1);
-        return `${t.trimEnd()}…`;
-      };
-      const txt = (text, x, y, font, color, max = W - PAD * 2, align = "left") => {
-        ctx.textAlign = align;
-        ctx.fillStyle = color;
-        ctx.fillText(fit(String(text), max, font), x, y);
-      };
+      const GOLD = "#f6b73c", SOFT = "rgba(219,229,238,.7)", DIM = "rgba(219,229,238,.5)";
 
-      // Ground: the site's navy, a lighter wash at the top, the red rule.
-      const bg = ctx.createLinearGradient(0, 0, 0, H);
-      bg.addColorStop(0, "#102b43");
-      bg.addColorStop(0.35, "#071827");
-      bg.addColorStop(1, "#050f1a");
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = "#d71920";
-      ctx.fillRect(0, 0, W, 10);
-
-      let y = PAD + 30;
-      txt(f.league.toUpperCase(), PAD, y, `700 30px ${BODY}`, "#f6b73c");
-      y += 92;
-      txt(`WEEK ${f.week} RECAP`, PAD, y, `700 104px ${DISPLAY}`, "#ffffff");
-      y += 46;
-      txt(`${f.season} season${f.playoff ? " · playoffs" : ""}`, PAD, y, `600 28px ${BODY}`, "rgba(219,229,238,.7)");
-      y += 44;
-
-      // Scores, two columns when there are many.
-      const games = f.games.slice(0, 8);
-      const cols = games.length > 4 ? 2 : 1;
-      const colW = (W - PAD * 2 - (cols - 1) * 24) / cols;
-      const rowH = cols === 2 ? 92 : 78;
-      const badge = (id, x, cy, size) => {
-        ctx.fillStyle = teams[id].color || "#304f91";
-        ctx.beginPath();
-        ctx.roundRect(x, cy - size / 2, size, size, size * 0.28);
-        ctx.fill();
-        ctx.fillStyle = "#fff";
-        ctx.font = `700 ${Math.round(size * 0.5)}px ${BODY}`;
-        ctx.textAlign = "center";
-        ctx.fillText([...teams[id].name.trim()][0] || "?", x + size / 2, cy + size * 0.18);
-      };
-      games.forEach(([wi, ws, li, ls], i) => {
-        const col = cols === 2 ? i % 2 : 0;
-        const row = cols === 2 ? Math.floor(i / 2) : i;
-        const x = PAD + col * (colW + 24);
-        const top = y + row * (rowH + 12);
-        ctx.fillStyle = "rgba(255,255,255,.06)";
-        ctx.beginPath();
-        ctx.roundRect(x, top, colW, rowH, 16);
-        ctx.fill();
-        const line = (id, score, cy, win) => {
-          badge(id, x + 16, cy, 28);
-          txt(teams[id].name, x + 56, cy + 9, `${win ? 700 : 500} 25px ${BODY}`, win ? "#ffffff" : "rgba(219,229,238,.6)", colW - 56 - 110);
-          txt(fmt(score), x + colW - 16, cy + 9, `700 27px ${BODY}`, win ? "#f6b73c" : "rgba(219,229,238,.6)", 110, "right");
+      function sheet(kicker, title) {
+        const c = document.createElement("canvas");
+        c.width = W; c.height = H;
+        const ctx = c.getContext("2d");
+        if (!ctx.roundRect) ctx.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
+        const bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, "#102b43"); bg.addColorStop(0.35, "#071827"); bg.addColorStop(1, "#050f1a");
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#d71920"; ctx.fillRect(0, 0, W, 10);
+        const fit = (text, max, font) => {
+          ctx.font = font;
+          if (ctx.measureText(text).width <= max) return text;
+          let t = text;
+          while (t.length > 1 && ctx.measureText(`${t}…`).width > max) t = t.slice(0, -1);
+          return `${t.trimEnd()}…`;
         };
-        line(wi, ws, top + rowH * 0.3, true);
-        line(li, ls, top + rowH * 0.72, false);
-      });
-      y += Math.ceil(games.length / cols) * (rowH + 12) + 26;
-
-      // The week's stories, as long as there's room for them.
-      const footer = H - PAD - 40;
-      const standingsH = !f.playoff && f.top.length ? 64 + f.top.length * 44 : 0;
-      // Two to a row, as many rows as fit above the standings.
-      const factW = (W - PAD * 2 - 24) / 2, factH = 126;
-      for (let i = 0; i < f.facts.length; i += 2) {
-        if (y + factH > footer - standingsH) break;
-        f.facts.slice(i, i + 2).forEach((x, k) => {
-          const fx = PAD + k * (factW + 24);
-          ctx.fillStyle = "rgba(255,255,255,.05)";
-          ctx.beginPath();
-          ctx.roundRect(fx, y, factW, factH - 14, 16);
-          ctx.fill();
-          txt(x.label.toUpperCase(), fx + 20, y + 36, `700 20px ${BODY}`, "#f6b73c", factW - 40);
-          txt(x.main, fx + 20, y + 70, `700 26px ${BODY}`, "#ffffff", factW - 40);
-          txt(x.sub, fx + 20, y + 99, `500 21px ${BODY}`, "rgba(219,229,238,.7)", factW - 40);
-        });
-        y += factH;
+        const txt = (text, x, y, font, color, max = W - PAD * 2, align = "left") => {
+          ctx.textAlign = align; ctx.fillStyle = color; ctx.fillText(fit(String(text), max, font), x, y);
+        };
+        // words wrapped to `lines` lines at most; returns the height used
+        const wrap = (text, x, y, font, color, lineH, lines, max = W - PAD * 2) => {
+          ctx.font = font;
+          const words = String(text).split(/\s+/);
+          const out = [];
+          let cur = "";
+          words.forEach((w) => {
+            const t = cur ? `${cur} ${w}` : w;
+            if (ctx.measureText(t).width <= max || !cur) cur = t; else { out.push(cur); cur = w; }
+          });
+          if (cur) out.push(cur);
+          const shown = out.slice(0, lines);
+          if (out.length > lines) shown[lines - 1] = `${shown[lines - 1]} ${out.slice(lines).join(" ")}`;
+          shown.forEach((l, i) => txt(l, x, y + i * lineH, font, color, max));
+          return shown.length * lineH;
+        };
+        const box = (x, y, w, h, fill = "rgba(255,255,255,.06)", rad = 16) => { ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect(x, y, w, h, rad); ctx.fill(); };
+        const badge = (id, x, cy, size) => {
+          ctx.fillStyle = teams[id].color || "#304f91";
+          ctx.beginPath(); ctx.arc(x + size / 2, cy, size / 2, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#fff"; ctx.font = `700 ${Math.round(size * 0.5)}px ${BODY}`; ctx.textAlign = "center";
+          ctx.fillText([...teams[id].name.trim()][0] || "?", x + size / 2, cy + size * 0.18);
+        };
+        let y = PAD + 30;
+        txt(r.league.toUpperCase(), PAD, y, `700 30px ${BODY}`, GOLD);
+        y += 92;
+        txt(title, PAD, y, `700 104px ${DISPLAY}`, "#ffffff");
+        y += 46;
+        txt(kicker, PAD, y, `600 28px ${BODY}`, SOFT);
+        const footer = () => {
+          ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(PAD, H - PAD - 34, W - PAD * 2, 2);
+          txt("LEAGUE HISTORY", PAD, H - PAD + 6, `700 24px ${BODY}`, "rgba(219,229,238,.75)");
+          txt(location.host, W - PAD, H - PAD + 6, `500 24px ${BODY}`, DIM, 500, "right");
+        };
+        return { c, ctx, txt, wrap, box, badge, footer, top: y + 44 };
       }
-      y += 6;
+      const blobOf = (c) => new Promise((resolve) => c.toBlob(resolve, "image/png"));
+      const out = [];
 
-      if (standingsH && y + standingsH <= footer) {
-        txt("STANDINGS", PAD, y + 26, `700 22px ${BODY}`, "#f6b73c");
-        y += 44;
-        f.top.forEach((t) => {
-          txt(`${t.rank}`, PAD, y + 28, `700 28px ${BODY}`, "rgba(219,229,238,.55)");
-          txt(t.name, PAD + 50, y + 28, `600 28px ${BODY}`, "#ffffff", W - PAD * 2 - 220);
-          txt(t.record, W - PAD, y + 28, `700 28px ${BODY}`, "#ffffff", 160, "right");
-          y += 44;
+      /* 1 · the week */
+      {
+        const s = sheet(`${r.season} season${r.playoff ? " · playoffs" : ""}`, `WEEK ${r.week} RECAP`);
+        let y = s.top;
+        const bottom = H - PAD - 60;
+        if (r.headline) {
+          s.box(PAD, y, W - PAD * 2, 10, "#d71920", 4);
+          y += 64;
+          y += s.wrap(r.headline.title, PAD, y, `700 62px ${DISPLAY}`, "#ffffff", 62, 2);
+          y += s.wrap(r.headline.dek, PAD, y - 12, `500 26px ${BODY}`, SOFT, 36, 2);
+          // the week's other storylines
+          r.also.slice(0, 3).forEach((t) => {
+            s.ctx.fillStyle = "#d71920";
+            s.ctx.beginPath(); s.ctx.arc(PAD + 6, y + 4, 5, 0, Math.PI * 2); s.ctx.fill();
+            s.txt(t, PAD + 24, y + 13, `600 24px ${BODY}`, "rgba(255,255,255,.88)", W - PAD * 2 - 24);
+            y += 36;
+          });
+          y += 14;
+        }
+        const games = r.games.slice(0, 8);
+        const cols = games.length > 4 ? 2 : 1;
+        const colW = (W - PAD * 2 - (cols - 1) * 24) / cols;
+        const rowH = cols === 2 ? 92 : 104;
+        games.forEach((g, i) => {
+          const col = cols === 2 ? i % 2 : 0, row = cols === 2 ? Math.floor(i / 2) : i;
+          const x = PAD + col * (colW + 24), top = y + row * (rowH + 12);
+          s.box(x, top, colW, rowH);
+          const line = (id, score, cy, win) => {
+            s.badge(id, x + 16, cy, 28);
+            s.txt(teams[id].name, x + 56, cy + 9, `${win ? 700 : 500} 25px ${BODY}`, win ? "#ffffff" : "rgba(219,229,238,.6)", colW - 56 - 110);
+            s.txt(fmt(score), x + colW - 16, cy + 9, `700 27px ${BODY}`, win ? GOLD : "rgba(219,229,238,.6)", 110, "right");
+          };
+          line(g.w, g.ws, top + rowH * (cols === 2 ? 0.3 : 0.24), !g.tie);
+          line(g.l, g.ls, top + rowH * (cols === 2 ? 0.72 : 0.56), false);
+          if (cols === 1 && g.notes[0]) s.txt(g.notes[0], x + 56, top + rowH - 12, `500 19px ${BODY}`, GOLD, colW - 72);
         });
+        y += Math.ceil(games.length / cols) * (rowH + 12) + 14;
+        // the players, as many tiles as fit
+        const P = r.players;
+        const tiles = [];
+        if (P.mvp) tiles.push(["PLAYER OF THE WEEK", P.mvp.name, `${fmt(P.mvp.pts)} · ${plain(P.mvp.teamId)}`]);
+        const blunder = r.lineup && r.lineup.blunder;
+        if (blunder) { const b = blunder.blunder; tiles.push(["BENCH BLUNDER", `Benched ${r.moves.pname(b.benched.pid)}`, `${fmt(b.benched.pts)} pts · ${blunder.costGame ? "cost the game · " : ""}${plain(blunder.teamId)}`]); }
+        if (P.wireHero) tiles.push(["WAIVER-WIRE HERO", P.wireHero.name, `${fmt(P.wireHero.pts)} · ${plain(P.wireHero.teamId)}`]);
+        if (r.moves.trades[0]) { const t = r.moves.trades[0]; tiles.push(["TRADE OF THE WEEK", t.teams.map(plain).join(" & "), t.sides.map((x) => `${plain(x.id)} get ${x.got.slice(0, 2).join(", ") || "nothing"}`).join(" · ")]); }
+        if (r.numbers.high) tiles.push(["HIGH SCORE", plain(r.numbers.high.id), `${fmt(r.numbers.high.pts)}${r.numbers.high.pts < r.numbers.high.oppPts ? " · and still lost" : ""}`]);
+        if (P.bench && !(blunder && blunder.blunder.benched.pid === P.bench.id)) tiles.push(["BEST ON A BENCH", P.bench.name, `${fmt(P.bench.pts)} · ${plain(P.bench.teamId)}`]);
+        if (r.lineup && r.lineup.left) tiles.push(["LEFT ON BENCHES", `${fmt1(r.lineup.left)} points`, r.lineup.perfect.length ? plural(r.lineup.perfect.length, "perfect lineup") : "not one perfect lineup"]);
+        const tw = (W - PAD * 2 - 24) / 2, th = 126;
+        for (let i = 0; i < tiles.length && y + th <= bottom; i += 2) {
+          tiles.slice(i, i + 2).forEach(([label, main, sub], k) => {
+            const fx = PAD + k * (tw + 24);
+            s.box(fx, y, tw, th - 14, "rgba(255,255,255,.05)");
+            s.txt(label, fx + 20, y + 36, `700 20px ${BODY}`, GOLD, tw - 40);
+            s.txt(main, fx + 20, y + 70, `700 26px ${BODY}`, "#ffffff", tw - 40);
+            s.txt(sub, fx + 20, y + 99, `500 21px ${BODY}`, SOFT, tw - 40);
+          });
+          y += th;
+        }
+        s.footer();
+        out.push(await blobOf(s.c));
       }
 
-      ctx.fillStyle = "rgba(255,255,255,.12)";
-      ctx.fillRect(PAD, H - PAD - 34, W - PAD * 2, 2);
-      txt("LEAGUE HISTORY", PAD, H - PAD + 6, `700 24px ${BODY}`, "rgba(219,229,238,.75)");
-      txt(location.host, W - PAD, H - PAD + 6, `500 24px ${BODY}`, "rgba(219,229,238,.5)", 500, "right");
-      return new Promise((resolve) => c.toBlob(resolve, "image/png"));
+      /* 2 · the table */
+      if (r.power) {
+        const s = sheet(`After week ${r.week} · ${r.season}`, "POWER RANKINGS");
+        let y = s.top + 8;
+        const rows = r.power.slice(0, 14);
+        const rowH = Math.min(62, Math.floor((H - y - PAD - 420) / rows.length));
+        s.txt("RECORD", W - PAD - 190, y, `700 18px ${BODY}`, DIM, 120, "right");
+        s.txt("ALL-PLAY", W - PAD, y, `700 18px ${BODY}`, DIM, 140, "right");
+        y += 14;
+        const best = Math.max(...rows.map((x) => x.score), 1);
+        rows.forEach((p, i) => {
+          const top = y + i * rowH, cy = top + rowH / 2;
+          if (i % 2 === 0) s.box(PAD - 12, top, W - PAD * 2 + 24, rowH, "rgba(255,255,255,.04)", 12);
+          s.txt(String(p.rank), PAD + 22, cy + 10, `700 28px ${BODY}`, i < 3 ? GOLD : "#ffffff", 50, "center");
+          const mv = p.move > 0 ? `▲${p.move}` : p.move < 0 ? `▼${-p.move}` : "–";
+          s.txt(mv, PAD + 82, cy + 8, `700 20px ${BODY}`, p.move > 0 ? "#3ccf7a" : p.move < 0 ? "#ff6b6b" : DIM, 56, "center");
+          s.badge(p.id, PAD + 120, cy, 30);
+          s.txt(teams[p.id].name, PAD + 164, cy + 9, `600 26px ${BODY}`, "#ffffff", W - PAD * 2 - 164 - 340);
+          s.ctx.fillStyle = "rgba(246,183,60,.35)";
+          s.ctx.fillRect(PAD + 164, cy + 18, (W - PAD * 2 - 164 - 340) * (p.score / best), 3);
+          s.txt(p.record, W - PAD - 190, cy + 9, `700 26px ${BODY}`, "#ffffff", 120, "right");
+          s.txt(p.apRecord, W - PAD, cy + 9, `500 24px ${BODY}`, SOFT, 140, "right");
+        });
+        y += rows.length * rowH + 30;
+        const n = r.numbers;
+        const tiles = [];
+        if (n.luckyWin && n.luckyWin.apOf) tiles.push(["LUCKIEST WIN", plain(n.luckyWin.id), `${fmt(n.luckyWin.pts)} beats ${n.luckyWin.ap} of ${n.luckyWin.apOf}`]);
+        if (n.unluckyLoss && n.unluckyLoss.apOf) tiles.push(["UNLUCKIEST LOSS", plain(n.unluckyLoss.id), `${fmt(n.unluckyLoss.pts)} beats ${n.unluckyLoss.ap} of ${n.unluckyLoss.apOf}`]);
+        if (r.lineup) tiles.push(["BEST-SET LINEUP", plain(r.lineup.best.teamId), `${(100 * r.lineup.eff(r.lineup.best)).toFixed(1)}% of the best possible`]);
+        if (r.race && r.race.bubble) tiles.push(["THE BUBBLE", `${plain(r.race.bubble.lastIn)} in, ${plain(r.race.bubble.firstOut)} out`, r.race.bubble.gap > 0 ? `by ${r.race.bubble.gap} ${r.race.bubble.gap === 1 ? "game" : "games"}` : "level on record"]);
+        else if (n.luckiest && n.luckiest.luck > 0.5) tiles.push(["LUCKIEST SEASON", plain(n.luckiest.id), `${n.luckiest.luck.toFixed(1)} wins above all-play`]);
+        if (r.next && r.next.gotw) tiles.push([`WEEK ${r.next.week}'S BIG GAME`, `${plain(r.next.gotw.a)} vs ${plain(r.next.gotw.b)}`, `${r.next.gotw.sa} vs ${r.next.gotw.sb}`]);
+        const tw = (W - PAD * 2 - 24) / 2, th = 126, bottom = H - PAD - 60;
+        for (let i = 0; i < tiles.length && y + th <= bottom; i += 2) {
+          tiles.slice(i, i + 2).forEach(([label, main, sub], k) => {
+            const fx = PAD + k * (tw + 24);
+            s.box(fx, y, tw, th - 14, "rgba(255,255,255,.05)");
+            s.txt(label, fx + 20, y + 36, `700 20px ${BODY}`, GOLD, tw - 40);
+            s.txt(main, fx + 20, y + 70, `700 26px ${BODY}`, "#ffffff", tw - 40);
+            s.txt(sub, fx + 20, y + 99, `500 21px ${BODY}`, SOFT, tw - 40);
+          });
+          y += th;
+        }
+        s.txt("All-play: each team's record against every other team's score, every week.", PAD, bottom + 4, `500 19px ${BODY}`, DIM);
+        s.footer();
+        out.push(await blobOf(s.c));
+      }
+      return out;
     }
 
     // The recap, previewed, with the ways to send it.
     async function openRecap(week, button) {
       if (button) { button.disabled = true; button.classList.add("is-busy"); }
       try {
-        const facts = await recapFacts(week);
-        const blob = await recapImage(facts);
-        const text = recapText(facts);
-        const file = new File([blob], `week-${week}-recap.png`, { type: "image/png" });
-        const url = URL.createObjectURL(blob);
-        const canShare = navigator.canShare && navigator.canShare({ files: [file] });
+        const r = await weekRecap(week);
+        const blobs = await recapImages(r);
+        const text = recapText(r);
+        const files = blobs.map((b, i) => new File([b], `week-${week}-recap${blobs.length > 1 ? `-${i + 1}` : ""}.png`, { type: "image/png" }));
+        const urls = blobs.map((b) => URL.createObjectURL(b));
+        const canShare = navigator.canShare && navigator.canShare({ files });
         const modal = document.createElement("div");
         modal.className = "recap-modal";
         modal.innerHTML = `<div class="recap-backdrop" data-close></div>
           <div class="recap-card" role="dialog" aria-modal="true" aria-label="Week ${week} recap">
             <button type="button" class="recap-close" data-close aria-label="Close">&times;</button>
-            <img src="${url}" alt="Week ${week} recap" />
+            <div class="recap-shots">${urls.map((u, i) => `<img src="${u}" alt="Week ${week} recap${urls.length > 1 ? `, page ${i + 1} of ${urls.length}` : ""}" />`).join("")}</div>
+            ${urls.length > 1 ? `<p class="recap-hint">${urls.length} pictures: the week, then the power rankings. Swipe to see both.</p>` : ""}
             <div class="recap-actions">
               ${canShare ? '<button type="button" class="recap-btn primary" data-act="share">Share</button>' : ""}
-              <a class="recap-btn${canShare ? "" : " primary"}" href="${url}" download="week-${week}-recap.png">Save image</a>
+              ${urls.map((u, i) => `<a class="recap-btn${canShare || i ? "" : " primary"}" href="${u}" download="${files[i].name}">Save${urls.length > 1 ? ` ${i + 1}` : " image"}</a>`).join("")}
               <button type="button" class="recap-btn" data-act="copy">Copy as text</button>
             </div>
           </div>`;
         document.body.appendChild(modal);
-        const close = () => { modal.remove(); URL.revokeObjectURL(url); document.removeEventListener("keydown", onKey); };
+        const close = () => { modal.remove(); urls.forEach((u) => URL.revokeObjectURL(u)); document.removeEventListener("keydown", onKey); };
         const onKey = (e) => { if (e.key === "Escape") close(); };
         document.addEventListener("keydown", onKey);
         modal.addEventListener("click", async (e) => {
@@ -4841,13 +5529,15 @@
           const act = e.target.closest("[data-act]");
           if (!act) return;
           if (act.dataset.act === "share") {
-            try { await navigator.share({ files: [file], title: `${model.name} · Week ${week} recap`, text }); } catch (err) { /* dismissed */ }
+            try { await navigator.share({ files, title: `${model.name} · Week ${week} recap`, text }); } catch (err) { /* dismissed */ }
           } else if (act.dataset.act === "copy") {
             try { await navigator.clipboard.writeText(text); act.textContent = "Copied"; } catch (err) { act.textContent = "Couldn't copy"; }
             setTimeout(() => { act.textContent = "Copy as text"; }, 1800);
           }
         });
         modal.querySelector(".recap-actions > *").focus();
+      } catch (err) {
+        console.error(err);
       } finally {
         if (button) { button.disabled = false; button.classList.remove("is-busy"); }
       }
@@ -4993,18 +5683,22 @@
         ...(PRIOR && Object.keys(schedule).length ? [{ id: "panel-sos", label: "Strength of Schedule", short: "SOS" }] : [])
       ];
 
+    // A played week also has its recap (THE WEEK IN REVIEW).
+    const RECAP_VIEW = { id: "panel-recap", label: "Recap" };
     const weekViews = (week) => [
       { id: "panel-results", label: isPlayed(week) || FINISHED ? "Results" : "Matchups" },
       { id: "panel-standings", label: "Standings" },
-      ...(HAS_PLAYOFFS ? [{ id: "panel-picture", label: "Playoffs" }] : [])
+      ...(HAS_PLAYOFFS ? [{ id: "panel-picture", label: "Playoffs" }] : []),
+      ...(isPlayed(week) ? [RECAP_VIEW] : [])
     ];
 
-    const PLAYOFF_VIEWS = [
+    const playoffViews = (week) => [
       { id: "panel-playoffs", label: "Bracket" },
-      { id: "panel-standings", label: "Standings" }
+      { id: "panel-standings", label: "Standings" },
+      ...(gamesOfWeek(week).length ? [RECAP_VIEW] : [])
     ];
 
-    const viewsFor = (week) => (week === 0 ? SEASON_VIEWS : week > REGULAR_WEEKS ? PLAYOFF_VIEWS : weekViews(week));
+    const viewsFor = (week) => (week === 0 ? SEASON_VIEWS : week > REGULAR_WEEKS ? playoffViews(week) : weekViews(week));
     const HOME_VIEW = FINISHED ? "final" : SEASON_VIEWS[0].id;
 
     const state = FINISHED
@@ -5409,7 +6103,7 @@
               ${cardHead(`Week ${week} Notes`, "notes")}
               ${weekSuperlatives(week)}
               <div class="recap-bar">
-                <a class="recap-link" href="${League.url("moves", {}, `lineups/${SEASON}`)}">Every lineup, graded →</a>
+                <button type="button" class="recap-link" data-goto-view="panel-recap">Read the week ${week} recap →</button>
                 <button type="button" class="recap-open" data-recap="${week}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.6M5 5.4l3-3 3 3M3.2 9v3.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>Share week ${week} recap</button>
               </div>
             </article>
@@ -6647,7 +7341,7 @@
        RENDER + ROUTING
        ================================================================= */
 
-    const PANEL_IDS = ["regular", "final", "bracket", "panel-results", "panel-standings", "panel-picture", "panel-playoffs", "panel-sos"];
+    const PANEL_IDS = ["regular", "final", "bracket", "panel-results", "panel-standings", "panel-picture", "panel-playoffs", "panel-sos", "panel-recap"];
 
     function showActivePanel() {
       buildPanel(state.view);
@@ -6687,12 +7381,14 @@
         pendingPanels = {
           "panel-playoffs": () => renderPlayoffPanel(week),
           "panel-standings": () => renderStandingsPanel(REGULAR_WEEKS),
+          "panel-recap": () => renderRecapPanel(week),
         };
       } else {
         pendingPanels = {
           "panel-results": () => renderResultsPanel(week),
           "panel-standings": () => renderStandingsPanel(week),
           "panel-picture": () => renderPicturePanel(week),
+          "panel-recap": () => renderRecapPanel(week),
         };
       }
       showActivePanel();
@@ -6746,6 +7442,17 @@
         showActivePanel();
         writeHash();
       },
+    });
+
+    // A link to another of the week's views (the notes' "Read the recap").
+    document.addEventListener("click", (event) => {
+      const go = event.target.closest("[data-goto-view]");
+      if (!go || !viewsFor(state.week).some((v) => v.id === go.dataset.gotoView)) return;
+      SeasonNav.toTop();
+      state.view = go.dataset.gotoView;
+      renderViewTabs();
+      showActivePanel();
+      writeHash();
     });
 
     // applyHash may substitute a view the week does not offer, so rewrite

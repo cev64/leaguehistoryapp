@@ -169,6 +169,12 @@
   .pc-photo .pc-club {
     position: absolute; right: -5px; bottom: -2px; width: 34px; height: 34px; border-radius: 50%;
     background: #fff; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    padding: 2px;
+  }
+  /* the club's colour fills the badge, its letters centred in the disc */
+  .pc-photo .pc-club .pc-chip {
+    width: 100%; height: 100%; padding: 0; border-radius: 50%;
+    display: grid; place-items: center; font-size: 9px; line-height: 1; letter-spacing: -.01em;
   }
   .pc-id { position: relative; z-index: 1; min-width: 0; }
   .pc-id h2 { margin: 0; font-size: 26px; line-height: 1.05; letter-spacing: -.02em; }
@@ -485,7 +491,8 @@
     .pc.open { transform: none; }
     .pc-hero { padding: 18px 50px 14px 12px; gap: 12px; }
     .pc-photo { width: 56px; height: 56px; box-shadow: 0 0 0 3px rgba(255,255,255,.25); }
-    .pc-photo .pc-club { width: 24px; height: 24px; right: -4px; }
+    .pc-photo .pc-club { width: 24px; height: 24px; right: -4px; padding: 1.5px; }
+    .pc-photo .pc-club .pc-chip { font-size: 6.5px; }
     .pc-id h2 { font-size: 18px; }
     .pc-tags { margin-top: 6px; gap: 4px; }
     .pc-tag { font-size: 9px; padding: 2px 7px; }

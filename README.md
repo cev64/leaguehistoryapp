@@ -20,7 +20,7 @@ for accounts (see [Accounts, plans and ads](#accounts-plans-and-ads)).
 | A season | `season.html?league=<id>&season=<year>` |
 | Record book | `alltime.html?league=<id>` (add `#owner=<user id>` to open a manager) |
 | Trophy room | `trophy.html?league=<id>` |
-| Front office | `moves.html?league=<id>` (add `#trades`, `#waivers`, `#picks`, or `#lineups/<year>`) |
+| Front office | `moves.html?league=<id>` (add `#<tab>/<season>`: `#trades/all`, `#lineups/2024`, `#picks/2027`) |
 
 `<id>` is the league's newest Sleeper league ID. Earlier seasons are found by
 following Sleeper's `previous_league_id` chain, so one link covers the whole
@@ -74,9 +74,53 @@ them out). "Scored for" always means points in a team's starting lineup.
   him that season; FAAB spent and points per dollar where the league bids.
 - **Draft picks** (keeper and dynasty leagues): who holds every pick for
   the next three drafts, from Sleeper's traded-picks list.
-- **Weekly recap:** "Share week N recap" in each week's notes draws a
-  1080 × 1350 image (scores, high score, bench blunder, trade of the week,
-  standings) to share to a group chat, save, or copy as text.
+- **Weekly recap:** every played week has a Recap view on its season
+  page, written up from the week's results (see below), and a share sheet
+  that turns it into pictures or text for the group chat.
+
+The front office uses the season pages' capsule: its tabs (Lineups, Trades,
+Waivers, Draft Picks) across the top and a wheel of seasons under them,
+with ALL first where a tab has an all-time view. Each tab keeps its own
+season; the traders table follows the season chosen, and Draft Picks
+shows one future draft or all of them.
+
+### The week in review
+
+The Recap view (`weekRecap` in `season.html`) tells a week's story from
+what Sleeper has already scored:
+
+- **A headline** picked from the week's biggest story: a title won, a
+  score for the record books, an upset (by records going in), a streak
+  snapped, a manager's milestone win, a bench that cost a game, a team
+  clinching or knocked out. The next three stories sit under it.
+- **Every game** with its story: margins, winning and losing streaks, the
+  all-time series between the two managers (followed across team names
+  and seasons), luck (a win with one of the week's lowest scores, a loss
+  with one of its highest), the lineup that would have won, and each
+  side's top scorer.
+- **Power rankings** with each team's move from last week: all-play
+  record (every team against every other team's score, every week) 40%,
+  actual record 25%, the last three weeks' all-play 20%, points per game
+  15%.
+- **By the numbers:** the week's high score and average, luckiest win,
+  unluckiest loss, toughest draw, the season's luckiest and unluckiest
+  teams (actual wins against all-play wins), the best-set lineup and the
+  points left on benches.
+- **Players of the week** (starters only): the top scorer, the best at
+  each position, the best player left on a bench, a waiver pickup who paid
+  off, and the dud of the week.
+- **Front office:** trades, the bench blunder, waiver activity and the
+  biggest bid.
+- **The playoff race:** the seeds and the cut line, who clinched or was
+  knocked out, and (for the week just played) next week's scenarios.
+- **Next up:** the game of the week (the two best-ranked teams playing
+  each other) with their all-time series, then every other game.
+
+"League history" means every season up to and including that week, so an
+old week reads as it would have that Monday. The share sheet draws it as
+two 1080 × 1350 pictures, the week (headline, scores, players) and the
+table (power rankings, luck, the bubble, next week's big game), and as
+plain text.
 
 A finished season never changes, so its data is kept in the browser
 (IndexedDB) for a month; a season in progress is re-read every few minutes.
