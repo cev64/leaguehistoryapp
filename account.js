@@ -17,6 +17,8 @@
                               until then a gate over the page says why not
                               (sleeper.js calls it at the end of League.load)
      Account.on(fn)           hears every change of user, plan or leagues
+     Account.accessToken()    the signed-in session's token (Supabase only),
+                              for the ESPN relay's saved keys
      Account.openSignIn(), openPanel(), upgrade(), signOut()
 
    Plain script, loaded in <head> after account-config.js, so the ad slots
@@ -148,6 +150,12 @@
       },
       async unsync(leagueId) {
         check(await client.rpc("unsync_league", { p_league_id: leagueId }));
+      },
+      // The signed-in session's token, for the ESPN relay (espn.js) to
+      // know whose saved ESPN keys to use.
+      async accessToken() {
+        const { data } = await client.auth.getSession();
+        return (data.session && data.session.access_token) || null;
       },
     };
   }
@@ -1268,6 +1276,7 @@
     get isPro() { return isPro(); },
     admit,
     on(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+    accessToken: () => (state.user && backend.accessToken ? backend.accessToken() : Promise.resolve(null)),
     openSignIn: (opts) => openAuth("signin", opts),
     openSignUp: (opts) => openAuth("signup", opts),
     openPanel,
