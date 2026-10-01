@@ -19,17 +19,17 @@
 
    Public and private leagues. ESPN answers a public league ("viewable to
    the public" in its settings) to anyone, from any site. A private league
-   wants its members' ESPN sign-in cookies (espn_s2 and SWID), which a page
-   on another site can't send for them. So a private league is tried three
-   ways, and the first that answers is kept for the visit:
+   wants a member's ESPN keys, the espn_s2 and SWID cookies, which a page
+   on another site can't send for them. So a league is tried in turn, and
+   the first that answers is kept for the visit:
      public   a plain request
-     browser  the same request carrying the visitor's own espn.com cookies,
-              which works where the browser allows third-party cookies and
-              the visitor is signed in to ESPN
-     proxy    espn_s2 and SWID, pasted once on the front page and kept in
-              this browser only, sent to the site's ESPN relay
+     proxy    espn_s2 and SWID, typed once on the front page and kept in
+              this browser, sent to the site's ESPN relay
               (supabase/functions/espn-proxy), which adds them to the request
-              and passes ESPN's answer straight back. Nothing is stored there.
+              and passes ESPN's answer straight back
+     account  a signed-in member's keys saved to their account (encrypted,
+              held by the relay), so their phone, or any device they sign
+              in on, opens the league without typing them again
 
    Everything ESPN answers is reshaped to what the pages need before it is
    kept (IndexedDB, through sleeper.js), so a finished season costs nothing
@@ -106,9 +106,10 @@
 
   /* ------------------------------------------------------------ sign-in */
 
-  /* A private league's key: the visitor's espn_s2 and SWID cookies, kept in
-     this browser only. Pasted values are tidied (a pasted "espn_s2=" or
-     quotes come off; SWID wears its braces). */
+  /* A private league's keys: the visitor's espn_s2 and SWID cookies, typed
+     on the front page and kept in this browser only. Pasted values are
+     tidied (a pasted "espn_s2=" or quotes come off; SWID wears its
+     braces). */
   const AUTH_KEY = "lh-espn-auth";
   function tidyAuth(s2, swid) {
     const clean = (v, name) => String(v || "").trim().replace(new RegExp(`^${name}\\s*=\\s*`, "i"), "").replace(/^["']|["';]+$/g, "").trim();
@@ -139,95 +140,9 @@
     access.clear();
   }
 
-  /* ------------------------------------------------------------ connecting */
-
-  /* The Connect ESPN extension (extension/): installed, it marks the page
-     (<html data-lh-espn-connect="<version>">) and answers "espn:connect"
-     with the two cookies, read from the browser's own espn.com sign-in, and
-     the member's leagues where ESPN lists them. Nothing to type. */
-  // Where to get it: its Chrome Web Store page (Chrome, Edge, Brave,
-  // Opera), or its Firefox Add-ons page for Firefox.
-  const extensionUrl = () => (typeof navigator !== "undefined" && /Firefox\//.test(navigator.userAgent)
-    ? CFG.ESPN_EXTENSION_FIREFOX_URL || ""
-    : CFG.ESPN_EXTENSION_URL || "");
-  const extensionVersion = () => (typeof document !== "undefined" && document.documentElement.dataset.lhEspnConnect) || null;
-  function connectExtension({ openLogin = true } = {}) {
-    if (!extensionVersion()) return Promise.resolve({ ok: false, reason: "no-extension" });
-    return new Promise((resolve) => {
-      const nonce = Math.random().toString(36).slice(2);
-      const done = (answer) => { window.removeEventListener("message", heard); clearTimeout(timer); resolve(answer); };
-      const heard = (event) => {
-        const a = event.data;
-        if (event.source !== window || !a || a.source !== "league-history-extension" || a.nonce !== nonce) return;
-        done(a);
-      };
-      const timer = setTimeout(() => done({ ok: false, reason: "no-answer" }), 20000);
-      window.addEventListener("message", heard);
-      window.postMessage({ source: "league-history", type: "espn:connect", nonce, openLogin }, location.origin);
-    }).then((a) => {
-      if (!a.ok) return { ok: false, reason: a.reason || "extension-error" };
-      if (!saveAuth(a.s2, a.swid)) return { ok: false, reason: "bad-cookies" };
-      const leagues = Array.isArray(a.leagues)
-        ? a.leagues.filter((l) => l && /^\d{1,12}$/.test(String(l.id))).map((l) => ({
-          id: String(l.id), name: String(l.name || "").slice(0, 120), season: Number(l.season) || 0, team: String(l.team || "").slice(0, 120),
-        }))
-        : null;
-      return { ok: true, leagues };
-    });
-  }
-
-  /* A phone has no extension. A visitor connected on a computer passes the
-     connection on with a link (shown as a QR code) whose #fragment carries
-     the two cookies: a fragment never leaves the browser, so the cookies
-     go from one of the visitor's devices to the other without passing
-     through any server. The phone keeps them, as the computer does, in its
-     own browser. */
-  const PAIR = "#espn-pair=";
-  const b64 = (text) => btoa(unescape(encodeURIComponent(text))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const unb64 = (text) => decodeURIComponent(escape(atob(text.replace(/-/g, "+").replace(/_/g, "/"))));
-  function pairLink(n) {
-    const auth = savedAuth();
-    if (!auth) return null;
-    const base = location.href.split("#")[0].split("?")[0].replace(/[^/]*$/, "");
-    return `${base}index.html${PAIR}${b64(JSON.stringify({ s2: auth.s2, swid: auth.swid, l: n || undefined }))}`;
-  }
-  // Taken off the address at once, before anything else on the page
-  // (an ad script) could read it.
-  let paired = null;
-  if (typeof location !== "undefined" && String(location.hash).startsWith(PAIR)) {
-    try {
-      const data = JSON.parse(unb64(location.hash.slice(PAIR.length)));
-      const ok = saveAuthNow(data.s2, data.swid);
-      paired = { ok: Boolean(ok), league: /^\d{1,12}$/.test(String(data.l || "")) ? String(data.l) : null };
-    } catch (err) {
-      paired = { ok: false, league: null };
-    }
-    try { history.replaceState(null, "", location.href.split("#")[0]); } catch (err) { /* ignore */ }
-  }
-  function saveAuthNow(s2, swid) {
-    // saveAuth also resets the relay's per-league access map, which isn't
-    // set up yet this early in the file; a fresh page has nothing to reset.
-    const a = tidyAuth(s2, swid);
-    if (!a) return null;
-    try { localStorage.setItem(AUTH_KEY, JSON.stringify(a)); } catch (err) { /* ignore */ }
-    return a;
-  }
-
-  /* For the league manager: what to do, and the link to send round once
-     it's done. */
-  function commissionerMessage(n) {
-    const base = location.href.split("#")[0].split("?")[0].replace(/[^/]*$/, "");
-    const link = n ? `${base}season.html?league=${PREFIX}${n}` : `${base}index.html`;
-    return [
-      "Can you make our ESPN fantasy league viewable to the public? It doesn't make it joinable, just readable with the link.",
-      "On espn.com: League ▸ Settings ▸ Basic Settings ▸ Edit Basic Settings ▸ Make League Viewable to Public: Yes ▸ Save.",
-      `Then everyone can see our whole league history here: ${link}`,
-    ].join("\n\n");
-  }
-
   /* ------------------------------------------------------------ requests */
 
-  const access = new Map(); // ESPN league number -> "public" | "browser" | "proxy"
+  const access = new Map(); // ESPN league number -> "public" | "proxy" | "account"
   const HINT_KEY = "lh-espn-access";
   function hintOf(n) { try { return (JSON.parse(localStorage.getItem(HINT_KEY)) || {})[n] || null; } catch (err) { return null; } }
   function hint(n, mode) {
@@ -238,64 +153,103 @@
     } catch (err) { /* ignore */ }
   }
 
-  function request(url, filter, mode) {
+  function request(url, filter, mode, token) {
     const headers = {};
     if (filter) headers["X-Fantasy-Filter"] = JSON.stringify(filter);
-    if (mode === "proxy") {
-      const auth = savedAuth();
-      headers["x-espn-s2"] = auth.s2;
-      headers["x-espn-swid"] = auth.swid;
-      if (CFG.SUPABASE_ANON_KEY) {
-        headers.apikey = CFG.SUPABASE_ANON_KEY;
-        headers.Authorization = `Bearer ${CFG.SUPABASE_ANON_KEY}`;
+    if (mode === "proxy" || mode === "account") {
+      if (mode === "proxy") {
+        const auth = savedAuth();
+        headers["x-espn-s2"] = auth.s2;
+        headers["x-espn-swid"] = auth.swid;
+      } else {
+        // The relay finds this member's saved keys from their session.
+        headers["x-lh-account"] = "1";
       }
+      if (CFG.SUPABASE_ANON_KEY) headers.apikey = CFG.SUPABASE_ANON_KEY;
+      const bearer = mode === "account" ? token : CFG.SUPABASE_ANON_KEY;
+      if (bearer) headers.Authorization = `Bearer ${bearer}`;
       return fetchJSON(`${PROXY}?url=${encodeURIComponent(url)}`, 3, { headers, credentials: "omit" }, "ESPN");
     }
-    return fetchJSON(url, 3, { headers, credentials: mode === "browser" ? "include" : "omit" }, "ESPN");
+    return fetchJSON(url, 3, { headers, credentials: "omit" }, "ESPN");
   }
 
   function privateError(n) {
-    const tried = PROXY && savedAuth();
+    const tried = PROXY && (savedAuth() || accountSaved === true);
     const err = new Error(tried
-      ? "ESPN didn't accept the sign-in saved in this browser for this league. ESPN's cookies change when you sign out or after a while: copy espn_s2 and SWID again, or ask your league manager to make the league viewable to the public."
+      ? "ESPN didn't accept the keys saved in this browser for this league. ESPN changes them when you sign out or after a while: copy espn_s2 and SWID again and enter them on the front page."
       : PROXY
-        ? "This ESPN league is private. Connect it on the front page with your ESPN sign-in, or ask your league manager to make it viewable to the public in ESPN's league settings."
-        : "This ESPN league is private. Ask your league manager to make it viewable to the public (ESPN ▸ League ▸ Settings ▸ Basic Settings), then open it again.");
+        ? "This ESPN league is private. Enter your ESPN keys (espn_s2 and SWID) on the front page to open it."
+        : "This ESPN league is private, and this site isn't set up to open private ESPN leagues yet.");
     err.privateLeague = true;
     err.link = `index.html?espn=${encodeURIComponent(n)}`;
-    err.linkText = PROXY ? "Connect this league" : "Back to the front page";
+    err.linkText = PROXY ? "Enter your ESPN keys" : "Back to the front page";
     return err;
   }
 
+  /* Keys saved to the member's account (see supabase/functions/espn-proxy).
+     Only on a live site with accounts (Supabase) and the relay; in preview
+     mode accounts live in this browser, so keys simply stay here too. */
+  const accountsOn = () => Boolean(PROXY && window.Account && window.Account.mode === "supabase");
+  async function memberToken() {
+    if (!accountsOn() || !window.Account.user) return null;
+    try { return await window.Account.accessToken(); } catch (err) { return null; }
+  }
+  let accountSaved = null; // what the relay last said: true, false, or not asked
+  async function accountCall(action, body) {
+    const token = await memberToken();
+    if (!token) return { saved: false, signedOut: true };
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    if (CFG.SUPABASE_ANON_KEY) headers.apikey = CFG.SUPABASE_ANON_KEY;
+    const res = await fetch(`${PROXY}?action=${action}`, {
+      method: action === "status" ? "GET" : "POST", headers, credentials: "omit",
+      body: action === "status" ? undefined : JSON.stringify(body || {}),
+    });
+    const answer = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(answer.error || `The relay answered ${res.status}`);
+    accountSaved = Boolean(answer.saved);
+    return answer;
+  }
+  const accountKeys = {
+    available: accountsOn,
+    signedIn: () => Boolean(accountsOn() && window.Account.user),
+    status: () => accountCall("status"),
+    // Saves this browser's keys to the account.
+    save: () => {
+      const auth = savedAuth();
+      return auth ? accountCall("save", { s2: auth.s2, swid: auth.swid }) : Promise.reject(new Error("No keys in this browser."));
+    },
+    forget: () => accountCall("forget").finally(() => access.clear()),
+  };
+
   /* A request about league `n`, in whichever way that league answers. The
-     first request finds the way (public first; a visitor's own cookies or
-     the relay only if ESPN says no), and the rest of the visit follows it. */
+     first request finds the way (public first; then the relay with keys
+     typed in this browser, then with the member's saved keys, only if ESPN
+     says no), and the rest of the visit follows it. */
   async function call(n, url, filter) {
     const settled = access.get(n);
+    const token = await memberToken();
     if (settled) {
       try {
-        return await request(url, filter, settled);
+        return await request(url, filter, settled, token);
       } catch (err) {
         if (err.status === 401 || err.status === 403) throw privateError(n);
         throw err;
       }
     }
-    const modes = ["public", "browser"];
+    const modes = ["public"];
     if (PROXY && savedAuth()) modes.push("proxy");
+    if (token) modes.push("account");
     const prefer = hintOf(n);
     if (prefer && modes.includes(prefer)) modes.sort((a, b) => (b === prefer) - (a === prefer));
     for (const mode of modes) {
       try {
-        const value = await request(url, filter, mode);
+        const value = await request(url, filter, mode, token);
         access.set(n, mode);
         if (mode !== prefer) hint(n, mode);
         return value;
       } catch (err) {
-        // A refusal means try the next way. So does a request the browser
-        // itself blocked while trying the visitor's own cookies (a privacy
-        // setting can stop a credentialed request outright).
-        const refused = err.status === 401 || err.status === 403;
-        if (!refused && !(mode === "browser" && !err.status)) throw err;
+        // A refusal means try the next way.
+        if (err.status !== 401 && err.status !== 403) throw err;
       }
     }
     throw privateError(n);
@@ -819,6 +773,9 @@
 
   async function seasons(id, { onProgress } = {}) {
     const n = String(id).slice(PREFIX.length);
+    // Whether the visitor is signed in (and so may have saved keys) is known
+    // once the account's session is restored.
+    if (accountsOn() && window.Account.ready) await window.Account.ready.catch(() => null);
     const gs = await gameState();
     // The newest season: this year's, or last year's for a league that
     // hasn't been renewed yet.
@@ -1048,8 +1005,6 @@
   window.ESPN = {
     parseLeague, isEspnId, leagueId: (n) => `${PREFIX}${n}`,
     savedAuth, saveAuth, clearAuth, tidyAuth,
-    proxyAvailable: Boolean(PROXY),
-    extensionVersion, extensionUrl, connectExtension,
-    pairLink, paired: () => paired, commissionerMessage,
+    proxyAvailable: Boolean(PROXY), accountKeys,
   };
 })();
