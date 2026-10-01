@@ -120,7 +120,7 @@ function detectQuality() {
   };
 }
 
-/* The league the hall is for, from Sleeper (sleeper.js). Finished seasons
+/* The league the hall is for, from Sleeper or ESPN (sleeper.js, espn.js). Finished seasons
    fill the hall; the season being played is read only for runs still going,
    since win and loss streaks carry across years. */
 async function loadLeague() {
@@ -155,12 +155,14 @@ async function boot() {
   try {
     data = await loadLeague();
   } catch (error) {
-    fail(`This league couldn't be loaded: ${error.message || "Sleeper didn't answer."}`);
+    fail(`This league couldn't be loaded: ${error.message || `${window.League.sourceName()} didn't answer.`}`);
+    // A private ESPN league: the way out leads to connecting it.
+    if (error.link && dom.loaderExit) { dom.loaderExit.href = error.link; dom.loaderExit.textContent = error.linkText || "Back"; }
     return;
   }
   if (!data) return;
   if (!data.seasons.length) {
-    fail("The trophy room opens once the league has finished a season on Sleeper. Until then, the season page has everything so far.");
+    fail(`The trophy room opens once the league has finished a season on ${window.League.sourceName()}. Until then, the season page has everything so far.`);
     if (dom.loaderExit) { dom.loaderExit.href = window.League.url("season"); dom.loaderExit.textContent = "← Back to the season"; }
     return;
   }

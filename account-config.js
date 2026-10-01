@@ -15,6 +15,12 @@ window.ACCOUNT_CONFIG = {
   SUPABASE_URL: "",
   SUPABASE_ANON_KEY: "",
 
+  // The relay that opens PRIVATE ESPN leagues (supabase/functions/espn-proxy).
+  // Left empty, it is <SUPABASE_URL>/functions/v1/espn-proxy once
+  // SUPABASE_URL is set; set it to use a relay hosted elsewhere. Public ESPN
+  // leagues and every Sleeper league never use it.
+  ESPN_PROXY_URL: "",
+
   // Sign-in methods shown on the sign-in screen. Email + password is always
   // on; Google needs the Google provider switched on in Supabase ▸
   // Authentication ▸ Providers first.

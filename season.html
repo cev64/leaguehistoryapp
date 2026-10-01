@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="A Sleeper fantasy football league's season: results, standings, box scores and the playoff bracket." />
+  <meta name="description" content="A fantasy football league's season: results, standings, box scores and the playoff bracket." />
   <title>League History</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -4074,6 +4074,7 @@
   <script src="account.js"></script>
   <script src="ui.js"></script>
   <script src="sleeper.js"></script>
+  <script src="espn.js"></script>
   <script src="insights.js"></script>
 </head>
 <body>
@@ -4235,20 +4236,20 @@
       const leagueId = League.requireLeague();
       if (!leagueId) return;
       const status = document.getElementById("pageStatus");
-      League.showStatus(status, { title: "Loading the league", copy: "Reading every season from Sleeper&hellip;" });
+      League.showStatus(status, { title: "Loading the league", copy: `Reading every season from ${League.sourceName()}&hellip;` });
       League.load(leagueId, {
         onProgress: (done, total) => {
-          if (total > 1) League.showStatus(status, { title: "Loading the league", copy: `Reading season ${Math.min(done + 1, total)} of ${total} from Sleeper&hellip;` });
+          if (total > 1) League.showStatus(status, { title: "Loading the league", copy: `Reading season ${Math.min(done + 1, total)} of ${total} from ${League.sourceName()}&hellip;` });
         },
       }).then((model) => {
         const wanted = League.param("season");
         const season = (wanted && model.season(wanted)) || model.opening;
-        if (!season) throw new Error("This league has no seasons on Sleeper yet.");
+        if (!season) throw new Error(`This league has no seasons on ${League.sourceName()} yet.`);
         status.innerHTML = "";
         League.remember({ id: leagueId, name: model.name, avatar: model.avatar, season: model.current.year });
         seasonPage(model, season);
       }).catch((error) => {
-        League.showStatus(status, { title: "This league couldn't be loaded", copy: League.esc(error.message || "Sleeper didn't answer."), error: true });
+        League.showStatus(status, { title: "This league couldn't be loaded", copy: League.esc(error.message || `${League.sourceName()} didn't answer.`), error: true });
         document.getElementById("heroInner").innerHTML = "";
       });
     })();
@@ -4438,6 +4439,9 @@
 
     /* Any run of teams level on record inside an ordered race was separated
        on points for, so each of them gets an explanation. */
+    // Who settles a tie on points for: Sleeper does; ESPN's own tiebreaks
+    // vary by league, so for ESPN the site says it is its own order.
+    const TIE_RULE = League.sourceName() === "Sleeper" ? "Sleeper" : "This site";
     function explainTies(ordered, stats, reasons, flips, race) {
       let i = 0;
       while (i < ordered.length) {
@@ -4450,8 +4454,8 @@
             if (stats[group[k - 1]].pf === stats[group[k]].pf) flips.push([group[k - 1], group[k]]);
           }
           const detail = group.length === 2
-            ? `${nameOf(group[0])} and ${nameOf(group[1])} were both ${stats[group[0]].record}. Sleeper breaks the tie on points for: ${ladder}.`
-            : `${group.length} teams sat at ${stats[group[0]].record}. Sleeper ranks them on points for: ${ladder}.`;
+            ? `${nameOf(group[0])} and ${nameOf(group[1])} were both ${stats[group[0]].record}. ${TIE_RULE} breaks the tie on points for: ${ladder}.`
+            : `${group.length} teams sat at ${stats[group[0]].record}. ${TIE_RULE} ranks them on points for: ${ladder}.`;
           group.forEach((id, k) => {
             addReason(reasons, id, { race, criterion: "Points for", detail, over: group[k + 1] || null, under: k ? group[k - 1] : null });
           });
@@ -5262,7 +5266,7 @@
         if (window.SeasonNav && SeasonNav.settled) requestAnimationFrame(SeasonNav.settled);
       }).catch((err) => {
         console.error(err);
-        if (state.week === week) panel.innerHTML = emptyState("The recap couldn't be written", "Sleeper didn't answer. Try again in a moment.");
+        if (state.week === week) panel.innerHTML = emptyState("The recap couldn't be written", `${League.sourceName()} didn't answer. Try again in a moment.`);
       });
     }
 
@@ -5797,7 +5801,7 @@
         sub = `Week ${lastPlayedWeek} of ${REGULAR_WEEKS}.${P ? ` ${capital(numberWord(P))} make the playoffs${out ? `, ${numberWord(out)} play in the losers bracket` : ""}.` : ""}`;
       } else if (season.unplayed) {
         badge = "Not played";
-        sub = "Sleeper closed this season before a single game was scored.";
+        sub = `${League.sourceName()} closed this season before a single game was scored.`;
       } else {
         badge = "Preseason";
         sub = `${capital(numberWord(n))} teams. ${REGULAR_WEEKS} weeks.${P ? ` ${capital(numberWord(P))} make the playoffs.` : ""}`;
@@ -6069,8 +6073,8 @@
       if (week === 0) {
         if (!weeks.length) {
           panel.innerHTML = season.unplayed
-            ? emptyState("This season wasn't played", "Sleeper closed it before any matchups were scored, so there is nothing to show. Earlier seasons are in the season menu.")
-            : emptyState("No schedule yet", "Sleeper draws the season's matchups once the league has its teams. They will appear here as soon as it does.");
+            ? emptyState("This season wasn't played", `${League.sourceName()} closed it before any matchups were scored, so there is nothing to show. Earlier seasons are in the season menu.`)
+            : emptyState("No schedule yet", `${League.sourceName()} draws the season's matchups once the league has its teams. They will appear here as soon as it does.`);
           return;
         }
         const games = weeks.reduce((n, w) => n + schedule[w].length, 0);
@@ -6114,7 +6118,7 @@
       }
 
       if (!(schedule[week] || []).length) {
-        panel.innerHTML = emptyState(`No games in Week ${week}`, "Sleeper has no matchups for this league this week.");
+        panel.innerHTML = emptyState(`No games in Week ${week}`, `${League.sourceName()} has no matchups for this league this week.`);
         return;
       }
 
@@ -6757,7 +6761,7 @@
       }
       return `
         <article class="card">
-          ${cardHead("How the field is set", "rulebook", "From the league's Sleeper settings")}
+          ${cardHead("How the field is set", "rulebook", `From the league's ${League.sourceName()} settings`)}
           <div class="projected-matchups">
             ${lines.map((l) => `
               <div class="projected-game">
@@ -6790,7 +6794,7 @@
         panel.innerHTML = `
           <div class="panel-stack">
             ${emptyState(HAS_PLAYOFFS ? "The bracket opens after Week 1" : "No playoffs set up",
-              HAS_PLAYOFFS ? playoffFormatText() : "This league has no playoff bracket on Sleeper.")}
+              HAS_PLAYOFFS ? playoffFormatText() : `This league has no playoff bracket on ${League.sourceName()}.`)}
             ${HAS_PLAYOFFS ? formatCard() : ""}
           </div>`;
         return;
@@ -6820,7 +6824,7 @@
        final. Until the regular season is over, the field is projected. */
     function renderPlayoffPanel(week) {
       const panel = document.getElementById("panel-playoffs");
-      if (!HAS_PLAYOFFS) { panel.innerHTML = emptyState("No playoffs", "This league has no playoff bracket on Sleeper."); return; }
+      if (!HAS_PLAYOFFS) { panel.innerHTML = emptyState("No playoffs", `This league has no playoff bracket on ${League.sourceName()}.`); return; }
       if (lastPlayedWeek < REGULAR_WEEKS && !FINISHED) {
         const asOf = asOfWeek(REGULAR_WEEKS);
         if (asOf === 0) {

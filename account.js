@@ -71,7 +71,7 @@
       return `Your league is locked in until ${fmtDate(when)}. Free accounts can swap once every ${SWAP_DAYS} days.`;
     }
     if (code === "not_signed_in") return "Sign in first.";
-    if (code === "bad_league") return "That isn't a Sleeper league.";
+    if (code === "bad_league") return "That isn't a Sleeper or ESPN league.";
     if (/invalid login credentials/i.test(raw)) return "That email and password don't match an account.";
     if (/already registered|already been registered|user_already_exists/i.test(raw)) return "There's already an account with that email. Sign in instead.";
     if (/password should be at least|weak_password/i.test(raw)) return "Use a password of at least 8 characters.";

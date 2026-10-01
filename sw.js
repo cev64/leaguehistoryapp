@@ -3,11 +3,12 @@
      - navigations (the pages): network first, cached copy as fallback
      - same-origin assets: cache first, refreshed in the background
      - Google Fonts: stale-while-revalidate in a separate cache
-     - Sleeper's API and images, and data/ (the daily players file): left
-       to the browser; sleeper.js keeps its own copies in IndexedDB
+     - Sleeper's and ESPN's APIs and images, and data/ (the daily players
+       file): left to the browser; sleeper.js and espn.js keep their own
+       copies in IndexedDB
    Bump CACHE_VERSION whenever the precache list or these rules change. */
 
-const CACHE_VERSION = 'v86';
+const CACHE_VERSION = 'v87';
 const SHELL_CACHE = `league-history-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `league-history-fonts-${CACHE_VERSION}`;
 
@@ -20,6 +21,7 @@ const PRECACHE = [
   './moves.html',
   './insights.js',
   './sleeper.js',
+  './espn.js',
   './player-card.js',
   './pwa.js',
   './ui.js',

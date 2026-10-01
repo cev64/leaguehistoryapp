@@ -555,11 +555,11 @@
   style.textContent = CSS;
   document.head.appendChild(style);
 
-  // Open the connection to Sleeper's photo server early, so the first photo
-  // is not also paying for the handshake.
+  // Open the connection to the photo server early (Sleeper's, or ESPN's for
+  // an ESPN league), so the first photo is not also paying for the handshake.
   const pre = document.createElement("link");
   pre.rel = "preconnect";
-  pre.href = "https://sleepercdn.com";
+  pre.href = window.League && window.League.sourceName && window.League.sourceName() === "ESPN" ? "https://a.espncdn.com" : "https://sleepercdn.com";
   document.head.appendChild(pre);
 
   /* Once the page is idle, get ready for the first tap: the player data
@@ -763,7 +763,7 @@
     const lead = s.managers[0];
     const isDst = p.p === "DST";
     const photo = !isDst && p.h
-      ? `<img class="pc-face" src="https://sleepercdn.com/content/nfl/players/thumb/${p.h}.jpg" alt="">`
+      ? `<img class="pc-face" src="${String(window.League && window.League.headshot ? window.League.headshot(p.h) : `https://sleepercdn.com/content/nfl/players/thumb/${p.h}.jpg`).replace(/"/g, "&quot;")}" alt="">`
       : bigClub(s.lastClub);
     const perStart = s.starts.length ? s.total / s.starts.length : 0;
     const top = s.best[0];
@@ -923,7 +923,7 @@
         </div>
       </div>`;
 
-    // A photo Sleeper no longer serves falls back to his club's logo.
+    // A photo the image server no longer has falls back to his club's logo.
     const face = card.querySelector(".pc-face");
     if (face) {
       // Fade the photo in when it arrives instead of letting it pop.

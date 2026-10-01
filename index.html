@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="League History for Sleeper fantasy football leagues: enter a Sleeper username and see every season, the all-time record book and a trophy room." />
-  <title>League History · For Sleeper Leagues</title>
+  <meta name="description" content="League History for Sleeper and ESPN fantasy football leagues: enter a Sleeper username or an ESPN league ID and see every season, the all-time record book and a trophy room." />
+  <title>League History · For Sleeper and ESPN Leagues</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1678,6 +1678,73 @@
     .signin-note.error { color: var(--red); font-weight: 600; }
     .signin-note a { color: var(--blue); font-weight: 700; text-decoration: none; }
 
+    /* Which platform the league is on: Sleeper (a username) or ESPN (a
+       league ID, and for a private league the visitor's ESPN cookies). */
+    .platform-tabs {
+      display: inline-grid;
+      grid-auto-flow: column;
+      gap: 2px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface-2);
+    }
+    .platform-tab {
+      min-width: 74px;
+      height: 30px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      cursor: pointer;
+    }
+    .platform-tab[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(11, 23, 38, .14); }
+    .espn-private {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 10px;
+      margin-top: 2px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-2);
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+    .signin-form[hidden], .espn-private[hidden], .espn-private [hidden] { display: none; }
+    .espn-private h4 { margin: 0; color: var(--ink); font-size: 13.5px; font-weight: 800; }
+    .espn-private p { margin: 0; }
+    .espn-private ol { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+    .espn-private strong { color: var(--ink); }
+    .espn-private code { font-size: 12px; padding: 0 4px; border-radius: 4px; background: rgba(11, 23, 38, .06); color: var(--ink); }
+    .espn-cookie-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; }
+    .espn-cookie-fields input {
+      width: 100%;
+      min-width: 0;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 14px;
+    }
+    .espn-cookie-fields input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(23, 105, 224, .14); }
+    .espn-cookie-fields .signin-go { height: 40px; padding: 0 16px; }
+    .espn-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink); font-weight: 700; }
+    .espn-saved button {
+      height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
+      background: #fff; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .espn-fine { font-size: 11.5px; }
+
     .league-list { display: grid; }
     .league-row {
       display: grid;
@@ -1748,6 +1815,7 @@
     @media (max-width: 700px) {
       .signin-form { grid-template-columns: minmax(0, 1fr); padding: 14px; }
       .signin-go { width: 100%; }
+      .espn-cookie-fields { grid-template-columns: minmax(0, 1fr); }
       .league-row { padding: 11px 14px; }
       .signin-points { padding: 14px; }
       /* the record book hides its hero on phones; the sign-in page keeps a line of it */
@@ -1760,6 +1828,7 @@
   <script src="account-config.js"></script>
   <script src="account.js"></script>
   <script src="sleeper.js"></script>
+  <script src="espn.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -1777,9 +1846,9 @@
   <section class="hero live-hero home-hero">
     <div class="hero-inner">
       <div class="live-status">
-        <span class="live-badge">For Sleeper leagues</span>
+        <span class="live-badge">For Sleeper and ESPN leagues</span>
         <h1>League History</h1>
-        <p>Every season your league has played on Sleeper: standings, box scores, brackets, the all-time record book and a trophy room.</p>
+        <p>Every season your league has played on Sleeper or ESPN: standings, box scores, brackets, the all-time record book and a trophy room.</p>
       </div>
     </div>
     <div class="ad-wrap ad-sidebar" data-ad="home-sidebar"><div class="ad-slot"></div></div>
@@ -1813,7 +1882,11 @@
       <article class="card">
         <div class="card-head">
           <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.6" r="2.6"/><path d="M3.2 13.4c.6-2.5 2.5-3.9 4.8-3.9s4.2 1.4 4.8 3.9"/></svg></span>Find your leagues</h3>
-          <span id="signedIn"></span>
+          <div class="platform-tabs" role="tablist" aria-label="Where your league is played">
+            <button type="button" class="platform-tab" role="tab" id="tabSleeper" aria-controls="signinForm" aria-selected="true">Sleeper</button>
+            <button type="button" class="platform-tab" role="tab" id="tabEspn" aria-controls="espnForm" aria-selected="false">ESPN</button>
+          </div>
+          <span id="signedIn" hidden></span>
         </div>
         <form class="signin-form" id="signinForm" autocomplete="on">
           <label class="signin-field">
@@ -1823,6 +1896,41 @@
           </label>
           <button class="signin-go" id="signinGo" type="submit">Find leagues</button>
           <p class="signin-note" id="signinNote">Sleeper's league data is public, so your username is all it takes: no password, nothing to connect. Or paste a <a href="#" id="byIdLink">league ID</a>.</p>
+        </form>
+
+        <!-- ESPN: a league ID (or the league's address), and for a private
+             league the visitor's own ESPN cookies, kept in this browser. -->
+        <form class="signin-form" id="espnForm" autocomplete="off" hidden>
+          <label class="signin-field">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h10v5a5 5 0 0 1-10 0z"/><path d="M12 13.5v3.5M8.5 20.5h7"/></svg>
+            <input id="espnLeague" name="espnLeague" type="text" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false"
+              placeholder="ESPN league ID or league link" aria-label="ESPN league ID or league link" required />
+          </label>
+          <button class="signin-go" id="espnGo" type="submit">Open league</button>
+          <p class="signin-note" id="espnNote">Your league ID is the number after <code>leagueId=</code> in your league's address on fantasy.espn.com; pasting the whole link works too. A league that's viewable to the public needs nothing else. <a href="#" id="espnPrivateLink">Private league?</a></p>
+          <div class="espn-private" id="espnPrivate" hidden>
+            <h4>Opening a private ESPN league</h4>
+            <p><strong>The easy way, for the whole league:</strong> your league manager turns on <em>Make League Viewable to Public</em> (ESPN ▸ League ▸ Settings ▸ Basic Settings). Then the league ID alone opens it for every member. Only people with the ID can find it.</p>
+            <p>If you're signed in to ESPN in this browser, the site tries your ESPN sign-in first. Some browsers block that.</p>
+            <div id="espnCookieHelp">
+              <p><strong>Or connect it with your own ESPN sign-in</strong>, on a computer:</p>
+              <ol>
+                <li>Sign in at <a href="https://fantasy.espn.com/football/" target="_blank" rel="noopener">fantasy.espn.com</a> and open your league.</li>
+                <li>Open the browser's developer tools (F12, or ⌥⌘I on a Mac) ▸ <strong>Application</strong> (Chrome, Edge) or <strong>Storage</strong> (Firefox, Safari) ▸ Cookies ▸ espn.com.</li>
+                <li>Copy the values of <code>espn_s2</code> and <code>SWID</code> into the boxes below.</li>
+              </ol>
+            </div>
+            <div class="espn-cookie-fields" id="espnCookieFields">
+              <input id="espnS2" type="password" autocomplete="off" spellcheck="false" placeholder="espn_s2" aria-label="espn_s2 cookie" />
+              <input id="espnSwid" type="text" autocomplete="off" spellcheck="false" placeholder="SWID  {XXXXXXXX-XXXX-…}" aria-label="SWID cookie" />
+              <button class="signin-go" id="espnSave" type="button">Save</button>
+            </div>
+            <div class="espn-saved" id="espnSaved" hidden>
+              <span>✓ ESPN sign-in saved in this browser</span>
+              <button type="button" id="espnForget">Forget it</button>
+            </div>
+            <p class="espn-fine" id="espnFine">These two cookies work like your ESPN sign-in, so treat them like a password. They stay in this browser only, and are sent only to read your league: through this site's relay to ESPN, never stored on our servers. Signing out of ESPN ends them, and <em>Forget it</em> removes them here.</p>
+          </div>
         </form>
       </article>
 
@@ -1853,8 +1961,8 @@
   </main>
 
   <footer class="footer">
-    Not affiliated with or endorsed by Sleeper. League data from the
-    <a href="https://docs.sleeper.com/" target="_blank" rel="noopener">Sleeper API</a>.
+    Not affiliated with or endorsed by Sleeper or ESPN. League data from the
+    <a href="https://docs.sleeper.com/" target="_blank" rel="noopener">Sleeper API</a> and ESPN Fantasy.
   </footer>
 
   <script>
@@ -1885,7 +1993,7 @@
             ${badge(l.avatar, l.name)}
             <a class="league-name" href="${leagueHref(l.id)}" style="text-decoration:none">
               <strong>${esc(l.name)}</strong>
-              <span>${l.season ? `Latest season ${l.season}` : "Sleeper league"}</span>
+              <span>${l.season ? `Latest season ${l.season} · ${League.sourceName(l.id)}` : `${League.sourceName(l.id)} league`}</span>
             </a>
             <button type="button" class="league-forget" data-forget="${esc(l.id)}" aria-label="Forget ${esc(l.name)}" title="Forget">&times;</button>
           </div>`).join("");
@@ -1900,7 +2008,8 @@
 
       function showLeagues(user, leagues) {
         const card = document.getElementById("leaguesCard");
-        card.hidden = false;
+        // Still hidden while the ESPN tab is showing.
+        card.hidden = form.hidden;
         document.getElementById("leaguesTitle").textContent = `${user.name}'s Leagues`;
         document.getElementById("leaguesMeta").textContent = leagues.length ? `${leagues.length} found` : "";
         const live = new Set(["in_season", "post_season", "drafting"]);
@@ -1979,13 +2088,98 @@
         renderRecent();
       });
 
+      /* ESPN: a league ID or link opens the league. A private league needs
+         the visitor's ESPN cookies (espn.js keeps them in this browser and
+         sends them through the site's relay); the panel says how to find
+         them, and the easier way of making the league public. */
+      const espnForm = document.getElementById("espnForm");
+      const espnInput = document.getElementById("espnLeague");
+      const espnNote = document.getElementById("espnNote");
+      const espnDefault = espnNote.innerHTML;
+      const espnPrivate = document.getElementById("espnPrivate");
+      const tabs = { sleeper: document.getElementById("tabSleeper"), espn: document.getElementById("tabEspn") };
+      const PLATFORM_KEY = "lh-platform";
+
+      function choose(platform, { focus = true } = {}) {
+        const espn = platform === "espn";
+        tabs.sleeper.setAttribute("aria-selected", String(!espn));
+        tabs.espn.setAttribute("aria-selected", String(espn));
+        form.hidden = espn;
+        espnForm.hidden = !espn;
+        document.getElementById("leaguesCard").hidden = espn || !document.getElementById("leagueList").innerHTML;
+        try { localStorage.setItem(PLATFORM_KEY, platform); } catch (err) { /* ignore */ }
+        if (focus) (espn ? espnInput : input).focus({ preventScroll: true });
+      }
+      tabs.sleeper.addEventListener("click", () => choose("sleeper"));
+      tabs.espn.addEventListener("click", () => choose("espn"));
+
+      function drawPrivate() {
+        const relay = window.ESPN && window.ESPN.proxyAvailable;
+        const saved = relay && window.ESPN.savedAuth();
+        // Without the relay, cookies can't be used: only the public route.
+        ["espnCookieHelp", "espnCookieFields", "espnFine"].forEach((id) => { document.getElementById(id).hidden = !relay || Boolean(saved && id !== "espnFine"); });
+        document.getElementById("espnSaved").hidden = !saved;
+      }
+      function openPrivate(open = true) {
+        espnPrivate.hidden = !open;
+        if (open) drawPrivate();
+      }
+      // The note is redrawn after an error, so its link is listened for here.
+      espnNote.addEventListener("click", (event) => {
+        if (!event.target.closest("#espnPrivateLink")) return;
+        event.preventDefault();
+        openPrivate(espnPrivate.hidden);
+      });
+      document.getElementById("espnSave").addEventListener("click", () => {
+        const s2 = document.getElementById("espnS2");
+        const swid = document.getElementById("espnSwid");
+        const ok = window.ESPN.saveAuth(s2.value, swid.value);
+        if (!ok) {
+          espnNote.className = "signin-note error";
+          espnNote.textContent = "Those don't look like ESPN's cookies: espn_s2 is a long string of letters and numbers, and SWID looks like {1A2B3C4D-…}.";
+          return;
+        }
+        s2.value = "";
+        swid.value = "";
+        espnNote.className = "signin-note";
+        espnNote.innerHTML = espnDefault;
+        drawPrivate();
+        if (espnInput.value.trim()) espnForm.requestSubmit();
+      });
+      document.getElementById("espnForget").addEventListener("click", () => {
+        window.ESPN.clearAuth();
+        drawPrivate();
+      });
+
+      espnForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const n = window.ESPN && window.ESPN.parseLeague(espnInput.value);
+        if (!n) {
+          espnNote.className = "signin-note error";
+          espnNote.innerHTML = `That isn't an ESPN league ID. It's the number after <code>leagueId=</code> in your league's address on fantasy.espn.com. <a href="#" id="espnPrivateLink">Private league?</a>`;
+          return;
+        }
+        location.href = leagueHref(window.ESPN.leagueId(n));
+      });
+
       renderRecent();
-      const saved = League.savedUser();
-      if (saved && saved.username) {
-        input.value = saved.username;
-        findLeagues(saved.username);
+      // Sent back from a private ESPN league: ESPN, its id filled in, and
+      // the private-league panel open.
+      const fromEspn = League.param("espn");
+      let platform = "sleeper";
+      try { platform = localStorage.getItem(PLATFORM_KEY) || "sleeper"; } catch (err) { /* ignore */ }
+      if (fromEspn && window.ESPN && window.ESPN.parseLeague(fromEspn)) {
+        espnInput.value = window.ESPN.parseLeague(fromEspn);
+        choose("espn", { focus: false });
+        openPrivate(true);
+        espnPrivate.scrollIntoView({ block: "center" });
       } else {
-        input.focus({ preventScroll: true });
+        const saved = League.savedUser();
+        if (saved && saved.username) {
+          input.value = saved.username;
+          findLeagues(saved.username);
+        }
+        choose(platform === "espn" ? "espn" : "sleeper", { focus: !(saved && saved.username) || platform === "espn" });
       }
     })();
   </script>

@@ -1,30 +1,35 @@
-# League History for Sleeper
+# League History for Sleeper and ESPN
 
-Every season a Sleeper fantasy football league has played, on one site:
+Every season a Sleeper or ESPN fantasy football league has played, on one site:
 week-by-week results and box scores, standings as they stood each week, the
 playoff picture and brackets, an all-time record book with a history for
 every manager, a player card for everyone who has been on a roster, and a 3D
 trophy room.
 
-Enter a Sleeper username on the front page, pick one of your leagues, sign
-in, and the site reads that league and every season before it straight from
-Sleeper. The site is static files: everything it shows comes from Sleeper's
-public API in the visitor's own browser, and the only server is Supabase,
-for accounts (see [Accounts, plans and ads](#accounts-plans-and-ads)).
+Enter a Sleeper username (or an ESPN league ID) on the front page, pick one
+of your leagues, sign in, and the site reads that league and every season
+before it straight from Sleeper or ESPN. The site is static files: everything
+it shows comes from the platform's API in the visitor's own browser, and the
+only server is Supabase, for accounts (see [Accounts, plans and
+ads](#accounts-plans-and-ads)) and the relay that opens private ESPN leagues
+(see [ESPN leagues](#espn-leagues)).
 
 ## Pages
 
 | Page | Address |
 | --- | --- |
-| Sign in | `index.html` — a Sleeper username lists its leagues; a league ID opens one directly |
+| Sign in | `index.html` — a Sleeper username lists its leagues; a league ID opens one directly; the ESPN tab takes an ESPN league ID or link |
 | A season | `season.html?league=<id>&season=<year>` |
 | Record book | `alltime.html?league=<id>` (add `#owner=<user id>` to open a manager) |
 | Trophy room | `trophy.html?league=<id>` |
 | Front office | `moves.html?league=<id>` (add `#<tab>/<season>`: `#trades/all`, `#lineups/2024`, `#picks/2027`) |
 
-`<id>` is the league's newest Sleeper league ID. Earlier seasons are found by
-following Sleeper's `previous_league_id` chain, so one link covers the whole
-history. Any of these addresses can be shared with the rest of the league.
+`<id>` is the league's newest Sleeper league ID, or `espn-<ESPN league ID>`
+for an ESPN league (`season.html?league=espn-12345678`). Earlier Sleeper
+seasons are found by following Sleeper's `previous_league_id` chain; an ESPN
+league keeps one ID for life and lists its earlier years itself. Either way
+one link covers the whole history, and any of these addresses can be shared
+with the rest of the league.
 
 ## How it works
 
@@ -52,6 +57,97 @@ that model.
   the Dawgs beat MCM22") come from the same test run over every way the
   next week's games could go, shown on the next week's matchups and on the
   Playoffs view while a season is live.
+
+## ESPN leagues
+
+`espn.js` reads an ESPN league from ESPN's fantasy API
+(`lm-api-reads.fantasy.espn.com/apis/v3/games/ffl`) and hands `sleeper.js`
+the same raw seasons Sleeper's API gives: league, managers, rosters, every
+week's matchups with both lineups, and both brackets. Everything from
+`buildSeason` on (standings, brackets, box scores, the record book, the
+front office, recaps, the trophy room) is shared, so an ESPN league gets
+every page a Sleeper league does. `sleeper.js` takes other platforms as
+sources (`League._core.addSource`), so another platform would plug in the
+same way.
+
+What is read, per season: one call for the settings, teams, members, the
+whole schedule with every week's score, the draft and the league's status;
+one call per final week for both lineups of every game; and, only when the
+front office is opened, one call per week for waivers and pickups plus the
+league's activity feed for trades. A finished season is kept in IndexedDB
+for a month, like Sleeper's.
+
+How ESPN's data maps onto the site:
+
+- **Managers** are followed across seasons by their ESPN member id (SWID),
+  shown by name. Teams keep their own ESPN name and logo each season.
+- **Brackets**: ESPN has no bracket list, only tagged playoff games in the
+  schedule. The winner's bracket is drawn the standard way for the field
+  (byes to the top seeds; 1 meets the 4/5 winner) so it can be projected
+  before the playoffs, and ESPN's games are laid onto it as they are played.
+  Placement games (third, fifth) and the consolation ladder come from
+  ESPN's games. Seasons from before ESPN tagged its games are sorted by
+  who is still alive. ESPN's consolation ladder is winners-move-on, never a
+  toilet bowl. One- and two-week rounds are both handled.
+- **Final places** are ESPN's own (`rankCalculatedFinal`), so the
+  champion, last place and the trophy room match what ESPN shows.
+- **Players** come from ESPN's own data (name, position, club, eligible
+  slots), keyed `e<ESPN id>`; team defences use their club's code, as on
+  Sleeper. Photos come from ESPN's image server. Sleeper's players file
+  isn't loaded for an ESPN league.
+- **Lineup slots** map to Sleeper's (RB/WR is `WRRB_FLEX`, OP is
+  `SUPER_FLEX`, ESPN's DT/DE/DL slots read as DL and CB/S/DB as DB), so the
+  lineup tools work unchanged.
+- **Trades** come from the league's activity feed (2019 on), because ESPN's
+  transaction list leaves the players out of other teams' trades. Waivers,
+  pickups and FAAB bids come from the transaction list.
+- **Draft Picks tab**: hidden for ESPN leagues, which can't trade picks.
+
+### Public and private ESPN leagues
+
+ESPN answers a league that is *viewable to the public* (League ▸ Settings ▸
+Basic Settings) to anyone, from the browser, like Sleeper. That is the
+easiest setup and the one the front page recommends: the league manager
+flips it once and every member can open the league with its ID.
+
+A private league needs a member's ESPN sign-in cookies, `espn_s2` and
+`SWID`. `espn.js` tries three ways in turn and remembers which one worked:
+
+1. **Public**: a plain request.
+2. **The visitor's own ESPN sign-in**: the same request with the browser's
+   espn.com cookies. This works where the browser allows third-party cookies
+   and the visitor is signed in to ESPN. Safari and Firefox usually block it.
+3. **The relay**: the visitor pastes `espn_s2` and `SWID` on the front page
+   (instructions are there). They're kept in that browser's localStorage only.
+   Requests go to `supabase/functions/espn-proxy`, which adds them as
+   cookies, asks ESPN, and passes the answer straight back. It only makes
+   read-only GETs to ESPN's fantasy football league and player addresses.
+   It stores and logs nothing, and `ALLOWED_ORIGINS` limits it to this site.
+
+A private league that none of these open fails with a note that links back
+to the front page's private-league form. Each member of a private league
+connects it on their own device; the cookies are never shared with the rest
+of the league or kept on the server. That is deliberate, because `espn_s2`
+works like an ESPN password.
+
+### Known limits
+
+- ESPN keeps lineups for older seasons patchily. A season whose box scores
+  ESPN no longer serves (typically before 2018) still has every score,
+  standing, bracket and final place, but no lineups. Its lineup and player
+  pages are empty for that year.
+- Trades before 2019 are only those ESPN's transaction list includes.
+- Standings during a season use the site's order (record, then points for,
+  division leaders first). A league with ESPN's head-to-head tiebreak can
+  differ there until the season ends; final places are always ESPN's.
+- Scores are ESPN's own, so any custom scoring is already in them. If an
+  ESPN league plays an extra weekly game against the league median, those
+  extra wins aren't added to the site's records.
+- There is no ESPN username search (ESPN has no public lookup); visitors
+  open a league by its ID or link.
+- ESPN's fantasy API is unofficial and undocumented. It has been stable for
+  years and the community libraries rely on it, but it can change without
+  notice.
 
 ## The front office
 
@@ -173,6 +269,8 @@ never costs a swap.
   swap on the server.
 - `supabase/functions/stripe-webhook/` — sets a profile's plan from Stripe's
   subscription events. Nothing else can write a plan.
+- `supabase/functions/espn-proxy/` — the relay for private ESPN leagues
+  (see [ESPN leagues](#espn-leagues)).
 
 Until `SUPABASE_URL` and `SUPABASE_ANON_KEY` are filled in, accounts run in
 **preview mode**: everything works, but accounts are kept in the browser
@@ -194,7 +292,15 @@ Going live:
    --no-verify-jwt`), set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
    and point a Stripe webhook at it for `checkout.session.completed` and
    `customer.subscription.*`.
-6. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
+6. For private ESPN leagues, deploy the relay
+   (`supabase functions deploy espn-proxy --no-verify-jwt`) and set
+   `ALLOWED_ORIGINS` to the site's address (`supabase secrets set
+   ALLOWED_ORIGINS=https://your-site.example`). The site finds it at
+   `<SUPABASE_URL>/functions/v1/espn-proxy` (or `ESPN_PROXY_URL` in
+   `account-config.js`). Public ESPN leagues and Sleeper don't need it.
+   Run the second migration too (`20261001000000_espn_leagues.sql`), which
+   lets an ESPN league (`espn-<id>`) be synced to an account.
+7. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
    config.
 
 The gate is a paywall in the browser: Sleeper's data is public, so it keeps
@@ -240,10 +346,18 @@ ones. Pro members see none.
 - `tools/check-scripts.mjs` parses every page's inline script without running
   it (needs Node), to catch a syntax error before it ships.
 
-## Sleeper
+## Sleeper and ESPN
 
-This site is independent: not affiliated with or endorsed by Sleeper, and
-every page says so. It uses only Sleeper's documented, read-only public API
+This site is independent: not affiliated with or endorsed by Sleeper or
+ESPN, and every page says so (an ESPN league's pages credit ESPN).
+
+ESPN publishes no API or terms for third-party use of its fantasy data; the
+site reads only what a league's members can already see, from the visitor's
+own browser (or the relay, with that visitor's own sign-in). As with
+Sleeper, check with ESPN before running anything commercial (ads, a paid
+tier) on top of its data.
+
+For Sleeper: the site uses only Sleeper's documented, read-only public API
 (`api.sleeper.app/v1`), which Sleeper offers free for non-commercial use;
 anything commercial (ads, a paid tier) needs Sleeper's permission first.
 Each visitor's browser makes its own requests, cached as above, well under

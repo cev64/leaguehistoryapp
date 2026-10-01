@@ -28,6 +28,10 @@
    when a page first needs them. Only Sleeper's documented public API is
    used (api.sleeper.app/v1), plus its image server for avatars and photos.
 
+   Other platforms plug in as sources (League._core.addSource): espn.js
+   reads an ESPN league (?league=espn-<id>) and hands over the same raw
+   seasons, so everything from buildSeason on is shared by both.
+
    Plain script, not a module, so every page can load it before its own. */
 (function () {
   "use strict";
@@ -98,24 +102,32 @@
     if (next) next(); else active--;
   }
 
-  async function fetchJSON(url, tries = 3) {
+  /* `init` is passed to fetch (headers, credentials); `label` names the
+     service in an error. A 401 or 403 is not retried: the league is
+     private, and asking again won't change that. */
+  async function fetchJSON(url, tries = 3, init = undefined, label = "Sleeper") {
     await slot();
     try {
       for (let attempt = 0; ; attempt++) {
         let res;
         try {
-          res = await fetch(url);
+          res = await fetch(url, init);
         } catch (err) {
           if (attempt + 1 >= tries) throw err;
           await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
           continue;
         }
         if (res.status === 404) return null;
+        if (res.status === 401 || res.status === 403) {
+          const err = new Error(`${label} answered ${res.status}`);
+          err.status = res.status;
+          throw err;
+        }
         if (res.ok) {
           const text = await res.text();
           return text && text !== "null" ? JSON.parse(text) : null;
         }
-        if (attempt + 1 >= tries) throw new Error(`Sleeper answered ${res.status}`);
+        if (attempt + 1 >= tries) throw new Error(`${label} answered ${res.status}`);
         await new Promise((r) => setTimeout(r, (res.status === 429 ? 1500 : 400) * (attempt + 1)));
       }
     } finally {
@@ -125,12 +137,13 @@
 
   /* Read through the store: a copy younger than `ttl` is used as it is.
      An older copy is still returned if the network fails, so a flaky
-     connection shows the league as it was rather than nothing. */
-  async function cached(key, ttl, url) {
+     connection shows the league as it was rather than nothing. `fetcher`
+     makes the value (a request, or a request and a reshaping of it). */
+  async function cachedFn(key, ttl, fetcher) {
     const hit = await storeGet(key);
     if (hit && Date.now() - hit.t < ttl) return hit.v;
     try {
-      const value = await fetchJSON(url);
+      const value = await fetcher();
       await storeSet(key, { t: Date.now(), v: value });
       return value;
     } catch (err) {
@@ -138,6 +151,7 @@
       throw err;
     }
   }
+  const cached = (key, ttl, url) => cachedFn(key, ttl, () => fetchJSON(url));
 
   /* ------------------------------------------------------------ helpers */
 
@@ -368,16 +382,18 @@
     rosters.slice().sort((a, b) => a.roster_id - b.roster_id).forEach((r) => {
       const user = r.owner_id ? userById.get(r.owner_id) : null;
       const um = (user && user.metadata) || {};
-      const name = String(um.team_name || (user ? user.display_name : `Team ${r.roster_id}`)).replace(/\s+/g, " ").trim();
+      // A source whose teams carry their own name, manager and logo (ESPN
+      // names a team, not a member) sets them on the roster as lh_*.
+      const name = String(r.lh_name || um.team_name || (user ? user.display_name : `Team ${r.roster_id}`)).replace(/\s+/g, " ").trim();
       const division = divisionCount > 1 && r.settings && r.settings.division
         ? settings.divisions[r.settings.division - 1] || null : null;
       teams[idOf(r.roster_id)] = {
         rosterId: r.roster_id,
         name,
         ownerId: r.owner_id || `open-${league.league_id}-${r.roster_id}`,
-        owner: user ? user.display_name : "Open roster",
+        owner: r.lh_owner || (user ? user.display_name : "Open roster"),
         division,
-        logo: um.avatar || avatarUrl(user && user.avatar),
+        logo: r.lh_logo || um.avatar || avatarUrl(user && user.avatar),
         icon: iconFor(name),
         wins: 0, losses: 0, ties: 0, pf: 0, pa: 0,
         sleeper: { wins: (r.settings || {}).wins || 0, losses: (r.settings || {}).losses || 0, pf: fpts(r.settings || {}, "fpts") },
@@ -554,6 +570,16 @@
       place[g.winner] = base + g.p;
       place[g.loser] = base + g.p + 1;
     });
+    /* A platform that records every team's final place itself (ESPN) is
+       taken at its word once the season is over: its consolation ladders
+       and tiebreaks don't always follow from the bracket alone. */
+    const official = raw.finalRanks || null;
+    if (official && league.status === "complete") {
+      const given = ids.map((id) => Number(official[teams[id].rosterId]) || 0);
+      if (given.every((n) => n > 0) && new Set(given).size === ids.length) {
+        ids.forEach((id, i) => { place[id] = given[i]; });
+      }
+    }
     const standing = seedOrder(ids, teams, (id) => teams[id].division, divisionCount);
     standing.forEach((id, i) => { teams[id].regularRank = i + 1; });
     // A league Sleeper calls complete that never scored a game was abandoned
@@ -662,34 +688,50 @@
     return found;
   }
 
+  /* Other platforms (espn.js) register here. A source claims the league ids
+     it knows (`handles`), turns its platform's data into the same raw season
+     shape Sleeper's API gives (`seasons` -> { raws, state }), and may swap
+     in its own front-office readers on the finished model (`decorate`).
+     Everything from buildSeason on is shared. */
+  const sources = [];
+  function addSource(source) { sources.push(source); }
+  const sourceFor = (id) => sources.find((s) => s.handles(id)) || null;
+
+  // Sleeper's own history: the league, then its previous_league_id chain.
+  async function sleeperSeasons(id, onProgress) {
+    const st = await state();
+    const chain = [];
+    let next = id;
+    const seen = new Set();
+    while (next && next !== "0" && !seen.has(next) && chain.length < 30) {
+      seen.add(next);
+      const league = await cached(`league:${next}`, TTL.live, `${API}/league/${next}`);
+      if (!league) break;
+      chain.push(next);
+      next = league.previous_league_id;
+    }
+    if (!chain.length) throw new Error("Sleeper has no league with that id.");
+    chain.push(...(await siblingSeasons(chain)));
+    let done = 0;
+    if (onProgress) onProgress(0, chain.length);
+    const raws = await Promise.all(chain.map(async (lid) => {
+      const raw = await loadSeasonRaw(lid, st);
+      done++;
+      if (onProgress) onProgress(done, chain.length);
+      return raw;
+    }));
+    return { raws, state: st };
+  }
+
   /* The league and every season before it. `onProgress(done, total)` hears
      as seasons arrive, for a loading line. */
   function load(leagueId, { onProgress } = {}) {
     const id = String(leagueId || "").trim();
-    if (!/^\d{6,}$/.test(id)) return Promise.reject(new Error("That isn't a Sleeper league id."));
+    const source = sourceFor(id);
+    if (!source && !/^\d{6,}$/.test(id)) return Promise.reject(new Error("That isn't a league id this site knows."));
     if (!models.has(id)) {
       const job = (async () => {
-        const st = await state();
-        const chain = [];
-        let next = id;
-        const seen = new Set();
-        while (next && next !== "0" && !seen.has(next) && chain.length < 30) {
-          seen.add(next);
-          const league = await cached(`league:${next}`, TTL.live, `${API}/league/${next}`);
-          if (!league) break;
-          chain.push(next);
-          next = league.previous_league_id;
-        }
-        if (!chain.length) throw new Error("Sleeper has no league with that id.");
-        chain.push(...(await siblingSeasons(chain)));
-        let done = 0;
-        if (onProgress) onProgress(0, chain.length);
-        const raws = await Promise.all(chain.map(async (lid) => {
-          const raw = await loadSeasonRaw(lid, st);
-          done++;
-          if (onProgress) onProgress(done, chain.length);
-          return raw;
-        }));
+        const { raws, state: st } = source ? await source.seasons(id, { onProgress }) : await sleeperSeasons(id, onProgress);
         const seasons = raws.filter(Boolean).map(buildSeason).sort((a, b) => a.year - b.year);
         // An abandoned season (no game ever scored) is left out, unless it
         // is the newest, which may simply not have started.
@@ -703,13 +745,20 @@
           if (!had || (!hasGames(had) && hasGames(season))) byYear.set(season.year, season);
         });
         const model = buildModel(id, [...byYear.values()].sort((a, b) => a.year - b.year), st);
+        model.platform = source ? source.name : "sleeper";
+        if (source && source.decorate) source.decorate(model);
         // The account gate (account.js): resolves once this visitor may see
         // the league, holding the page at its loading line until then.
         if (window.Account && window.Account.admit) await window.Account.admit(model);
         return model;
       })();
       models.set(id, job);
-      job.catch(() => models.delete(id));
+      job.catch((err) => {
+        models.delete(id);
+        // Where a failure page sends the visitor (a private ESPN league
+        // goes to the front page's form for connecting it).
+        if (err && err.link) failure = { link: err.link, linkText: err.linkText };
+      });
     }
     return models.get(id);
   }
@@ -740,7 +789,11 @@
 
     const newest = seasons[seasons.length - 1];
     const logos = {};
-    Object.entries(owners).forEach(([oid, o]) => { if (o.logo) logos[oid] = o.logo; });
+    Object.entries(owners).forEach(([oid, o]) => {
+      if (!o.logo) return;
+      logos[oid] = o.logo;
+      logoMarks.set(o.logo, o.icon);
+    });
 
     const model = {
       leagueId: id,
@@ -767,6 +820,22 @@
       tradedPicks: () => tradedPicksOf(model),
     };
     return model;
+  }
+
+  /* A team logo that won't load (an ESPN manager's picture from a site long
+     gone) becomes the team's own mark, its initial or emoji, wherever it is
+     drawn, and is forgotten so nothing drawn later asks for it again. */
+  const logoMarks = new Map();
+  if (typeof document !== "undefined") {
+    document.addEventListener("error", (event) => {
+      const img = event.target;
+      if (!img || img.tagName !== "IMG") return;
+      const src = img.getAttribute("src");
+      if (!logoMarks.has(src)) return;
+      const logos = window.TEAM_LOGOS || {};
+      Object.keys(logos).forEach((oid) => { if (logos[oid] === src) delete logos[oid]; });
+      img.replaceWith(document.createTextNode(logoMarks.get(src) || ""));
+    }, true);
   }
 
   /* The record-book shape: finished seasons carry their final places;
@@ -816,9 +885,22 @@
      player, and pages read that copy, never Sleeper's. Kept for a day; only
      fetched once something needs a name: a box score, starters, a search. */
   let playersPromise = null;
+  /* Players another platform brought with its own data (espn.js registers
+     every player its box scores name, keyed "e<id>"), in the same
+     [name, position, club, eligible] shape. They join whatever the site's
+     file holds, now or once it arrives. */
+  const extraPlayers = {};
+  let playersDb = null;
+  function addPlayers(map) {
+    Object.entries(map || {}).forEach(([pid, p]) => { extraPlayers[pid] = p; if (playersDb) playersDb[pid] = p; });
+  }
   function players() {
     if (!playersPromise) {
       playersPromise = (async () => {
+        // A league from another platform names its own players: Sleeper's
+        // file has nothing for it.
+        const own = pageLeague && sourceFor(pageLeague);
+        if (own && own.ownPlayers) return {};
         const hit = await storeGet("players:site2");
         if (hit && Date.now() - hit.t < TTL.players) return hit.v;
         try {
@@ -831,7 +913,11 @@
         } catch (err) {
           return hit ? hit.v : {};
         }
-      })();
+      })().then((db) => {
+        playersDb = db;
+        Object.assign(db, extraPlayers);
+        return db;
+      });
     }
     return playersPromise;
   }
@@ -1232,6 +1318,39 @@
     fillSeasonMenu(document.querySelector("#yearSelect, #pageSelect"), model, selected);
   }
 
+  /* The platform a league id belongs to, by name, for the words on a page
+     ("Reading every season from ESPN…"). Sources register after this file
+     loads, so it is asked when a page draws, not read once. */
+  function sourceName(id = pageLeague) {
+    const source = id ? sourceFor(String(id)) : null;
+    return source ? source.label : "Sleeper";
+  }
+
+  /* A player's photo. Sleeper's players are their ids on its image server;
+     another platform's ("e<id>" for ESPN) are drawn from its own. */
+  function headshot(h) {
+    if (!h) return null;
+    const id = String(h);
+    const source = sources.find((s) => s.headshot && s.ownsPlayer && s.ownsPlayer(id));
+    if (source) return source.headshot(id);
+    return `${CDN}/content/nfl/players/thumb/${encodeURIComponent(id)}.jpg`;
+  }
+
+  /* Every page's credit line names Sleeper; a league from another platform
+     credits that platform instead (its `credit`), once the page is drawn. */
+  if (typeof document !== "undefined" && pageLeague) {
+    document.addEventListener("DOMContentLoaded", () => {
+      const source = sourceFor(pageLeague);
+      if (!source || !source.credit) return;
+      document.querySelectorAll(".footer").forEach((footer) => {
+        const keep = footer.querySelector(".footer-switch");
+        footer.textContent = ` ${source.credit}`;
+        if (keep) footer.prepend(keep);
+      });
+      document.querySelectorAll(".doorway-fine").forEach((p) => { p.textContent = source.credit; });
+    });
+  }
+
   /* Sends anyone who arrives without a league to the sign-in page. */
   function requireLeague() {
     if (pageLeague) return pageLeague;
@@ -1239,22 +1358,30 @@
     return null;
   }
 
-  /* A page's loading line and failure note, drawn in the page's own card. */
+  /* A page's loading line and failure note, drawn in the page's own card.
+     A failure that knows where to go next (a private ESPN league: the front
+     page's form for connecting it) links there instead. */
+  let failure = null;
   function showStatus(target, { title, copy, error = false }) {
     const el = typeof target === "string" ? document.querySelector(target) : target;
     if (!el) return;
     el.innerHTML = `<div class="empty-state lh-status${error ? " lh-error" : ""}">
       ${error ? "" : '<span class="lh-spinner" aria-hidden="true"></span>'}
       <strong>${esc(title)}</strong><p>${copy}</p>
-      ${error ? `<p><a class="lh-status-link" href="index.html">Choose a league</a></p>` : ""}
+      ${error ? `<p><a class="lh-status-link" href="${esc((failure && failure.link) || "index.html")}">${esc((failure && failure.linkText) || "Choose a league")}</a></p>` : ""}
     </div>`;
   }
 
   window.League = {
-    load, user, leaguesFor, players, state,
+    load, user, leaguesFor, players, state, sourceName, headshot,
     url, recent, remember, forget, savedUser, saveUser,
     dressHeader, fillSeasonMenu, requireLeague, showStatus,
     compareTeams, seedOrder, roundName, gameName, placeName, roundWeeks,
     ordinal, esc, club, clubStyle, param: (k) => params.get(k), leagueId: pageLeague,
+    // For other platforms' adapters (espn.js): the shared plumbing.
+    _core: {
+      addSource, addPlayers, fetchJSON, cachedFn, storeGet, storeSet,
+      round2, iconFor, CLUB_COLOR, TTL, MINUTE, DAY,
+    },
   };
 })();
