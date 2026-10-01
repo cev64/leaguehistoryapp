@@ -114,16 +114,32 @@ A private league opens one way: with the visitor's **ESPN keys**, the
 tab's "Private league?" panel says where to find them (the browser's
 developer tools, on a computer) and has a box for each.
 
-- **Signed in, the keys are saved to the visitor's account**, so every
-  device they sign in on opens their private leagues, their phone included,
-  without typing the keys again. Keys typed before signing in can be moved
-  to the account with "Save to my account". The relay keeps them encrypted
+- **Signed in, the keys are saved to the visitor's account** as well
+  (unless they untick "Also save them to my account"), so every device they
+  sign in on opens their private leagues, their phone included, without
+  typing the keys again. Keys typed before signing in can be moved to the
+  account with "Save to my account". The relay keeps them encrypted
   (AES-GCM with `ESPN_KEYS_SECRET`, bound to the member's user id) in the
   `espn_keys` table, which only the relay can read; they never go back to
   a browser.
 - **Signed out (or in preview mode)**, they stay in that browser's
   localStorage only.
 - **Forget them** removes them from the browser and the account.
+
+**Without Supabase**, typed keys work too, kept in each visitor's browser:
+the relay is a plain Deno program that runs anywhere, and with no Supabase
+settings it leaves account saving off.
+
+- On your computer, with the site served locally: `deno run --allow-net
+  --allow-env supabase/functions/espn-proxy/index.ts` (it listens on
+  `http://localhost:8000`; `PORT` changes that), and set `ESPN_PROXY_URL:
+  "http://localhost:8000"` in `account-config.js`.
+- For the live site: a free Deno Deploy project (dash.deno.com) from the
+  same file, with `ALLOWED_ORIGINS` set to the site's address, and its
+  `https://<project>.deno.dev` address as `ESPN_PROXY_URL`.
+
+When Supabase is set up later, leave `ESPN_PROXY_URL` empty (the site then
+uses the Supabase relay) and account saving switches on.
 
 `espn.js` tries a plain request first (public leagues), then the relay
 with keys typed in this browser, then the relay with the member's saved
