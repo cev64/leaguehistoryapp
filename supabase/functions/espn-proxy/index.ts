@@ -26,7 +26,18 @@
 //     the player list. Nothing that writes, nothing on another host.
 //   - Keys are never logged or sent anywhere but ESPN.
 //
-// Deploy:
+// Without Supabase (keys kept in each visitor's browser only): this file
+// runs on its own anywhere Deno does, and without the Supabase settings
+// below it simply leaves saving keys to accounts off.
+//   on your computer, for the site served locally:
+//     deno run --allow-net --allow-env supabase/functions/espn-proxy/index.ts
+//     (http://localhost:8000; PORT=8001 to change it), then ESPN_PROXY_URL:
+//     "http://localhost:8000" in account-config.js
+//   for the live site, free on Deno Deploy (dash.deno.com): a new project
+//     from this file, ALLOWED_ORIGINS set to the site's address, and its
+//     https://<project>.deno.dev address as ESPN_PROXY_URL
+//
+// Deploy on Supabase:
 //   supabase functions deploy espn-proxy --no-verify-jwt
 //   supabase secrets set ALLOWED_ORIGINS=https://your-site.example
 //   supabase secrets set ESPN_KEYS_SECRET=$(openssl rand -base64 32)
@@ -207,7 +218,7 @@ async function account(req: Request, action: string, origin: string | null) {
 
 /* ------------------------------------------------------------ the relay */
 
-Deno.serve(async (req) => {
+async function handle(req: Request): Promise<Response> {
   const origin = req.headers.get("origin");
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
   if (ALLOWED.length && origin && !ALLOWED.includes(origin)) return fail(403, "origin not allowed", origin);
@@ -265,4 +276,10 @@ Deno.serve(async (req) => {
       "Cache-Control": "private, no-store",
     },
   });
-});
+}
+
+// On Supabase or Deno Deploy the platform sets the port; run on your own
+// computer it is 8000, or PORT.
+const port = Number(env("PORT"));
+if (port) Deno.serve({ port }, handle);
+else Deno.serve(handle);

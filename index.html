@@ -1726,6 +1726,9 @@
     .espn-private ol { margin-top: 8px; }
     .espn-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #1d7a3f; font-weight: 700; }
     #espnSavedHint { margin: 0; color: var(--ink); }
+    .espn-to-account { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; color: var(--ink); cursor: pointer; }
+    .espn-to-account input { margin-top: 3px; }
+    .espn-to-account[hidden] { display: none; }
     .espn-saved button {
       height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
       background: #fff; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
@@ -1924,6 +1927,10 @@
                 <input id="espnSwid" type="text" autocomplete="off" spellcheck="false" placeholder="SWID  {XXXXXXXX-XXXX-…}" aria-label="SWID" />
                 <button class="signin-go" id="espnSave" type="button">Save</button>
               </div>
+              <label class="espn-to-account" id="espnToAccountChoice" hidden>
+                <input type="checkbox" id="espnToAccountBox" checked />
+                <span>Also save them to my account, so my private leagues open on my phone too. Untick to keep them in this browser only.</span>
+              </label>
             </div>
             <div class="espn-saved" id="espnSaved" hidden>
               <span id="espnSavedText">✓ ESPN keys saved</span>
@@ -2145,6 +2152,9 @@
         }
         const saved = local || onAccount;
         $("espnKeys").hidden = !relay || saved;
+        // Where typed keys go: this browser, and the account if the member
+        // is signed in and leaves the box ticked.
+        $("espnToAccountChoice").hidden = !(relay && keys.signedIn());
         $("espnSaved").hidden = !saved;
         $("espnNoRelay").hidden = relay;
         $("espnSavedText").textContent = onAccount
@@ -2201,7 +2211,7 @@
         }
         s2.value = "";
         swid.value = "";
-        await toAccount();
+        if ($("espnToAccountBox").checked) await toAccount();
         await drawPrivate();
         if (espnInput.value.trim()) { espnForm.requestSubmit(); return; }
         say("✓ Keys saved. Now enter your league's ID or link above.");

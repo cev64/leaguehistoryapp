@@ -17,7 +17,10 @@ window.ACCOUNT_CONFIG = {
 
   // The relay that opens PRIVATE ESPN leagues (supabase/functions/espn-proxy).
   // Left empty, it is <SUPABASE_URL>/functions/v1/espn-proxy once
-  // SUPABASE_URL is set; set it to use a relay hosted elsewhere. Public ESPN
+  // SUPABASE_URL is set. It doesn't need Supabase: run the same file on its
+  // own (on your computer: "http://localhost:8000"; or on Deno Deploy:
+  // "https://<project>.deno.dev") and put its address here, and private
+  // leagues open with keys kept in each visitor's browser. Public ESPN
   // leagues and every Sleeper league never use it.
   ESPN_PROXY_URL: "",
 
