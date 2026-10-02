@@ -729,9 +729,9 @@ export function floorInlayTexture({ name, accent }) {
   ctx.fillText(name.toUpperCase(), half, half);
   ctx.globalAlpha = 0.5;
   ctx.font = `600 ${size * 0.032}px ${DISPLAY_FONT}`;
-  ctx.letterSpacing = "16px";
+  ctx.letterSpacing = "8px";
   ctx.fillStyle = accent;
-  ctx.fillText("· LEAGUELORE ·", half, half + size * 0.09);
+  ctx.fillText("· PIGSKIN PANTHEON ·", half, half + size * 0.09);
   ctx.restore();
 
   return finish(element);
