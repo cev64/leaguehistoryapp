@@ -77,6 +77,17 @@
   // bar) leave it out under AdSense.
   document.documentElement.classList.toggle("lh-ads-adsense", Boolean(CFG.ADS && CFG.ADS.provider === "adsense"));
 
+  /* Visitor counts (ANALYTICS in account-config.js): Cloudflare Web
+     Analytics' beacon, on every page, once a token is set. */
+  const CF_TOKEN = String((CFG.ANALYTICS && CFG.ANALYTICS.cloudflareToken) || "").trim();
+  if (CF_TOKEN && /^[\w-]{8,64}$/.test(CF_TOKEN) && !/^(localhost|127\.)/.test(location.hostname)) {
+    const beacon = document.createElement("script");
+    beacon.defer = true;
+    beacon.src = "https://static.cloudflareinsights.com/beacon.min.js";
+    beacon.setAttribute("data-cf-beacon", JSON.stringify({ token: CF_TOKEN }));
+    document.head.appendChild(beacon);
+  }
+
   /* ------------------------------------------------------------ errors */
 
   /* Both backends fail with the same short codes; this turns them into
