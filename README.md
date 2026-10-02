@@ -1,4 +1,4 @@
-# LeagueLore: league history for Sleeper and ESPN
+# Pigskin Pantheon: a hall of fame for your Sleeper or ESPN league
 
 Every season a Sleeper or ESPN fantasy football league has played, on one site:
 week-by-week results and box scores, standings as they stood each week, the

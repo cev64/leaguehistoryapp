@@ -561,8 +561,9 @@
       })
       .sort((x, y) => x.r - y.r);
 
-    const field = new Set(seeds.slice(0, N));
     const tagged = games.some((g) => g.tier && g.tier !== "NONE");
+    const order = asSeeded() || seeds;
+    const field = new Set(order.slice(0, N));
     const alive = new Set(field);
     for (let r = 1; r <= R; r++) {
       games.filter((g) => g.r === r).forEach((g) => {
@@ -577,25 +578,85 @@
     }
     const same = (g, x, y) => (g.a === x && g.b === y) || (g.a === y && g.b === x);
 
+    // Seed numbers in bracket order for a draw of 2^R: 1, 8, 4, 5, 2, 7, 3, 6.
+    function slots() {
+      let list = [1];
+      while (list.length < 2 ** R) {
+        const k = list.length * 2;
+        list = list.flatMap((s) => [s, k + 1 - s]);
+      }
+      return list;
+    }
+
+    /* The seeds as the bracket was played. ESPN's playoffSeed is the
+       standings as they ended, which isn't always the order the playoffs
+       went out in (2025: two 7-7 teams' seeds swapped after the fact, so
+       the team that played in the bracket read as the 7 seed). Once the
+       first two rounds are scheduled the games say it themselves: a bye is
+       a first-round entry with no opponent, each bye's first game is
+       against a first-round winner, and where that winner came from fixes
+       the seeds of that first-round game. Null when the games can't be
+       read that way (no byes, rounds not scheduled yet, an odd draw). */
+    function asSeeded() {
+      if (R < 2 || N < 3) return null;
+      const list = slots();
+      const byeSeeds = [];
+      const pairsAt = [];
+      for (let i = 0; i < list.length; i += 2) {
+        const [x, y] = [list[i], list[i + 1]];
+        pairsAt.push(x <= N && y <= N ? [Math.min(x, y), Math.max(x, y)] : Math.min(x, y));
+        if (!(x <= N && y <= N)) byeSeeds.push(Math.min(x, y));
+      }
+      const rank = (id) => (seeds.indexOf(id) < 0 ? Infinity : seeds.indexOf(id));
+      const byes = core.games
+        .filter((g) => g.mp === core.mpc + 1 && !(g.home && g.away))
+        .map((g) => (g.home || g.away).id)
+        .filter((id) => rank(id) < Infinity)
+        .sort((a, b) => rank(a) - rank(b));
+      if (!byes.length || byes.length !== byeSeeds.length) return null;
+      const first = games.filter((g) => g.r === 1 && g.w != null);
+      const second = games.filter((g) => g.r === 2);
+      const placed = new Array(N).fill(null);
+      byeSeeds.sort((a, b) => a - b).forEach((s, i) => { placed[s - 1] = byes[i]; });
+      // Each pair of neighbouring slots meets in round 2.
+      for (let i = 0; i < pairsAt.length; i += 2) {
+        const [left, right] = [pairsAt[i], pairsAt[i + 1]];
+        const bye = typeof left === "number" ? left : typeof right === "number" ? right : null;
+        const game = Array.isArray(left) ? left : Array.isArray(right) ? right : null;
+        if (bye == null || !game) {
+          // Two byes meeting, or two first-round games: nothing to place.
+          if (bye == null) return null;
+          continue;
+        }
+        const team = placed[bye - 1];
+        const meet = second.find((g) => g.a === team || g.b === team);
+        const opp = meet && (meet.a === team ? meet.b : meet.a);
+        const from = opp != null && first.find((g) => g.w === opp);
+        if (!from) return null;
+        const [hi, lo] = [from.a, from.b].sort((a, b) => rank(a) - rank(b));
+        if (placed[game[0] - 1] || placed[game[1] - 1]) return null;
+        placed[game[0] - 1] = hi;
+        placed[game[1] - 1] = lo;
+      }
+      if (placed.some((id) => id == null) || new Set(placed).size !== N) return null;
+      return [...placed, ...seeds.filter((id) => !placed.includes(id))];
+    }
+
     // The standard draw: seeds in bracket order, byes for the top seeds.
     function drawn() {
       const size = 2 ** R;
-      let order = [1];
-      while (order.length < size) {
-        const k = order.length * 2;
-        order = order.flatMap((s) => [s, k + 1 - s]);
-      }
+      const draw = slots();
       const out = [];
       let m = 0;
       let nodes = [];
       for (let i = 0; i < size; i += 2) {
-        const [x, y] = [order[i], order[i + 1]];
+        const [x, y] = [draw[i], draw[i + 1]];
         if (x <= N && y <= N) {
-          const g = { r: 1, m: ++m, t1: seeds[x - 1], t2: seeds[y - 1], w: null, l: null, t1_from: null, t2_from: null, p: null };
+          const g = { r: 1, m: ++m, t1: order[x - 1], t2: order[y - 1], w: null, l: null, t1_from: null, t2_from: null, p: null };
           out.push(g);
           nodes.push({ game: g });
         } else {
-          nodes.push({ team: seeds[Math.min(x, y) - 1] });
+          nodes.push({ team: order[Math.min(x, y) - 1] });
         }
       }
       for (let r = 2; r <= R; r++) {
