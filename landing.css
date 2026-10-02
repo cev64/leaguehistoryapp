@@ -129,6 +129,15 @@ html:has(body.lp) { scroll-behavior: smooth; scroll-padding-top: 76px; }
 }
 .lp-hero h1 .brand-accent { display: block; }
 .lp-lede { margin: 18px 0 0; max-width: 560px; color: #c3d0dc; font-size: 17.5px; line-height: 1.55; }
+.lp-feats { display: grid; gap: 10px; margin: 14px 0 0; padding: 0; list-style: none; }
+.lp-feats li { display: flex; align-items: center; gap: 12px; color: #e6edf5; font-size: 17px; font-weight: 600; line-height: 1.35; }
+.lp-feats span {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(246, 183, 60, .12); border: 1px solid rgba(246, 183, 60, .3); font-size: 17px;
+}
+@media (min-width: 560px) and (max-width: 899px), (min-width: 1100px) {
+  .lp-feats { grid-template-columns: repeat(2, minmax(0, max-content)); column-gap: 22px; }
+}
 .lp-ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
 .lp-hero .lp-ctas .lp-btn { flex: 1 1 220px; }
 .lp-proof { display: grid; gap: 8px; margin: 22px 0 0; padding: 0; list-style: none; color: #aebdcc; font-size: 14px; font-weight: 600; }
