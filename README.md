@@ -36,8 +36,8 @@ with the rest of the league.
 
 `index.html` is the landing page and the way in, in one: a hero with the
 pitch and two ways forward (open your league, or explore the demo), the
-headline features with screenshots of the demo league, the demo league's
-storylines, how it works, the league finder (`#find`, the same cards and
+headline features with screenshots of the demo league, how it works,
+the league finder (`#find`, the same cards and
 script as before) and a few questions and answers. A signed-in member's
 leagues show in the hero as one-tap links. `landing.css` styles it; the
 screenshots are WebP files in `img/landing/` (`og.jpg` is the picture a
@@ -67,9 +67,9 @@ The managers, teams and scores are invented; the players are real (their
 names come from `data/players.json` by Sleeper id) with made-up points.
 Each player's points a game for each season are in `demo.js`'s pool; the
 seed (`SEED`) was picked for its storylines (worst to first, a 1.01 trade,
-a team that never beats its rival), which the front page quotes. Changing
-the seed, the pool or the simulation changes every result, so check the
-front page's demo stories and screenshots after.
+a team that never beats its rival). Changing the seed, the pool or the
+simulation changes every result, so retake the front page's screenshots
+after: its AI example and floating cards quote the demo's numbers.
 
 ## How it works
 
