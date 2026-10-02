@@ -30,7 +30,7 @@
 //   supabase functions deploy league-chat --no-verify-jwt
 //   supabase secrets set ANTHROPIC_API_KEY=sk-ant-…
 //   supabase secrets set ALLOWED_ORIGINS=https://your-site.example
-// Optional: AI_MODEL (default claude-opus-5-5), AI_EFFORT (default medium),
+// Optional: AI_MODEL (default claude-sonnet-5-5), AI_EFFORT (default medium),
 // AI_DAILY_QUESTIONS (default 60).
 //
 // On your own computer, with the site served locally:
@@ -48,7 +48,7 @@ const ANON_KEY = env("SUPABASE_ANON_KEY");
 const SERVICE_KEY = env("SUPABASE_SERVICE_ROLE_KEY");
 const ACCOUNTS = Boolean(SUPABASE_URL && ANON_KEY && SERVICE_KEY);
 const OPEN = env("CHAT_OPEN") === "1";
-const MODEL = env("AI_MODEL") || "claude-opus-5-5";
+const MODEL = env("AI_MODEL") || "claude-sonnet-5-5";
 const EFFORT = (["low", "medium", "high", "xhigh", "max"].includes(env("AI_EFFORT")) ? env("AI_EFFORT") : "medium") as
   "low" | "medium" | "high" | "xhigh" | "max";
 const DAILY = Math.max(1, Number(env("AI_DAILY_QUESTIONS")) || 60);

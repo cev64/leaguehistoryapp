@@ -285,7 +285,7 @@ How it knows the league, without a database of its own:
 
 Each question goes to the function with the league text and the
 conversation so far. The function adds the instructions, the tools and the
-Anthropic API key, asks Claude (`claude-opus-5-5`, adaptive thinking,
+Anthropic API key, asks Claude (`claude-sonnet-5-5`, adaptive thinking,
 medium effort) and streams the answer back as it is written. When Claude
 asks for a tool, the stream ends with the request, `chat.js` runs it and
 sends the result back, up to eight look-ups per question. The league text
@@ -314,8 +314,9 @@ the member from page to page and is gone when the tab is closed. Nothing is
 stored on the server but the day's question count.
 
 Settings, as function secrets: `ANTHROPIC_API_KEY` (required),
-`ALLOWED_ORIGINS`, `AI_MODEL` (default `claude-opus-5-5`), `AI_EFFORT`
-(`low` to `max`, default `medium`), `AI_DAILY_QUESTIONS` (default 60). In
+`ALLOWED_ORIGINS`, `AI_MODEL` (default `claude-sonnet-5-5`;
+`claude-opus-5-5` is stronger and about twice the price), `AI_EFFORT` (`low`
+to `max`, default `medium`), `AI_DAILY_QUESTIONS` (default 60). In
 `account-config.js`, `AI_CHAT_URL` points the site at the function if it
 isn't at `<SUPABASE_URL>/functions/v1/league-chat`.
 
