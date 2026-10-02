@@ -1,4 +1,5 @@
-/* Accounts, plans and ads: the settings you fill in.
+/* Accounts, plans and ads: the settings you fill in. (For now PRICING and
+   ADS.enabled are off: the site is free for everyone with an account.)
 
    Until SUPABASE_URL and SUPABASE_ANON_KEY are set, the site runs its
    account system in PREVIEW mode: sign-up, sign-in, the profile menu, the
@@ -24,9 +25,10 @@ window.ACCOUNT_CONFIG = {
   // leagues and every Sleeper league never use it.
   ESPN_PROXY_URL: "",
 
-  // Ask the League, the AI chat on every league page (chat.js), for Pro
-  // members. It talks to supabase/functions/league-chat, which holds the
-  // Anthropic API key and checks the plan. Left empty, it is
+  // Ask the League, the AI chat on every league page (chat.js), for
+  // signed-in members (Pro only once PRICING is on). It talks to
+  // supabase/functions/league-chat, which holds the Gemini API key (Google AI
+  // Studio) and checks the member. Left empty, it is
   // <SUPABASE_URL>/functions/v1/league-chat once SUPABASE_URL is set; to try
   // it without Supabase, run the function on your computer with CHAT_OPEN=1
   // and put "http://localhost:8000" here.
@@ -41,6 +43,13 @@ window.ACCOUNT_CONFIG = {
   // account, to open a league's pages. False opens every league to everyone
   // (the site as it was), while keeping the account menu and ads.
   REQUIRE_ACCOUNT: true,
+
+  // The plans and prices (Free, Pro, League Pass). Off for now: every
+  // signed-in member gets everything, and nothing on the site mentions a
+  // price. Turn it back on together with the database's switch,
+  // app_settings.free_for_everyone = false (Supabase ▸ Table editor), which
+  // brings back the limits on the server.
+  PRICING: false,
 
   PLANS: {
     free: { name: "Free", price: "$0", leagues: 1, ads: true },
@@ -70,7 +79,10 @@ window.ACCOUNT_CONFIG = {
   // Ads. Every slot on the site is a fixed-size box; with no provider set
   // it shows a labelled placeholder. For Google AdSense, set the publisher
   // id ("ca-pub-…") and, per slot name, the ad unit id from AdSense.
+  // enabled: false hides every slot for everyone; the slots stay in the
+  // pages, ready for when ads go live. Pro members never see them.
   ADS: {
+    enabled: false,
     provider: null,          // null (placeholders) or "adsense"
     adsenseClient: "",
     units: {
