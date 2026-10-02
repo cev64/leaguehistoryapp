@@ -115,15 +115,8 @@ html:has(body.lp) { scroll-behavior: smooth; scroll-padding-top: 76px; }
   border-bottom: 4px solid var(--lp-red);
 }
 .lp-hero-grid { display: grid; gap: 40px; padding: 44px 0 56px; }
-.lp-pill {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 7px 13px; border-radius: 999px;
-  border: 1px solid rgba(246, 183, 60, .45); background: rgba(246, 183, 60, .1);
-  color: var(--lp-gold-2); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
-}
-.lp-dot { width: 7px; height: 7px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 0 4px rgba(61, 220, 132, .18); }
 .lp-hero h1 {
-  margin: 18px 0 0;
+  margin: 0;
   font-family: "Barlow Condensed", sans-serif; font-weight: 700; text-transform: uppercase;
   font-size: clamp(44px, 11vw, 84px); line-height: .92; letter-spacing: .005em;
 }
