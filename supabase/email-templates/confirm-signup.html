@@ -1,0 +1,57 @@
+<!-- Supabase ▸ Authentication ▸ Emails ▸ Confirm signup.
+     Subject: Confirm your Pigskin Pantheon account -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Confirm your Pigskin Pantheon account</title>
+</head>
+<body style="margin:0;padding:0;background:#eef2f6;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">One tap and your league's history is yours: recaps, the record book, the trophy room and the AI historian.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eef2f6;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+          <!-- header -->
+          <tr>
+            <td align="center" style="background:#071827;border-radius:18px 18px 0 0;padding:28px 24px 24px;border-bottom:4px solid #d71920;">
+              <img src="https://pigskinpantheon.com/icons/crest.png" width="56" height="56" alt="" style="display:block;border:0;margin:0 auto 12px;">
+              <div style="font-family:'Arial Narrow',Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ffffff;">
+                Pigskin <span style="color:#f6b73c;">Pantheon</span>
+              </div>
+            </td>
+          </tr>
+          <!-- body -->
+          <tr>
+            <td style="background:#ffffff;padding:32px 32px 28px;font-family:Arial,Helvetica,sans-serif;color:#0b1726;">
+              <h1 style="margin:0 0 14px;font-size:24px;line-height:1.25;font-weight:800;">
+                {{ if .Data.display_name }}Welcome, {{ .Data.display_name }}.{{ else }}Welcome to the Pantheon.{{ end }}
+              </h1>
+              <p style="margin:0 0 22px;font-size:16px;line-height:1.6;color:#4a5768;">
+                Confirm your email and your league's whole history is yours: weekly recaps, the all-time record book, a 3D trophy room and an AI historian that knows every score.
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 24px;">
+                <tr>
+                  <td align="center" bgcolor="#f6b73c" style="border-radius:12px;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 30px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:800;color:#071827;text-decoration:none;border-radius:12px;">Confirm my email</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 6px;font-size:13px;line-height:1.5;color:#637083;">Button not working? Paste this link into your browser:</p>
+              <p style="margin:0;font-size:12px;line-height:1.5;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#1769e0;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <!-- footer -->
+          <tr>
+            <td style="background:#f5f7fa;border-radius:0 0 18px 18px;padding:18px 32px 22px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#718092;">
+              You're getting this because someone signed up at <a href="https://pigskinpantheon.com" style="color:#718092;">pigskinpantheon.com</a> with {{ .Email }}. If that wasn't you, ignore this email and no account will be made.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
