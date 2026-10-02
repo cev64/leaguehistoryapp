@@ -382,7 +382,9 @@ stored on the server but the day's question count.
 
 Settings, as function secrets: `GEMINI_API_KEY` (required, from
 aistudio.google.com ▸ Get API key), `ALLOWED_ORIGINS`, `AI_MODEL` (default
-`gemini-3.8-flash`; any Gemini model id), `AI_THINKING` (`low`, `medium` or
+`gemini-3.8-flash`; any Gemini model id), `AI_FALLBACK_MODEL` (default
+`gemini-3.5-flash`, used when the main model is overloaded or out of its
+daily allowance; `none` to turn it off), `AI_THINKING` (`low`, `medium` or
 `high`, default `low`; more thinking is slower and uses more of the
 tokens-a-minute limit) and `AI_DAILY_QUESTIONS` (default 25). In
 `account-config.js`, `AI_CHAT_URL` points the site at the function if it

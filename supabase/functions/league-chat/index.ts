@@ -43,8 +43,14 @@
 //   supabase functions deploy league-chat --no-verify-jwt
 //   supabase secrets set GEMINI_API_KEY=AIza…   (Google AI Studio ▸ Get API key)
 //   supabase secrets set ALLOWED_ORIGINS=https://your-site.example
-// Optional: AI_MODEL (default gemini-3.8-flash), AI_THINKING (low, medium or
+// Optional: AI_MODEL (default gemini-3.8-flash), AI_FALLBACK_MODEL (default
+// gemini-3.5-flash; "none" for no fallback), AI_THINKING (low, medium or
 // high; default low) and AI_DAILY_QUESTIONS (default 25).
+//
+// Google's free tier is sometimes overloaded ("This model is currently
+// experiencing high demand", a 503). A request that meets that, or a brief
+// rate limit, is tried again twice after a short wait, then on the fallback
+// model, before the member is told the AI is busy.
 //
 // The free tier's limits are per Google Cloud project, shared by every
 // member: requests a minute, tokens a minute and requests a day (Google AI
@@ -69,6 +75,11 @@ const ACCOUNTS = Boolean(SUPABASE_URL && ANON_KEY && SERVICE_KEY);
 const OPEN = env("CHAT_OPEN") === "1";
 const API_KEY = env("GEMINI_API_KEY");
 const MODEL = env("AI_MODEL").replace(/^models\//, "") || "gemini-3.8-flash";
+const FALLBACK = (() => {
+  const v = env("AI_FALLBACK_MODEL").replace(/^models\//, "");
+  if (v.toLowerCase() === "none") return "";
+  return (v || "gemini-3.5-flash") === MODEL ? "" : (v || "gemini-3.5-flash");
+})();
 const THINKING = ["low", "medium", "high"].includes(env("AI_THINKING")) ? env("AI_THINKING") : "low";
 const DAILY = Math.max(1, Number(env("AI_DAILY_QUESTIONS")) || 25);
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -84,7 +95,9 @@ const MAX_TOOL_ROUNDS = 8;
 const MAX_OUTPUT = 8192;
 
 // Gemini 3 models take a thinking level; older ones a token budget.
-const LEVELS = /^gemini-3/.test(MODEL);
+const thinkingFor = (model: string) => /^gemini-3/.test(model)
+  ? { thinkingLevel: THINKING }
+  : { thinkingBudget: THINKING === "low" ? 1024 : THINKING === "medium" ? 4096 : 12288 };
 // What a function call from history carries when its signature was lost
 // (a conversation begun before this function moved to Gemini): Gemini's
 // documented value for skipping the check.
@@ -303,6 +316,7 @@ type Block = {
   content?: unknown;
   is_error?: boolean;
   sig?: string;   // Gemini's thought signature
+  m?: string;     // the model that wrote it: a signature is good only there
   gid?: boolean;  // the id is Gemini's own, so it goes back with the call
 };
 type Message = { role: "user" | "assistant"; content: string | Block[] };
@@ -349,17 +363,21 @@ type Part = {
 };
 type Content = { role: "user" | "model"; parts: Part[] };
 
-// The conversation as Gemini's contents. Thinking blocks from a conversation
-// begun on the earlier model are left out; its tool calls go across with
-// the placeholder signature.
-function contents(messages: Message[]): Content[] {
+// The conversation as Gemini's contents, for `model`. Thinking blocks from a
+// conversation begun on the earlier model are left out; a signature only
+// goes back to the model that wrote it (a block with none named came from
+// the main model), and a tool call without a usable one carries the
+// placeholder.
+function contents(messages: Message[], model: string): Content[] {
+  const sigOf = (b: Block) => (b.sig && (b.m || MODEL) === model ? b.sig : undefined);
   const calls = new Map<string, { name: string; id?: string }>();
   const out: Content[] = [];
   for (const m of messages) {
     const parts: Part[] = [];
     for (const b of blocksOf(m)) {
-      if (b.type === "text" && typeof b.text === "string" && (b.text || b.sig)) {
-        parts.push(b.sig && m.role === "assistant" ? { text: b.text, thoughtSignature: b.sig } : { text: b.text });
+      if (b.type === "text" && typeof b.text === "string" && b.text) {
+        const sig = m.role === "assistant" ? sigOf(b) : undefined;
+        parts.push(sig ? { text: b.text, thoughtSignature: sig } : { text: b.text });
       } else if (b.type === "tool_use" && m.role === "assistant" && typeof b.name === "string") {
         const id = b.gid && typeof b.id === "string" ? b.id : undefined;
         if (typeof b.id === "string") calls.set(b.id, { name: b.name, id });
@@ -368,7 +386,8 @@ function contents(messages: Message[]): Content[] {
         // without its own goes as it came.
         const first = !parts.some((p) => p.functionCall);
         const call: Part = { functionCall: id ? { id, name: b.name, args } : { name: b.name, args } };
-        if (b.sig || first) call.thoughtSignature = b.sig || NO_SIGNATURE;
+        const sig = sigOf(b);
+        if (sig || first) call.thoughtSignature = sig || NO_SIGNATURE;
         parts.push(call);
       } else if (b.type === "tool_result" && m.role === "user") {
         const { name, id } = calls.get(String(b.tool_use_id)) ?? { name: "lookup" };
@@ -398,8 +417,53 @@ function upstreamError(status: number, body: string): { message: string; setup: 
   if (status === 404) {
     return { message: "The league AI isn't set up right yet: its model wasn't found. (Site owner: check AI_MODEL.)", setup: true };
   }
-  if (status >= 500) return { message: "The AI is busy right now. Try again in a minute.", setup: false };
+  if (status >= 500) return { message: "Google's AI is overloaded right now. Try again in a minute.", setup: false };
   return { message: "The AI couldn't answer that. Try again.", setup: false };
+}
+
+/* Asking Gemini, through a busy spell: the main model up to three times
+   (a short wait between), then the fallback model twice. Only "busy"
+   answers are tried again: an overloaded model (500, 502, 503, 504) or a
+   per-minute rate limit. Anything else (a bad key, today's allowance used
+   up) is final. Returns the open stream and the model that answered, or
+   the last refusal. */
+const BUSY = new Set([500, 502, 503, 504]);
+const wait = (ms: number, signal: AbortSignal) => new Promise<void>((resolve) => {
+  const t = setTimeout(resolve, ms);
+  signal.addEventListener("abort", () => { clearTimeout(t); resolve(); }, { once: true });
+});
+async function askGemini(requestFor: (model: string) => unknown, signal: AbortSignal):
+  Promise<{ res: Response | null; model: string; status: number; detail: string }> {
+  const plan: [string, number][] = [[MODEL, 0], [MODEL, 700], [MODEL, 1800]];
+  if (FALLBACK) plan.push([FALLBACK, 0], [FALLBACK, 1200]);
+  let status = 0, detail = "", model = MODEL;
+  for (let i = 0; i < plan.length; i++) {
+    const [m, delay] = plan[i];
+    if (delay) await wait(delay, signal);
+    if (signal.aborted) break;
+    model = m;
+    const res = await fetch(`${GEMINI}/${encodeURIComponent(m)}:streamGenerateContent?alt=sse`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": API_KEY },
+      body: JSON.stringify(requestFor(m)),
+      signal,
+    });
+    if (res.ok && res.body) {
+      if (i > 0) console.log(`league-chat: answered by ${m} after a ${status} from Gemini`);
+      return { res, model: m, status: res.status, detail: "" };
+    }
+    status = res.status;
+    detail = await res.text().catch(() => "");
+    console.error("league-chat: Gemini answered", status, "on", m, detail.slice(0, 400));
+    const busy = BUSY.has(status) || (status === 429 && !/PerDay|per day|daily/i.test(detail));
+    if (busy) continue;
+    // The main model missing (404) or out of today's allowance still leaves
+    // the fallback, which has its own; anything else is final.
+    const next = plan.findIndex(([pm], k) => k > i && pm !== m);
+    if (m === MODEL && next > 0 && (status === 404 || status === 429)) { i = next - 1; continue; }
+    break;
+  }
+  return { res: null, model, status, detail };
 }
 
 // Finish reasons that mean Gemini declined to answer.
@@ -444,18 +508,15 @@ async function handle(req: Request): Promise<Response> {
     return fail(429, "daily_limit", `that's today's ${DAILY} questions; the chat opens again tomorrow`, origin);
   }
 
-  const request = {
+  const requestFor = (model: string) => ({
     // The instructions and then the league, the same from one turn to the
     // next, so Gemini's implicit cache can serve them. Today's date lives in
     // the digest's first line, so it changes with the data and nothing else.
     systemInstruction: { parts: [{ text: `${INSTRUCTIONS}\n\nThe league: ${league}\n\n${digest}` }] },
-    contents: contents(convo.messages),
+    contents: contents(convo.messages, model),
     tools: [{ functionDeclarations: TOOLS }],
-    generationConfig: {
-      maxOutputTokens: MAX_OUTPUT,
-      thinkingConfig: LEVELS ? { thinkingLevel: THINKING } : { thinkingBudget: THINKING === "low" ? 1024 : THINKING === "medium" ? 4096 : 12288 },
-    },
-  };
+    generationConfig: { maxOutputTokens: MAX_OUTPUT, thinkingConfig: thinkingFor(model) },
+  });
 
   // The answer as server-sent events: text as it is written, a note when a
   // tool is called, then the whole message as content blocks, which the
@@ -470,16 +531,9 @@ async function handle(req: Request): Promise<Response> {
         if (!abort.signal.aborted) controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
       try {
-        const res = await fetch(`${GEMINI}/${encodeURIComponent(MODEL)}:streamGenerateContent?alt=sse`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": API_KEY },
-          body: JSON.stringify(request),
-          signal: abort.signal,
-        });
-        if (!res.ok || !res.body) {
-          const detail = await res.text().catch(() => "");
-          console.error("league-chat: Gemini answered", res.status, detail.slice(0, 600));
-          send({ t: "error", ...upstreamError(res.status, detail) });
+        const { res, model, status, detail } = await askGemini(requestFor, abort.signal);
+        if (!res || !res.body) {
+          if (!abort.signal.aborted) send({ t: "error", ...upstreamError(status, detail) });
           return;
         }
 
@@ -489,8 +543,8 @@ async function handle(req: Request): Promise<Response> {
           const last = content[content.length - 1];
           if (last && last.type === "text" && !last.sig) {
             last.text += t;
-            if (sig) last.sig = sig;
-          } else content.push(sig ? { type: "text", text: t, sig } : { type: "text", text: t });
+            if (sig) { last.sig = sig; last.m = model; }
+          } else content.push(sig ? { type: "text", text: t, sig, m: model } : { type: "text", text: t });
         };
         const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
         let buf = "";
@@ -522,7 +576,7 @@ async function handle(req: Request): Promise<Response> {
                   input: part.functionCall.args ?? {},
                 };
                 if (part.functionCall.id) block.gid = true;
-                if (part.thoughtSignature) block.sig = part.thoughtSignature;
+                if (part.thoughtSignature) { block.sig = part.thoughtSignature; block.m = model; }
                 content.push(block);
               } else if (typeof part.text === "string") {
                 if (part.text) send({ t: "text", d: part.text });
