@@ -20,10 +20,15 @@
 // They never go back to a browser: ?action=status only says whether they
 // are saved. ?action=forget deletes them.
 //
+// ?action=leagues lists the member's ESPN fantasy football leagues (with
+// either kind of keys), from the teams ESPN keeps on their profile, so the
+// front page can offer them without anyone looking up a league id.
+//
 // What it will do with ESPN, and nothing else:
 //   - GET only, to lm-api-reads.fantasy.espn.com, for fantasy football
 //     league reads (a season, a league's history, its activity feed) and
-//     the player list. Nothing that writes, nothing on another host.
+//     the player list, and to fan.api.espn.com for the member's own list of
+//     fantasy teams (?action=leagues). Nothing that writes, nothing else.
 //   - Keys are never logged or sent anywhere but ESPN.
 //
 // Without Supabase (keys kept in each visitor's browser only): this file
@@ -216,6 +221,91 @@ async function account(req: Request, action: string, origin: string | null) {
   }
 }
 
+/* ------------------------------------------------------------ the keys */
+
+// The keys a request is made with: the ones it carries, or (marked
+// x-lh-account: 1) the signed-in member's saved ones. A Response is the
+// reason there are none.
+async function keysFor(req: Request, origin: string | null): Promise<Keys | Response> {
+  if (req.headers.get("x-lh-account") === "1") {
+    if (!ACCOUNTS) return fail(501, "saving ESPN keys to accounts isn't set up", origin);
+    const userId = await member(req);
+    if (!userId) return fail(401, "sign in first", origin);
+    let row = null;
+    try { row = await savedRow(userId); } catch { return fail(502, "the account store didn't answer", origin); }
+    const keys = row ? await unseal(row.sealed, userId) : null;
+    return keys ?? fail(401, "no ESPN keys saved to this account", origin);
+  }
+  return tidy(req.headers.get("x-espn-s2"), req.headers.get("x-espn-swid")) ??
+    fail(400, "espn_s2 and SWID are both needed", origin);
+}
+
+const cookieHeaders = (keys: Keys) => ({
+  "Cookie": `espn_s2=${keys.s2}; SWID=${keys.swid}`,
+  "Accept": "application/json",
+  "User-Agent": "league-history-relay/1.0",
+});
+
+/* ------------------------------------------------------------ their leagues */
+
+type League = { id: number; name: string; season: number; team: string | null; size: number | null; logo: string | null };
+
+// The football leagues among the fantasy teams on an ESPN profile, newest
+// season of each league. ESPN keeps each team as a "preference" whose entry
+// names its game, season and league (its group); the entry's address is the
+// fallback for anything left out.
+// deno-lint-ignore no-explicit-any
+function footballLeagues(profile: any): League[] {
+  const out = new Map<number, League>();
+  for (const pref of Array.isArray(profile?.preferences) ? profile.preferences : []) {
+    const e = pref?.metaData?.entry;
+    if (!e || typeof e !== "object") continue;
+    const url = typeof e.entryURL === "string" ? e.entryURL : "";
+    const football = e.gameId === 1 || /^ffl$/i.test(String(e.abbrev ?? "")) || /\/football\//.test(url);
+    if (!football) continue;
+    const group = Array.isArray(e.groups) && e.groups[0] ? e.groups[0] : {};
+    const id = Number(group.groupId) || Number(/[?&]leagueId=(\d+)/.exec(url)?.[1]);
+    if (!Number.isSafeInteger(id) || id <= 0 || id > 999999999999) continue;
+    const season = Number(e.seasonId) || Number(/[?&]seasonId=(\d{4})/.exec(url)?.[1]) || 0;
+    const had = out.get(id);
+    if (had && had.season >= season) continue;
+    const team = [e.entryLocation, e.entryNickname].filter((x) => typeof x === "string" && x.trim()).join(" ").trim();
+    out.set(id, {
+      id,
+      name: String(group.groupName ?? "").trim().slice(0, 120) || `League ${id}`,
+      season,
+      team: team ? team.slice(0, 120) : null,
+      size: Number(group.groupSize) || null,
+      logo: typeof e.logoUrl === "string" && /^https:\/\//.test(e.logoUrl) ? e.logoUrl.slice(0, 500) : null,
+    });
+  }
+  return [...out.values()].sort((a, b) => b.season - a.season || a.name.localeCompare(b.name));
+}
+
+async function leagues(req: Request, origin: string | null) {
+  if (req.method !== "GET") return fail(405, "GET only", origin);
+  const keys = await keysFor(req, origin);
+  if (keys instanceof Response) return keys;
+  const url = `https://fan.api.espn.com/apis/v2/fans/${encodeURIComponent(keys.swid)}` +
+    "?displayHiddenPrefs=true&context=fantasy&useCookieAuth=true&source=fantasyapp-ios&featureFlags=challengeEntries";
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: cookieHeaders(keys), redirect: "manual", signal: AbortSignal.timeout(20000) });
+  } catch {
+    return fail(502, "ESPN didn't answer", origin);
+  }
+  if (res.status === 401 || res.status === 403 || res.status === 404 || (res.status >= 300 && res.status < 400)) {
+    return fail(401, "ESPN refused these keys", origin);
+  }
+  if (!res.ok) return fail(502, `ESPN answered ${res.status}`, origin);
+  let profile: unknown;
+  try { profile = await res.json(); } catch { return fail(502, "ESPN's answer wasn't readable", origin); }
+  return new Response(JSON.stringify({ leagues: footballLeagues(profile) }), {
+    status: 200,
+    headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+  });
+}
+
 /* ------------------------------------------------------------ the relay */
 
 async function handle(req: Request): Promise<Response> {
@@ -225,6 +315,7 @@ async function handle(req: Request): Promise<Response> {
 
   const params = new URL(req.url).searchParams;
   const action = params.get("action");
+  if (action === "leagues") return leagues(req, origin);
   if (action) return account(req, action, origin);
   if (req.method !== "GET") return fail(405, "GET only", origin);
 
@@ -232,25 +323,10 @@ async function handle(req: Request): Promise<Response> {
   if (!url) return fail(400, "not an ESPN fantasy football league address", origin);
 
   // The keys: sent with the request, or the signed-in member's saved ones.
-  let keys: Keys | null = null;
-  if (req.headers.get("x-lh-account") === "1") {
-    if (!ACCOUNTS) return fail(501, "saving ESPN keys to accounts isn't set up", origin);
-    const userId = await member(req);
-    if (!userId) return fail(401, "sign in first", origin);
-    let row = null;
-    try { row = await savedRow(userId); } catch { return fail(502, "the account store didn't answer", origin); }
-    keys = row ? await unseal(row.sealed, userId) : null;
-    if (!keys) return fail(401, "no ESPN keys saved to this account", origin);
-  } else {
-    keys = tidy(req.headers.get("x-espn-s2"), req.headers.get("x-espn-swid"));
-    if (!keys) return fail(400, "espn_s2 and SWID are both needed", origin);
-  }
+  const keys = await keysFor(req, origin);
+  if (keys instanceof Response) return keys;
 
-  const headers: Record<string, string> = {
-    "Cookie": `espn_s2=${keys.s2}; SWID=${keys.swid}`,
-    "Accept": "application/json",
-    "User-Agent": "league-history-relay/1.0",
-  };
+  const headers: Record<string, string> = cookieHeaders(keys);
   const filter = req.headers.get("x-fantasy-filter");
   if (filter) {
     if (filter.length > 4000) return fail(400, "filter too long", origin);
