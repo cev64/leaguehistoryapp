@@ -24,6 +24,14 @@ window.ACCOUNT_CONFIG = {
   // leagues and every Sleeper league never use it.
   ESPN_PROXY_URL: "",
 
+  // Ask the League, the AI chat on every league page (chat.js), for Pro
+  // members. It talks to supabase/functions/league-chat, which holds the
+  // Anthropic API key and checks the plan. Left empty, it is
+  // <SUPABASE_URL>/functions/v1/league-chat once SUPABASE_URL is set; to try
+  // it without Supabase, run the function on your computer with CHAT_OPEN=1
+  // and put "http://localhost:8000" here.
+  AI_CHAT_URL: "",
+
   // Sign-in methods shown on the sign-in screen. Email + password is always
   // on; Google needs the Google provider switched on in Supabase ▸
   // Authentication ▸ Providers first.

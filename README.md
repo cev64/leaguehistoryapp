@@ -11,8 +11,9 @@ of your leagues, sign in, and the site reads that league and every season
 before it straight from Sleeper or ESPN. The site is static files: everything
 it shows comes from the platform's API in the visitor's own browser, and the
 only server is Supabase, for accounts (see [Accounts, plans and
-ads](#accounts-plans-and-ads)) and the relay that opens private ESPN leagues
-(see [ESPN leagues](#espn-leagues)).
+ads](#accounts-plans-and-ads)), the relay that opens private ESPN leagues
+(see [ESPN leagues](#espn-leagues)) and the AI behind Ask the League (see
+[Ask the League](#ask-the-league-the-ai-chat)).
 
 ## Pages
 
@@ -248,6 +249,91 @@ refreshes it every morning at 12:00 UTC and commits it when anything changed.
 Scheduled Actions only run on the repository's default branch; "Run workflow"
 on the Actions tab runs it by hand.
 
+## Ask the League (the AI chat)
+
+Every league page (season, record book, front office, trophy room) has an
+**Ask the League** button in its corner. It opens a chat with the League
+Historian, an AI that answers questions about that league: champions,
+rivalries, records, streaks, trades, drafts, waiver pickups, lineup
+mistakes, a player's history with the league, this season so far. It is
+part of **Pro**; on the free plan the same button opens a preview of it with
+the way to upgrade.
+
+`chat.js` / `chat.css` are the button, the window and the browser's half;
+`supabase/functions/league-chat` is the server's half.
+
+How it knows the league, without a database of its own:
+
+- **The league as text.** When the chat opens, `chat.js` writes the league
+  out from the data the page already loaded: every season's format,
+  standings, champion and last place, every game's score, every playoff
+  game, the week ahead, and all-time tables worked out in the browser
+  (each manager's career record, titles, playoff record and finishes;
+  head-to-head for every pair; the highest and lowest scores, blowouts,
+  closest games, best and worst seasons; streaks; each manager's
+  most-started players). The AI is given these totals rather than left to
+  add up hundreds of games itself. A ten-team league with a few seasons is
+  around 7,000 tokens.
+- **Tools for the detail.** Anything finer is a tool the AI can call, and
+  the tool runs **in the browser**, on data the site already reads:
+  `box_score` (every lineup of a week), `player_history` (a player's weeks
+  with each manager, his best starts, how he was drafted, traded or
+  claimed), `team_season`, `top_performances` (best single-week starts and
+  bench weeks, by season, position or manager), `trades` (graded in
+  hindsight, from the front office), `waiver_pickups`, `draft` and
+  `lineup_efficiency`. The server never reads Sleeper or ESPN.
+
+Each question goes to the function with the league text and the
+conversation so far. The function adds the instructions, the tools and the
+Anthropic API key, asks Claude (`claude-opus-5-5`, adaptive thinking,
+medium effort) and streams the answer back as it is written. When Claude
+asks for a tool, the stream ends with the request, `chat.js` runs it and
+sends the result back, up to eight look-ups per question. The league text
+and the conversation are prompt-cached, so a follow-up question rereads them
+at a tenth of the price. A question Claude's safety checks decline is
+retried on Anthropic's recommended fallback model in the same request.
+
+What protects the bill and the paywall:
+
+- **Pro only, checked on the server.** With Supabase, the function reads the
+  member's plan from `profiles` with their session; a free account gets
+  `402 pro_required` whatever the browser says.
+- **A daily allowance.** `AI_DAILY_QUESTIONS` new questions per member per
+  day (60 unless set), counted in `chat_usage` by `count_chat_question()`
+  (`supabase/migrations/20261003000000_league_chat.sql`), which only the
+  function can call. Tool look-ups don't count as questions; eight per
+  question is the ceiling.
+- **Bounded requests.** Questions up to 2,000 characters, conversations up
+  to 80 turns (the window asks for a new chat before then), a size limit on
+  the league text, and `ALLOWED_ORIGINS` limiting it to the site.
+- **Stopping stops the cost.** The stop button, or closing the tab, cancels
+  the request to Claude.
+
+The conversation stays in the browser tab (sessionStorage), so it follows
+the member from page to page and is gone when the tab is closed. Nothing is
+stored on the server but the day's question count.
+
+Settings, as function secrets: `ANTHROPIC_API_KEY` (required),
+`ALLOWED_ORIGINS`, `AI_MODEL` (default `claude-opus-5-5`), `AI_EFFORT`
+(`low` to `max`, default `medium`), `AI_DAILY_QUESTIONS` (default 60). In
+`account-config.js`, `AI_CHAT_URL` points the site at the function if it
+isn't at `<SUPABASE_URL>/functions/v1/league-chat`.
+
+**Trying it without Supabase.** In preview mode the button and window work,
+and "Switch to Pro" on the account panel unlocks the chat; until the
+function is reachable, the window says it isn't connected. To see real
+answers on your computer:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-… CHAT_OPEN=1 deno run --allow-net --allow-env \
+  supabase/functions/league-chat/index.ts
+```
+
+and set `AI_CHAT_URL: "http://localhost:8000"` in `account-config.js`.
+`CHAT_OPEN=1` skips the Pro check (there are no accounts to check) and
+keeps only a per-address daily allowance in memory, so anyone who can reach
+it is spending your API key: use it locally, never on a public address.
+
 ## Hosting
 
 Serve the folder from any static host (GitHub Pages, Netlify, Cloudflare
@@ -267,10 +353,10 @@ returning visitors keep the old copy.
 
 Visitors sign in to open a league. Two plans:
 
-| Plan | Price | Leagues | Ads |
-| --- | --- | --- | --- |
-| Free | $0 | 1, swappable once every 30 days | Yes |
-| Pro | $5/month | Unlimited, add or remove any time | No |
+| Plan | Price | Leagues | Ask the League (AI) | Ads |
+| --- | --- | --- | --- | --- |
+| Free | $0 | 1, swappable once every 30 days | Preview only | Yes |
+| Pro | $5/month | Unlimited, add or remove any time | Yes | No |
 
 A league is synced by its whole history (every season's league id), so the
 new league Sleeper creates when a league renews is still the same league and
@@ -292,6 +378,9 @@ never costs a swap.
 - `supabase/functions/espn-proxy/` — the relay for private ESPN leagues,
   and the encrypted store for ESPN keys saved to accounts (see
   [ESPN leagues](#espn-leagues)).
+- `supabase/functions/league-chat/` — the AI behind Ask the League: checks
+  the member is on Pro, asks Claude, streams the answer (see
+  [Ask the League](#ask-the-league-the-ai-chat)).
 
 Until `SUPABASE_URL` and `SUPABASE_ANON_KEY` are filled in, accounts run in
 **preview mode**: everything works, but accounts are kept in the browser
@@ -326,7 +415,13 @@ Going live:
    Run the other two migrations too: `20261001000000_espn_leagues.sql` lets
    an ESPN league (`espn-<id>`) be synced to an account, and
    `20261002000000_espn_keys.sql` adds the encrypted key store.
-7. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
+7. For Ask the League, run `20261003000000_league_chat.sql`, deploy the
+   function (`supabase functions deploy league-chat --no-verify-jwt`) and
+   set its secrets: `supabase secrets set ANTHROPIC_API_KEY=sk-ant-…` (from
+   console.anthropic.com) and `ALLOWED_ORIGINS` as for the relay. Optional:
+   `AI_DAILY_QUESTIONS`, `AI_MODEL`, `AI_EFFORT`. Set a monthly spend limit
+   on the Anthropic account too.
+8. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
    config.
 
 The gate is a paywall in the browser: Sleeper's data is public, so it keeps
