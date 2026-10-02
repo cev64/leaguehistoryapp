@@ -1723,6 +1723,8 @@
     .espn-desktop { display: grid; gap: 8px; color: var(--ink); }
     .espn-desktop ol { color: var(--muted); }
     .espn-desktop .espn-desktop-why { color: var(--muted); }
+    .espn-desktop .espn-desktop-lead { margin: 0; }
+    .espn-desktop-actions { display: flex; }
     .espn-desktop a { color: var(--blue); font-weight: 700; text-decoration: none; }
 
     .league-list { display: grid; }
@@ -2107,16 +2109,19 @@
                 <!-- Phones and tablets: the keys can only be copied out of a
                      desktop browser, so the panel says where to do it. -->
                 <div class="espn-desktop" id="espnDesktop" hidden>
-                  <p><strong>Connect it from a computer, once.</strong> A private league opens with two keys ESPN keeps in your browser, and they can only be copied from a desktop browser's developer tools, which phones and tablets don't have.</p>
+                  <p class="espn-desktop-lead"><strong>Open this site on a computer and continue there.</strong> It's a one-time setup on desktop (about two minutes), and then your private leagues work on your phone too.</p>
                   <ol>
-                    <li id="espnDesktopSignIn">On a computer, open this site and sign in.</li>
-                    <li>Pick <strong>ESPN</strong> ▸ <strong>Private league?</strong> and save your keys to your account.</li>
-                    <li>Back here, your private leagues are listed and open with nothing to type.</li>
+                    <li id="espnDesktopSignIn">On a computer, go to this site and sign in.</li>
+                    <li>Choose <strong>ESPN</strong> ▸ <strong>Private league?</strong> and follow the steps there.</li>
+                    <li>That's it. Your private leagues show up here on your phone, with nothing to type.</li>
                   </ol>
+                  <div class="espn-desktop-actions">
+                    <button type="button" class="espn-add" id="espnCopyLink">Copy the link for your computer</button>
+                  </div>
                   <p class="espn-desktop-why"><a href="#" id="espnKeysAnyway">Have your keys already? Enter them here</a></p>
                 </div>
                 <div id="espnKeys">
-                  <p>A private league opens with your ESPN keys: two values ESPN keeps in your browser once you're signed in. Find them on a computer:</p>
+                  <p><strong>A one-time setup, on a computer.</strong> A private league opens with your ESPN keys: two values ESPN keeps in your browser once you're signed in. Save them here once and, signed in, your private leagues open on your phone too.</p>
                   <ol>
                     <li>Sign in at <a href="https://fantasy.espn.com/football/" target="_blank" rel="noopener">fantasy.espn.com</a> and open your league.</li>
                     <li>Open the browser's developer tools (F12, or ⌥⌘I on a Mac) ▸ <strong>Application</strong> (Chrome, Edge) or <strong>Storage</strong> (Firefox, Safari) ▸ Cookies ▸ espn.com.</li>
@@ -2409,7 +2414,7 @@
         $("espnPrivateSub").textContent = connected
           ? `Your ESPN keys are saved ${onAccountKnown ? "to your account" : "in this browser"}, so your private leagues open and are listed below. Manage them, or add another ESPN account, here.`
           : TOUCH.matches
-            ? "Connect your ESPN account from a computer, once; then your private leagues open here too."
+            ? "A one-time setup on a computer, then it works on your phone too."
             : "Connect your ESPN account to open it, and to list all your ESPN leagues here.";
       }
       let drawing = 0;
@@ -2439,8 +2444,8 @@
         const desktopOnly = relay && !saved && TOUCH.matches && !keysAnyway;
         $("espnDesktop").hidden = !desktopOnly;
         $("espnDesktopSignIn").innerHTML = keys.signedIn()
-          ? `On a computer, open this site and sign in as <strong>${esc(window.Account.user.email || "you")}</strong>.`
-          : 'On a computer, open this site and sign in. <a href="#" id="espnSignIn">Sign in here too</a>, with the same account, so the keys carry over to this phone.';
+          ? `On a computer, go to this site and sign in as <strong>${esc(window.Account.user.email || "you")}</strong>.`
+          : 'On a computer, go to this site and sign in (or make a free account). <a href="#" id="espnSignIn">Sign in on this phone too</a>, with the same account, so it carries over.';
         $("espnKeys").hidden = !relay || desktopOnly || (saved && !adding);
         // Where typed keys go: this browser, and the account if the member
         // is signed in and leaves the box ticked.
@@ -2575,6 +2580,19 @@
         if (open) drawPrivate();
       }
       $("espnPrivateToggle").addEventListener("click", () => openPrivate(espnPrivate.hidden));
+      // The site's address, to open on a computer.
+      $("espnCopyLink").addEventListener("click", async () => {
+        const btn = $("espnCopyLink");
+        const link = `${location.origin}${location.pathname.replace(/[^/]*$/, "")}`;
+        try {
+          if (navigator.share) { await navigator.share({ title: "Pigskin Pantheon", text: "Finish connecting my ESPN league on a computer", url: link }); return; }
+          await navigator.clipboard.writeText(link);
+          btn.textContent = "Link copied. Open it on your computer";
+        } catch (err) {
+          if (err && err.name === "AbortError") return;
+          btn.textContent = link;
+        }
+      });
       $("espnKeysAnyway").addEventListener("click", (event) => {
         event.preventDefault();
         keysAnyway = true;
