@@ -658,6 +658,8 @@
     const league = { id: String(model.leagueId), ids, name: model.name, avatar: model.avatar,
       teams: newest ? Object.keys(newest.teams || {}).length : 0 };
     seenLeague = league;
+    // The demo league is open to everyone, and never synced to an account.
+    if (model.demo) { admitted = league; return; }
     await ready;
     if (!REQUIRE) return;
     for (;;) {

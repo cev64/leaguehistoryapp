@@ -3,8 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Pigskin Pantheon keeps the history of your Sleeper or ESPN fantasy football league. Enter a Sleeper username or an ESPN league ID and see every season, the all-time record book, a 3D trophy room and an AI that knows it all." />
+  <meta name="description" content="Pigskin Pantheon turns your Sleeper or ESPN fantasy football league's history into weekly recaps, an all-time record book, a 3D trophy room and an AI historian that talks trash with receipts. Free, and set up in a minute." />
   <title>Pigskin Pantheon · Your Fantasy League's Hall of Fame, for Sleeper and ESPN</title>
+  <link rel="canonical" href="https://pigskinpantheon.com/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Pigskin Pantheon" />
+  <meta property="og:title" content="Pigskin Pantheon · Every season. Every grudge. One hall of fame." />
+  <meta property="og:description" content="Weekly recaps, an all-time record book, a 3D trophy room and an AI historian for your Sleeper or ESPN league. Free." />
+  <meta property="og:url" content="https://pigskinpantheon.com/" />
+  <meta property="og:image" content="https://pigskinpantheon.com/img/landing/og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1527,87 +1537,6 @@
     th:first-child .sort-button, th:nth-child(2) .sort-button { justify-content: flex-start; }
     th .sort-indicator:empty { display: none; }
   
-    /* ---- Desktop: the navy header becomes a sidebar ----------------------
-       On a wide screen the top bar and the hero stack into one navy column
-       fixed down the left, with the red stripe on its edge, so the page's
-       own content (week rail, tabs, tables) starts at the very top on the
-       right. Narrower screens keep the header across the top. */
-    @media (min-width: 1200px) {
-      :root { --side: 340px; --topbar-h: 76px; }
-      body { padding-left: var(--side); }
-      .topbar {
-        position: fixed; top: 0; left: 0; bottom: auto; width: var(--side);
-        border-right: 4px solid var(--red);
-      }
-      .topbar-inner { width: auto; min-height: var(--topbar-h); padding: 0 18px 0 20px; gap: 10px; }
-      .topbar .year-control > span { display: none; }
-      .topbar .brand-title { font-size: 17px; }
-      html body .hero {
-        position: fixed; top: var(--topbar-h); bottom: 0; left: 0; z-index: 30;
-        width: var(--side); overflow-y: auto; overscroll-behavior: contain;
-        border-bottom: 0; border-right: 4px solid var(--red);
-        scrollbar-width: none;
-      }
-      html body .hero::-webkit-scrollbar { display: none; }
-      html body .hero .hero-inner,
-      html body .hero .hero-inner.outcome-grid,
-      html body .live-hero .hero-inner {
-        width: auto; margin: 0; padding: 26px 20px 28px;
-        display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start;
-      }
-      html body .hero-brief { width: auto; max-width: none; justify-self: stretch; }
-      html body .live-status h1 { font-size: 38px; }
-      .week-rail-wrap,
-      main { width: min(1220px, calc(100% - 48px)); }
-      .week-rail-wrap { margin-top: 24px; }
-      main { padding-top: 22px; }
-      main > .page-toolbar:first-child { margin-top: 0; }
-      .topbar .brand-kicker { white-space: nowrap; letter-spacing: .16em; }
-      /* Every week still fits beside the sidebar. */
-      .week-rail { gap: 2px; }
-      .week-pill { padding: 9px 6px; }
-      /* Division tables sit two across in less room: let them fit it. */
-      .division-grid table { min-width: 0; }
-      .division-grid th, .division-grid td { padding-left: 7px; padding-right: 7px; }
-      .division-grid .team-cell { min-width: 0; }
-    }
-    /* Beside the sidebar on a smaller desktop, the division tables take a
-       row each rather than squeeze two across. */
-    @media (min-width: 1200px) and (max-width: 1439px) {
-      .division-grid { grid-template-columns: minmax(0, 1fr); }
-    }
-  
-    /* Trophy Room: always in the header, between the brand and the season
-       menu; in the desktop sidebar it sits under the menu. */
-    .topbar-trophy {
-      margin-left: auto;
-      display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto;
-      padding: 9px 13px;
-      border: 1px solid rgba(246, 183, 60, .45); border-radius: 10px;
-      background: rgba(246, 183, 60, .12);
-      color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap;
-      transition: background .18s ease, border-color .18s ease;
-    }
-    .topbar-trophy:hover { background: rgba(246, 183, 60, .22); border-color: rgba(246, 183, 60, .7); }
-    .topbar-trophy + .year-control { margin-left: 0; }
-    @media (max-width: 700px) {
-      .topbar-inner { gap: 8px; }
-      .topbar-trophy { padding: 6px 9px; gap: 5px; font-size: 11.5px; border-radius: 9px; }
-    }
-    @media (max-width: 374px) {
-      .topbar-trophy { font-size: 0; gap: 0; padding: 6px 8px; }
-      .topbar-trophy span { font-size: 14px; }
-    }
-    @media (min-width: 1200px) {
-      :root { --topbar-h: 124px; }
-      .topbar-inner {
-        display: grid; grid-template-columns: minmax(0, 1fr) auto;
-        align-content: center; row-gap: 12px; column-gap: 10px; padding-top: 14px; padding-bottom: 14px;
-      }
-      .topbar .brand { grid-column: 1; grid-row: 1; }
-      .topbar .year-control { grid-column: 2; grid-row: 1; }
-      .topbar-trophy { grid-column: 1 / -1; grid-row: 2; margin: 0; justify-content: center; }
-    }
     /* ---------------------------------------------------------------
        Sign in: a Sleeper username, then the leagues it belongs to.
        Built from the record book's own cards and rows.
@@ -1876,168 +1805,419 @@
   <link rel="stylesheet" href="ui.css" />
   <link rel="stylesheet" href="design.css" />
   <link rel="stylesheet" href="account.css" />
+  <link rel="stylesheet" href="landing.css" />
   <script src="account-config.js"></script>
   <script src="account.js"></script>
   <script src="sleeper.js"></script>
   <script src="espn.js"></script>
 </head>
-<body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <a class="brand" href="index.html" aria-label="Pigskin Pantheon home">
-        <div class="brand-mark"><img src="icons/crest.png" alt="" width="46" height="46" /></div>
-        <div class="brand-copy">
-          <span class="brand-kicker">Fantasy Football</span>
-          <span class="brand-title">Pigskin <span class="brand-accent">Pantheon</span></span>
-        </div>
+<body class="lp">
+  <a class="lp-skip" href="#find">Skip to opening your league</a>
+
+  <header class="lp-nav" id="top">
+    <div class="lp-wrap lp-nav-inner">
+      <a class="lp-logo" href="index.html" aria-label="Pigskin Pantheon home">
+        <img src="icons/crest.png" alt="" width="40" height="40" />
+        <span>Pigskin <span class="brand-accent">Pantheon</span></span>
       </a>
+      <nav class="lp-links" aria-label="On this page">
+        <a href="#features">Features</a>
+        <a href="#demo">Demo</a>
+        <a href="#how">How it works</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="lp-nav-end">
+        <div class="lp-account" data-account-slot></div>
+        <a class="lp-btn lp-btn-gold lp-btn-sm" href="#find" data-find-link>Open your league</a>
+      </div>
     </div>
   </header>
 
-  <section class="hero live-hero home-hero">
-    <div class="hero-inner">
-      <div class="live-status">
-        <span class="live-badge">For Sleeper and ESPN leagues</span>
-        <h1>Pigskin <span class="brand-accent">Pantheon</span></h1>
-        <p>Every season your league has played on Sleeper or ESPN: standings, box scores, brackets, the all-time record book and a trophy room.</p>
+  <section class="lp-hero" aria-labelledby="lpTitle">
+    <div class="lp-wrap lp-hero-grid">
+      <div class="lp-hero-copy">
+        <span class="lp-pill"><span class="lp-dot" aria-hidden="true"></span>Free for Sleeper and ESPN leagues</span>
+        <h1 id="lpTitle">Every season. Every grudge. <span class="brand-accent">One hall of fame.</span></h1>
+        <p class="lp-lede">Pigskin Pantheon turns your fantasy league's whole history into weekly recaps, an all-time record book, a 3D trophy room you can walk through, and an AI historian that talks trash with receipts.</p>
+        <div class="lp-ctas">
+          <a class="lp-btn lp-btn-gold" href="#find" data-find-link>Open your league, free</a>
+          <a class="lp-btn lp-btn-ghost" href="season.html?league=demo">Explore the demo league <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="lp-welcome" id="lpWelcome" hidden>
+          <span>Jump back in:</span>
+          <div class="lp-welcome-list" id="lpWelcomeList"></div>
+        </div>
+        <ul class="lp-proof">
+          <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg>Sleeper: just your username</li>
+          <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg>Public and private ESPN leagues</li>
+          <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg>Every season, back to year one</li>
+        </ul>
+      </div>
+      <div class="lp-hero-art" aria-hidden="true">
+        <div class="lp-browser lp-hero-browser">
+          <div class="lp-browser-bar"><i></i><i></i><i></i><span>Sunday Scaries · Week 8</span></div>
+          <img src="img/landing/season-d.webp" alt="" width="1600" height="1000" fetchpriority="high" />
+        </div>
+        <div class="lp-phone lp-hero-phone">
+          <img src="img/landing/recap-m.webp" alt="" width="600" height="1298" />
+        </div>
+        <div class="lp-float lp-float-ai">
+          <span class="lp-float-mark"><svg viewBox="0 0 16 16"><path d="M8 1.6l1.5 4.2 4.3 1.6-4.3 1.6L8 13.2 6.5 9 2.2 7.4l4.3-1.6z"/></svg></span>
+          <span><b>GridironGreg is 8–0</b> against DraftDayDana. Somebody check that lineup for a curse.</span>
+        </div>
+        <div class="lp-float lp-float-cup">
+          <span class="lp-float-emoji">🏆</span>
+          <span><b>Back-to-back</b><small>HailMaryHank · 2023, 2024</small></span>
+        </div>
       </div>
     </div>
-    <div class="ad-wrap ad-sidebar" data-ad="home-sidebar"><div class="ad-slot"></div></div>
   </section>
 
-  <main>
-    <div class="ad-wrap ad-top" data-ad="home-top"><div class="ad-slot"></div></div>
-    <div class="page-toolbar">
-      <div class="page-title">
-        <h2 id="pageTitle">Your Leagues</h2>
+  <section class="lp-band" aria-label="What you get">
+    <div class="lp-wrap lp-band-grid">
+      <div><strong>60 seconds</strong><span>from username to every season</span></div>
+      <div><strong>Every Tuesday</strong><span>a new recap for the group chat</span></div>
+      <div><strong>5 wings</strong><span>in your league's 3D trophy hall</span></div>
+      <div><strong>$0</strong><span>everything, with a free account</span></div>
+    </div>
+  </section>
+
+  <section class="lp-section" id="features" aria-labelledby="featuresTitle">
+    <div class="lp-wrap">
+      <div class="lp-head">
+        <span class="lp-kicker">What's inside</span>
+        <h2 id="featuresTitle">Your league's lore, finally in one place</h2>
+        <p>Sleeper and ESPN show you this week. Pigskin Pantheon remembers everything else: who won, who choked, who got fleeced, and by how much.</p>
+      </div>
+
+      <article class="lp-feature">
+        <div class="lp-feature-copy">
+          <span class="lp-tag">Weekly recaps</span>
+          <h3>The recap the group chat actually reads.</h3>
+          <p>Every week gets a headline and a story for every game: upsets, blowouts, streaks, the bench that cost someone the win. Power rankings, players of the week and the playoff race come with it.</p>
+          <ul class="lp-list">
+            <li>Shareable as two pictures or plain text in one tap</li>
+            <li>Every box score, every week, every season</li>
+            <li>Standings as they stood, and the bracket as it was played</li>
+          </ul>
+        </div>
+        <div class="lp-feature-art">
+          <div class="lp-browser"><div class="lp-browser-bar"><i></i><i></i><i></i><span>Week 8 recap</span></div>
+            <img src="img/landing/recap-d.webp" alt="A weekly recap: the week's headline, then a story for every game" width="1600" height="1000" loading="lazy" /></div>
+        </div>
+      </article>
+
+      <article class="lp-feature lp-feature-flip lp-feature-ai">
+        <div class="lp-feature-copy">
+          <span class="lp-tag lp-tag-gold">League Historian AI</span>
+          <h3>Ask anything. Get roasted with receipts.</h3>
+          <p>An AI that has read every score, trade, waiver claim, draft and lineup your league ever made. Ask who owns who, who choked in the playoffs or who lost the worst trade ever. It answers in seconds, with the numbers, and a little smack.</p>
+          <div class="lp-asks">
+            <span>"Who's the biggest playoff choker?"</span>
+            <span>"Worst trade in league history?"</span>
+            <span>"How many points has Greg left on his bench?"</span>
+          </div>
+        </div>
+        <div class="lp-feature-art lp-art-phone">
+          <div class="lp-phone"><img src="img/landing/chat-m.webp" alt="The League Historian answering: GridironGreg is 8–0 all-time against DraftDayDana" width="600" height="1298" loading="lazy" /></div>
+        </div>
+      </article>
+
+      <article class="lp-feature">
+        <div class="lp-feature-copy">
+          <span class="lp-tag">The record book</span>
+          <h3>Settle every argument, permanently.</h3>
+          <p>All-time standings, titles, last places and playoff records, plus head-to-head against every manager in the league with points for, against and the margin. The next time someone claims they own you, check the table.</p>
+          <ul class="lp-list">
+            <li>Every manager's career on one card</li>
+            <li>Highest scores, biggest blowouts, closest games</li>
+            <li>Search any player who ever touched a roster</li>
+          </ul>
+        </div>
+        <div class="lp-feature-art">
+          <div class="lp-browser"><div class="lp-browser-bar"><i></i><i></i><i></i><span>All-time · Head-to-head</span></div>
+            <img src="img/landing/h2h-d.webp" alt="A manager's all-time card: record, playoff record, titles and head-to-head against every opponent" width="1600" height="1000" loading="lazy" /></div>
+        </div>
+      </article>
+
+      <article class="lp-feature lp-feature-flip lp-feature-dark">
+        <div class="lp-feature-copy">
+          <span class="lp-tag lp-tag-gold">3D trophy room</span>
+          <h3>Walk your league's hall of fame.</h3>
+          <p>Champions in the Cup Room, a Hall of Fame and a Record Wall, the Lowlight Wall for the weeks everyone would rather forget, and the Cellar for whoever finished last. Every manager gets a locker with their banner, pennants and cups.</p>
+          <ul class="lp-list">
+            <li>Drag to walk, tap any trophy to turn it in your hands</li>
+            <li>Built from your league's real results, every season</li>
+          </ul>
+        </div>
+        <div class="lp-feature-art lp-art-stack">
+          <div class="lp-browser lp-browser-dark"><div class="lp-browser-bar"><i></i><i></i><i></i><span>The Hall</span></div>
+            <img src="img/landing/hall-d.webp" alt="The 3D trophy hall: championship cups on pedestals" width="1600" height="1000" loading="lazy" /></div>
+          <div class="lp-browser lp-browser-dark lp-inset"><div class="lp-browser-bar"><i></i><i></i><i></i><span>Team locker</span></div>
+            <img src="img/landing/locker-d.webp" alt="A manager's locker: banner, playoff pennants, trophies and personal bests" width="1600" height="1000" loading="lazy" /></div>
+        </div>
+      </article>
+
+      <div class="lp-duo">
+        <article class="lp-card">
+          <span class="lp-tag">The front office</span>
+          <h3>Who won the trade? Now it's on the record.</h3>
+          <p>Every trade judged in hindsight, every waiver pickup and FAAB dollar, lineup efficiency and where every draft pick ended up.</p>
+          <div class="lp-browser lp-browser-sm"><div class="lp-browser-bar"><i></i><i></i><i></i><span>Front office · Trades</span></div>
+            <img src="img/landing/trades-d.webp" alt="The best and worst traders, by points gained in hindsight" width="1600" height="1000" loading="lazy" /></div>
+        </article>
+        <article class="lp-card lp-card-phone">
+          <div>
+            <span class="lp-tag">Player history</span>
+            <h3>Every player's life in your league.</h3>
+            <p>Who rostered him and when, his best games, his record as a starter and the rings he won you.</p>
+          </div>
+          <div class="lp-phone lp-phone-sm"><img src="img/landing/player-m.webp" alt="Justin Jefferson's card: starts, points, ownership timeline and best games" width="600" height="1298" loading="lazy" /></div>
+        </article>
+      </div>
+
+      <div class="lp-more">
+        <h3>Also in the box</h3>
+        <div class="lp-more-grid">
+          <div><strong>Every season</strong><span>Week-by-week results, standings as they stood and every box score.</span></div>
+          <div><strong>The playoff picture</strong><span>Seeds, clinches and the bracket, projected or as played.</span></div>
+          <div><strong>Sleeper and ESPN</strong><span>Both in one list, private ESPN leagues and several ESPN accounts included.</span></div>
+          <div><strong>Redraft, keeper, dynasty</strong><span>Divisions, medians, toilet bowls, traded picks: all of it.</span></div>
+          <div><strong>Share cards</strong><span>Recaps as 1080 × 1350 pictures or text for the group chat.</span></div>
+          <div><strong>Installs like an app</strong><span>Add it to your home screen and it opens full screen, fast.</span></div>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="signin-stack">
-      <!-- A signed-in member's own leagues (account.js fills it). -->
-      <article class="card" id="syncedCard" hidden>
-        <div class="card-head">
-          <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 10.9l-3.4 1.8.7-3.8-2.8-2.7 3.8-.5z"/></svg></span>My leagues</h3>
-          <span data-synced-meta></span>
-        </div>
-        <div class="league-list"></div>
-      </article>
-
-      <article class="card" id="recentCard" hidden>
-        <div class="card-head">
-          <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.4"/><path d="M8 4.8V8l2.2 1.4"/></svg></span>Recently opened</h3>
-        </div>
-        <div class="league-list" id="recentList"></div>
-      </article>
-
-      <article class="card">
-        <div class="card-head">
-          <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.6" r="2.6"/><path d="M3.2 13.4c.6-2.5 2.5-3.9 4.8-3.9s4.2 1.4 4.8 3.9"/></svg></span>Find your leagues</h3>
-          <div class="platform-tabs" role="tablist" aria-label="Where your league is played">
-            <button type="button" class="platform-tab" role="tab" id="tabSleeper" aria-controls="signinForm" aria-selected="true">Sleeper</button>
-            <button type="button" class="platform-tab" role="tab" id="tabEspn" aria-controls="espnForm" aria-selected="false">ESPN</button>
+  <section class="lp-demo" id="demo" aria-labelledby="demoTitle">
+    <div class="lp-wrap">
+      <div class="lp-demo-grid">
+        <div class="lp-demo-copy">
+          <span class="lp-kicker lp-kicker-gold">Take it for a spin</span>
+          <h2 id="demoTitle">Meet Sunday Scaries, a league that doesn't exist.</h2>
+          <p>Ten managers, a dynasty league five seasons deep and a 2026 season paused after week 8. Click around exactly as you would in your own league. No sign-up needed.</p>
+          <div class="lp-ctas">
+            <a class="lp-btn lp-btn-gold" href="season.html?league=demo">Open the demo league</a>
           </div>
-          <span id="signedIn" hidden></span>
+          <p class="lp-fine">The managers, teams and scores are made up. The players are real.</p>
         </div>
-        <form class="signin-form" id="signinForm" autocomplete="on">
-          <label class="signin-field">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1-3.6 3.9-5.6 7.5-5.6s6.5 2 7.5 5.6"/></svg>
-            <input id="username" name="username" type="text" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false"
-              placeholder="Your Sleeper username" aria-label="Sleeper username" required />
-          </label>
-          <button class="signin-go" id="signinGo" type="submit">Find leagues</button>
-          <p class="signin-note" id="signinNote">Sleeper's league data is public, so your username is all it takes: no password, nothing to connect. Or paste a <a href="#" id="byIdLink">league ID</a>.</p>
-        </form>
-
-        <!-- ESPN: a league ID (or the league's address), and for a private
-             league the visitor's own ESPN cookies, kept in this browser. -->
-        <form class="signin-form" id="espnForm" autocomplete="off" hidden>
-          <label class="signin-field">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h10v5a5 5 0 0 1-10 0z"/><path d="M12 13.5v3.5M8.5 20.5h7"/></svg>
-            <input id="espnLeague" name="espnLeague" type="text" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false"
-              placeholder="ESPN league ID or league link" aria-label="ESPN league ID or league link" required />
-          </label>
-          <button class="signin-go" id="espnGo" type="submit">Open league</button>
-          <p class="signin-note" id="espnNote">Your league ID is the number after <code>leagueId=</code> in your league's address on fantasy.espn.com; pasting the whole link works too. A league that's viewable to the public needs nothing else.</p>
-          <button type="button" class="espn-private-toggle" id="espnPrivateToggle" aria-expanded="false" aria-controls="espnPrivate">
-            <span class="ept-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span>
-            <span class="ept-copy"><strong id="espnPrivateTitle">Private league?</strong><span id="espnPrivateSub">Connect your ESPN account to open it, and to list all your ESPN leagues here.</span></span>
-            <span class="ept-go" aria-hidden="true">›</span>
-          </button>
-          <div class="espn-private" id="espnPrivate" hidden>
-            <h4>Opening a private ESPN league</h4>
-            <!-- Phones and tablets: the keys can only be copied out of a
-                 desktop browser, so the panel says where to do it. -->
-            <div class="espn-desktop" id="espnDesktop" hidden>
-              <p><strong>Connect it from a computer, once.</strong> A private league opens with two keys ESPN keeps in your browser, and they can only be copied from a desktop browser's developer tools, which phones and tablets don't have.</p>
-              <ol>
-                <li id="espnDesktopSignIn">On a computer, open this site and sign in.</li>
-                <li>Pick <strong>ESPN</strong> ▸ <strong>Private league?</strong> and save your keys to your account.</li>
-                <li>Back here, your private leagues are listed and open with nothing to type.</li>
-              </ol>
-              <p class="espn-desktop-why"><a href="#" id="espnKeysAnyway">Have your keys already? Enter them here</a></p>
-            </div>
-            <div id="espnKeys">
-              <p>A private league opens with your ESPN keys: two values ESPN keeps in your browser once you're signed in. Find them on a computer:</p>
-              <ol>
-                <li>Sign in at <a href="https://fantasy.espn.com/football/" target="_blank" rel="noopener">fantasy.espn.com</a> and open your league.</li>
-                <li>Open the browser's developer tools (F12, or ⌥⌘I on a Mac) ▸ <strong>Application</strong> (Chrome, Edge) or <strong>Storage</strong> (Firefox, Safari) ▸ Cookies ▸ espn.com.</li>
-                <li>Copy the values of <code>espn_s2</code> and <code>SWID</code> into the boxes below.</li>
-              </ol>
-              <div class="espn-cookie-fields">
-                <input id="espnS2" type="password" autocomplete="off" spellcheck="false" placeholder="espn_s2" aria-label="espn_s2" />
-                <input id="espnSwid" type="text" autocomplete="off" spellcheck="false" placeholder="SWID  {XXXXXXXX-XXXX-…}" aria-label="SWID" />
-                <button class="signin-go" id="espnSave" type="button">Save</button>
-              </div>
-              <label class="espn-to-account" id="espnToAccountChoice" hidden>
-                <input type="checkbox" id="espnToAccountBox" checked />
-                <span>Also save them to my account, so my private leagues open on my phone too. Untick to keep them in this browser only.</span>
-              </label>
-            </div>
-            <!-- Every ESPN account with keys saved: a member can be in
-                 leagues on more than one. -->
-            <div class="espn-accounts" id="espnSaved" hidden>
-              <span class="espn-saved" id="espnSavedText">✓ ESPN connected</span>
-              <ul class="espn-account-list" id="espnAccountList"></ul>
-              <button type="button" class="espn-add" id="espnAddAnother">+ Add another ESPN account</button>
-            </div>
-            <p id="espnSavedHint" hidden></p>
-            <p class="espn-fine" id="espnFine"></p>
-            <p id="espnNoRelay" hidden>This site isn't set up to open private ESPN leagues yet.</p>
-          </div>
-        </form>
-      </article>
-
-      <article class="card" id="leaguesCard" hidden>
-        <div class="card-head">
-          <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2.8h6v3.4a3 3 0 0 1-6 0zM5 4H2.8v.9A2.2 2.2 0 0 0 5 7.1M11 4h2.2v.9A2.2 2.2 0 0 1 11 7.1M8 9.2v2.4M5.6 13.2h4.8"/></svg></span><span id="leaguesTitle">Leagues</span></h3>
-          <span id="leaguesMeta"></span>
+        <div class="lp-stories">
+          <article>
+            <span class="lp-story-kicker">Worst to first</span>
+            <p><b>HailMaryHank</b> finished last in 2022, drafted Jahmyr Gibbs, then won the next two titles.</p>
+          </article>
+          <article>
+            <span class="lp-story-kicker">The 1.01 trade</span>
+            <p><b>GridironGreg</b> traded up for the first pick in 2023 and took Bijan Robinson. Greg won the 2025 title and is 7–1 this season.</p>
+          </article>
+          <article>
+            <span class="lp-story-kicker">The Cellar</span>
+            <p><b>DraftDayDana</b> is 8–42 since 2023 and has never beaten Greg: 0–8, all-time.</p>
+          </article>
+          <article>
+            <span class="lp-story-kicker">Champ to chump</span>
+            <p><b>PuntQueen</b> won it all in 2022, then finished dead last the very next year.</p>
+          </article>
         </div>
-        <div class="league-list" id="leagueList"></div>
-      </article>
-
-      <div class="ad-wrap ad-mid" data-ad="home-mid"><div class="ad-slot"></div></div>
-
-      <article class="card">
-        <div class="card-head">
-          <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.1" y="2.5" width="9.8" height="11" rx="1.6"/><path d="M5.6 6h4.8M5.6 8.4h4.8M5.6 10.8h2.8"/></svg></span>What's inside</h3>
-        </div>
-        <div class="signin-points">
-          <div class="signin-point"><strong>Every season</strong><span>Week-by-week results, standings as they stood, and every box score.</span></div>
-          <div class="signin-point"><strong>The playoff picture</strong><span>Seeds, clinches and the bracket, projected or as it was played.</span></div>
-          <div class="signin-point"><strong>The record book</strong><span>All-time standings, champions, last places and head-to-head.</span></div>
-          <div class="signin-point"><strong>A trophy room</strong><span>Titles, records and each manager's locker, in 3D.</span></div>
-        </div>
-      </article>
+      </div>
+      <nav class="lp-demo-links" aria-label="Demo league pages">
+        <a href="season.html?league=demo#w8-panel-recap"><span class="lp-demo-icon">📰</span><strong>This week's recap</strong><small>Week 8, 2026</small></a>
+        <a href="alltime.html?league=demo"><span class="lp-demo-icon">📚</span><strong>The record book</strong><small>Titles, rivalries, records</small></a>
+        <a href="trophy.html?league=demo"><span class="lp-demo-icon">🏆</span><strong>The trophy room</strong><small>Walk the hall in 3D</small></a>
+        <a href="moves.html?league=demo"><span class="lp-demo-icon">💼</span><strong>The front office</strong><small>Trades, waivers, lineups</small></a>
+      </nav>
     </div>
+  </section>
 
-    <div class="ad-wrap ad-bottom" data-ad="home-bottom"><div class="ad-slot"></div></div>
-  </main>
+  <section class="lp-section" id="how" aria-labelledby="howTitle">
+    <div class="lp-wrap">
+      <div class="lp-head">
+        <span class="lp-kicker">How it works</span>
+        <h2 id="howTitle">Up and running before your next waiver run</h2>
+      </div>
+      <ol class="lp-steps">
+        <li><span class="lp-step-n">1</span><h3>Find your league</h3><p>Type your Sleeper username, or paste an ESPN league ID or link. Every season the league has played comes in at once.</p></li>
+        <li><span class="lp-step-n">2</span><h3>Make a free account</h3><p>Your leagues stay on it, on every device. That's all it takes: no card, no trial, no catch.</p></li>
+        <li><span class="lp-step-n">3</span><h3>Send it to the league</h3><p>Drop a recap, a head-to-head or the trophy room in the group chat and let the arguments begin.</p></li>
+      </ol>
+    </div>
+  </section>
 
-  <footer class="footer">
-    Not affiliated with or endorsed by Sleeper or ESPN. League data from the
-    <a href="https://docs.sleeper.com/" target="_blank" rel="noopener">Sleeper API</a> and ESPN Fantasy.
+  <section class="lp-find" id="find" aria-labelledby="pageTitle">
+    <div class="lp-wrap lp-find-grid">
+      <div class="lp-find-copy">
+        <span class="lp-kicker">Get started</span>
+        <h2 id="pageTitle">Open your league</h2>
+        <p>Free, and it takes about a minute. Sleeper needs only your username; ESPN needs your league's ID or link.</p>
+        <a class="lp-demo-mini" href="season.html?league=demo">Not ready? Look around the demo league <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="lp-find-stack">
+        <div class="ad-wrap ad-top" data-ad="home-top"><div class="ad-slot"></div></div>
+        <div class="signin-stack">
+          <!-- A signed-in member's own leagues (account.js fills it). -->
+          <article class="card" id="syncedCard" hidden>
+            <div class="card-head">
+              <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 10.9l-3.4 1.8.7-3.8-2.8-2.7 3.8-.5z"/></svg></span>My leagues</h3>
+              <span data-synced-meta></span>
+            </div>
+            <div class="league-list"></div>
+          </article>
+
+          <article class="card" id="recentCard" hidden>
+            <div class="card-head">
+              <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.4"/><path d="M8 4.8V8l2.2 1.4"/></svg></span>Recently opened</h3>
+            </div>
+            <div class="league-list" id="recentList"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.6" r="2.6"/><path d="M3.2 13.4c.6-2.5 2.5-3.9 4.8-3.9s4.2 1.4 4.8 3.9"/></svg></span>Find your leagues</h3>
+              <div class="platform-tabs" role="tablist" aria-label="Where your league is played">
+                <button type="button" class="platform-tab" role="tab" id="tabSleeper" aria-controls="signinForm" aria-selected="true">Sleeper</button>
+                <button type="button" class="platform-tab" role="tab" id="tabEspn" aria-controls="espnForm" aria-selected="false">ESPN</button>
+              </div>
+              <span id="signedIn" hidden></span>
+            </div>
+            <form class="signin-form" id="signinForm" autocomplete="on">
+              <label class="signin-field">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1-3.6 3.9-5.6 7.5-5.6s6.5 2 7.5 5.6"/></svg>
+                <input id="username" name="username" type="text" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false"
+                  placeholder="Your Sleeper username" aria-label="Sleeper username" required />
+              </label>
+              <button class="signin-go" id="signinGo" type="submit">Find leagues</button>
+              <p class="signin-note" id="signinNote">Sleeper's league data is public, so your username is all it takes: no password, nothing to connect. Or paste a <a href="#" id="byIdLink">league ID</a>.</p>
+            </form>
+
+            <!-- ESPN: a league ID (or the league's address), and for a private
+                 league the visitor's own ESPN cookies, kept in this browser. -->
+            <form class="signin-form" id="espnForm" autocomplete="off" hidden>
+              <label class="signin-field">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h10v5a5 5 0 0 1-10 0z"/><path d="M12 13.5v3.5M8.5 20.5h7"/></svg>
+                <input id="espnLeague" name="espnLeague" type="text" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false"
+                  placeholder="ESPN league ID or league link" aria-label="ESPN league ID or league link" required />
+              </label>
+              <button class="signin-go" id="espnGo" type="submit">Open league</button>
+              <p class="signin-note" id="espnNote">Your league ID is the number after <code>leagueId=</code> in your league's address on fantasy.espn.com; pasting the whole link works too. A league that's viewable to the public needs nothing else.</p>
+              <button type="button" class="espn-private-toggle" id="espnPrivateToggle" aria-expanded="false" aria-controls="espnPrivate">
+                <span class="ept-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span>
+                <span class="ept-copy"><strong id="espnPrivateTitle">Private league?</strong><span id="espnPrivateSub">Connect your ESPN account to open it, and to list all your ESPN leagues here.</span></span>
+                <span class="ept-go" aria-hidden="true">›</span>
+              </button>
+              <div class="espn-private" id="espnPrivate" hidden>
+                <h4>Opening a private ESPN league</h4>
+                <!-- Phones and tablets: the keys can only be copied out of a
+                     desktop browser, so the panel says where to do it. -->
+                <div class="espn-desktop" id="espnDesktop" hidden>
+                  <p><strong>Connect it from a computer, once.</strong> A private league opens with two keys ESPN keeps in your browser, and they can only be copied from a desktop browser's developer tools, which phones and tablets don't have.</p>
+                  <ol>
+                    <li id="espnDesktopSignIn">On a computer, open this site and sign in.</li>
+                    <li>Pick <strong>ESPN</strong> ▸ <strong>Private league?</strong> and save your keys to your account.</li>
+                    <li>Back here, your private leagues are listed and open with nothing to type.</li>
+                  </ol>
+                  <p class="espn-desktop-why"><a href="#" id="espnKeysAnyway">Have your keys already? Enter them here</a></p>
+                </div>
+                <div id="espnKeys">
+                  <p>A private league opens with your ESPN keys: two values ESPN keeps in your browser once you're signed in. Find them on a computer:</p>
+                  <ol>
+                    <li>Sign in at <a href="https://fantasy.espn.com/football/" target="_blank" rel="noopener">fantasy.espn.com</a> and open your league.</li>
+                    <li>Open the browser's developer tools (F12, or ⌥⌘I on a Mac) ▸ <strong>Application</strong> (Chrome, Edge) or <strong>Storage</strong> (Firefox, Safari) ▸ Cookies ▸ espn.com.</li>
+                    <li>Copy the values of <code>espn_s2</code> and <code>SWID</code> into the boxes below.</li>
+                  </ol>
+                  <div class="espn-cookie-fields">
+                    <input id="espnS2" type="password" autocomplete="off" spellcheck="false" placeholder="espn_s2" aria-label="espn_s2" />
+                    <input id="espnSwid" type="text" autocomplete="off" spellcheck="false" placeholder="SWID  {XXXXXXXX-XXXX-…}" aria-label="SWID" />
+                    <button class="signin-go" id="espnSave" type="button">Save</button>
+                  </div>
+                  <label class="espn-to-account" id="espnToAccountChoice" hidden>
+                    <input type="checkbox" id="espnToAccountBox" checked />
+                    <span>Also save them to my account, so my private leagues open on my phone too. Untick to keep them in this browser only.</span>
+                  </label>
+                </div>
+                <!-- Every ESPN account with keys saved: a member can be in
+                     leagues on more than one. -->
+                <div class="espn-accounts" id="espnSaved" hidden>
+                  <span class="espn-saved" id="espnSavedText">✓ ESPN connected</span>
+                  <ul class="espn-account-list" id="espnAccountList"></ul>
+                  <button type="button" class="espn-add" id="espnAddAnother">+ Add another ESPN account</button>
+                </div>
+                <p id="espnSavedHint" hidden></p>
+                <p class="espn-fine" id="espnFine"></p>
+                <p id="espnNoRelay" hidden>This site isn't set up to open private ESPN leagues yet.</p>
+              </div>
+            </form>
+          </article>
+
+          <article class="card" id="leaguesCard" hidden>
+            <div class="card-head">
+              <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2.8h6v3.4a3 3 0 0 1-6 0zM5 4H2.8v.9A2.2 2.2 0 0 0 5 7.1M11 4h2.2v.9A2.2 2.2 0 0 1 11 7.1M8 9.2v2.4M5.6 13.2h4.8"/></svg></span><span id="leaguesTitle">Leagues</span></h3>
+              <span id="leaguesMeta"></span>
+            </div>
+            <div class="league-list" id="leagueList"></div>
+          </article>
+        </div>
+        <div class="ad-wrap ad-mid" data-ad="home-mid"><div class="ad-slot"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section lp-faq" id="faq" aria-labelledby="faqTitle">
+    <div class="lp-wrap lp-faq-grid">
+      <div class="lp-head lp-head-left">
+        <span class="lp-kicker">Questions</span>
+        <h2 id="faqTitle">The fine print, minus the fine print</h2>
+      </div>
+      <div class="lp-faq-list">
+        <details>
+          <summary>Is it really free?</summary>
+          <p>Yes. Everything is free with an account right now: every league you add, every season, the trophy room and the League Historian AI.</p>
+        </details>
+        <details>
+          <summary>Do you need my Sleeper or ESPN password?</summary>
+          <p>No. Sleeper's league data is public, so your username is enough. A public ESPN league needs only its ID. A private ESPN league needs two cookies from your browser (the page shows you where to find them), which are encrypted if you save them to your account.</p>
+        </details>
+        <details>
+          <summary>Which leagues work?</summary>
+          <p>Sleeper and ESPN leagues: redraft, keeper and dynasty, with or without divisions, any scoring. The history goes back as far as each platform keeps it.</p>
+        </details>
+        <details>
+          <summary>Does everyone in my league need to sign up?</summary>
+          <p>Each person makes their own free account and adds the league, which takes a minute. Recaps and share cards can go straight into the group chat for anyone.</p>
+        </details>
+        <details>
+          <summary>What does the AI know?</summary>
+          <p>Only your league: every score, standing, trade, waiver claim, draft and lineup the site has read. It quotes the numbers, and it can be wrong now and then, so the record book has the final word.</p>
+        </details>
+        <details>
+          <summary>Is this made by Sleeper or ESPN?</summary>
+          <p>No. Pigskin Pantheon is independent and isn't affiliated with or endorsed by Sleeper or ESPN. It reads each platform's league data to build your history.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-final" aria-labelledby="finalTitle">
+    <div class="lp-wrap lp-final-inner">
+      <img src="icons/crest.png" alt="" width="72" height="72" loading="lazy" />
+      <h2 id="finalTitle">Your league has stories. Give them a home.</h2>
+      <div class="lp-ctas">
+        <a class="lp-btn lp-btn-gold" href="#find" data-find-link>Open your league, free</a>
+        <a class="lp-btn lp-btn-ghost" href="season.html?league=demo">See the demo league</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="ad-wrap ad-bottom" data-ad="home-bottom"><div class="ad-slot"></div></div>
+
+  <footer class="footer lp-footer">
+    <div class="lp-wrap lp-footer-inner">
+      <a class="lp-logo lp-logo-sm" href="#top"><img src="icons/crest.png" alt="" width="28" height="28" /><span>Pigskin <span class="brand-accent">Pantheon</span></span></a>
+      <p>Not affiliated with or endorsed by Sleeper or ESPN. League data from the
+        <a href="https://docs.sleeper.com/" target="_blank" rel="noopener">Sleeper API</a> and ESPN Fantasy.</p>
+    </div>
   </footer>
+
 
   <script>
     /* The front door. A Sleeper username finds its leagues (each history
@@ -2463,6 +2643,28 @@
       }
       drawToggle();
       loadEspnLeagues();
+    })();
+  </script>
+  <script>
+    /* The front page around the finder: a signed-in member's leagues one
+       tap away in the hero, and a link from an ESPN error (?espn=) or an
+       invite (?invite=) lands on the finder itself. */
+    (function () {
+      const esc = League.esc;
+      if (League.param("espn") || League.param("invite")) {
+        addEventListener("load", () => document.getElementById("find").scrollIntoView({ block: "start" }), { once: true });
+      }
+      const box = document.getElementById("lpWelcome");
+      const list = document.getElementById("lpWelcomeList");
+      if (!window.Account || !box) return;
+      const draw = () => {
+        const leagues = window.Account.user ? window.Account.leagues : [];
+        box.hidden = !leagues.length;
+        list.innerHTML = leagues.slice(0, 4).map((l) => `<a href="season.html?league=${encodeURIComponent(l.league_id)}">
+          ${l.avatar ? `<img src="${esc(l.avatar)}" alt="">` : "<i>🏈</i>"}<span>${esc(l.name || "Your league")}</span></a>`).join("");
+      };
+      window.Account.ready.then(draw);
+      window.Account.on(draw);
     })();
   </script>
 </body>

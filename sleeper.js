@@ -106,6 +106,9 @@
      service in an error. A 401 or 403 is not retried: the league is
      private, and asking again won't change that. */
   async function fetchJSON(url, tries = 3, init = undefined, label = "Sleeper") {
+    // The demo league answers for itself, in Sleeper's shapes (demo.js).
+    const demo = demoPath(url);
+    if (demo) return (await demoLeague()).answer(demo);
     await slot();
     try {
       for (let attempt = 0; ; attempt++) {
@@ -140,6 +143,8 @@
      connection shows the league as it was rather than nothing. `fetcher`
      makes the value (a request, or a request and a reshaping of it). */
   async function cachedFn(key, ttl, fetcher) {
+    // The demo is made fresh on each visit, so it never goes in the store.
+    if (/:demo\b/.test(key)) return fetcher();
     const hit = await storeGet(key);
     if (hit && Date.now() - hit.t < ttl) return hit.v;
     try {
@@ -152,6 +157,33 @@
     }
   }
   const cached = (key, ttl, url) => cachedFn(key, ttl, () => fetchJSON(url));
+
+  /* ------------------------------------------------------------ the demo */
+
+  /* Sunday Scaries, the demo league (?league=demo): a made-up league that
+     demo.js simulates in the browser and serves as if it were Sleeper's
+     API, so every page reads it through the same code as a real league.
+     Its seasons are "demo" (the newest) and "demo-<year>". demo.js is only
+     fetched when a page asks for the demo. */
+  const isDemoId = (id) => /^demo(-\d{4})?$/.test(String(id || ""));
+  function demoPath(url) {
+    const m = String(url).match(/^https:\/\/api\.sleeper\.app\/v1(\/(?:league\/demo(?:-\d{4})?|draft\/demo-draft-\d{4})(?:\/.*)?)$/);
+    return m ? m[1] : null;
+  }
+  let demoJob = null;
+  function demoLeague() {
+    if (window.DemoLeague) return Promise.resolve(window.DemoLeague);
+    if (!demoJob) {
+      demoJob = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "demo.js";
+        script.onload = () => (window.DemoLeague ? resolve(window.DemoLeague) : reject(new Error("The demo league didn't load.")));
+        script.onerror = () => { demoJob = null; reject(new Error("The demo league didn't load. Check your connection and try again.")); };
+        document.head.appendChild(script);
+      });
+    }
+    return demoJob;
+  }
 
   /* ------------------------------------------------------------ helpers */
 
@@ -698,8 +730,9 @@
   const sourceFor = (id) => sources.find((s) => s.handles(id)) || null;
 
   // Sleeper's own history: the league, then its previous_league_id chain.
-  async function sleeperSeasons(id, onProgress) {
-    const st = await state();
+  // `given` is the NFL's state to read it against (the demo has its own).
+  async function sleeperSeasons(id, onProgress, given = null) {
+    const st = given || await state();
     const chain = [];
     let next = id;
     const seen = new Set();
@@ -711,7 +744,7 @@
       next = league.previous_league_id;
     }
     if (!chain.length) throw new Error("Sleeper has no league with that id.");
-    chain.push(...(await siblingSeasons(chain)));
+    if (!given) chain.push(...(await siblingSeasons(chain)));
     let done = 0;
     if (onProgress) onProgress(0, chain.length);
     const raws = await Promise.all(chain.map(async (lid) => {
@@ -721,6 +754,41 @@
       return raw;
     }));
     return { raws, state: st };
+  }
+
+  // The demo: Sleeper's shapes, frozen in the middle of its 2026 season.
+  addSource({
+    name: "demo",
+    label: "Sleeper",
+    credit: "Sunday Scaries is a demo league: the managers, teams and scores are made up. Player names from Sleeper.",
+    handles: isDemoId,
+    async seasons(id, { onProgress } = {}) {
+      const demo = await demoLeague();
+      return sleeperSeasons(id, onProgress, demo.state);
+    },
+    decorate(model) {
+      model.demo = true;
+      model.avatar = window.DemoLeague.logo;
+      demoStrip();
+    },
+  });
+  /* A line under the header on the demo's pages: what it is, and the way
+     to the real thing. */
+  function demoStrip() {
+    if (typeof document === "undefined") return;
+    const place = () => {
+      const bar = document.querySelector("header.topbar");
+      if (!bar || document.querySelector(".demo-strip")) return;
+      const strip = document.createElement("div");
+      strip.className = "demo-strip";
+      strip.setAttribute("role", "note");
+      strip.innerHTML = `<span class="demo-strip-tag">Demo</span>
+        <span class="demo-strip-text">You're exploring <b>Sunday Scaries</b><span class="demo-strip-more">, a made-up league</span>.</span>
+        <a href="index.html#find">Open <span class="demo-strip-more">your own league</span><span class="demo-strip-short">yours</span><span aria-hidden="true"> →</span></a>`;
+      bar.after(strip);
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", place, { once: true });
+    else place();
   }
 
   /* The league and every season before it. `onProgress(done, total)` hears
@@ -1378,6 +1446,7 @@
     dressHeader, fillSeasonMenu, requireLeague, showStatus,
     compareTeams, seedOrder, roundName, gameName, placeName, roundWeeks,
     ordinal, esc, club, clubStyle, param: (k) => params.get(k), leagueId: pageLeague,
+    isDemo: isDemoId,
     // For other platforms' adapters (espn.js): the shared plumbing.
     _core: {
       addSource, addPlayers, fetchJSON, cachedFn, storeGet, storeSet,
