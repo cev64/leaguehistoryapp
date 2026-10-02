@@ -181,11 +181,16 @@
     const err = new Error(tried
       ? "ESPN didn't accept the keys saved in this browser for this league. ESPN changes them when you sign out or after a while: copy espn_s2 and SWID again and enter them on the front page."
       : PROXY
-        ? "This ESPN league is private. Enter your ESPN keys (espn_s2 and SWID) on the front page to open it."
+        // A phone or tablet can't copy the keys out of ESPN: that's a job
+        // for a computer, once, and the account carries them over.
+        ? (matchMedia("(hover: none) and (pointer: coarse)").matches
+          ? "This ESPN league is private. Connect your ESPN account from a computer, once (front page ▸ ESPN ▸ Private league?, signed in to this account), and it opens here too."
+          : "This ESPN league is private. Enter your ESPN keys (espn_s2 and SWID) on the front page to open it.")
         : "This ESPN league is private, and this site isn't set up to open private ESPN leagues yet.");
     err.privateLeague = true;
     err.link = `index.html?espn=${encodeURIComponent(n)}`;
-    err.linkText = PROXY ? "Enter your ESPN keys" : "Back to the front page";
+    err.linkText = !PROXY ? "Back to the front page"
+      : matchMedia("(hover: none) and (pointer: coarse)").matches ? "How to connect ESPN" : "Enter your ESPN keys";
     return err;
   }
 

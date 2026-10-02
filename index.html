@@ -1750,6 +1750,35 @@
     .espn-cookie-fields .signin-go { height: 40px; padding: 0 16px; }
     .espn-fine { font-size: 11.5px; }
 
+    /* The way into a private league: a row of its own under the ESPN box,
+       not a link at the end of a sentence. */
+    .espn-private-toggle {
+      grid-column: 1 / -1;
+      display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+      width: 100%; padding: 11px 14px; text-align: left; cursor: pointer;
+      border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink);
+      font: inherit; box-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+      transition: border-color .2s, box-shadow .25s, background .2s;
+    }
+    .espn-private-toggle:hover { border-color: rgba(23, 105, 224, .4); box-shadow: 0 6px 16px rgba(23, 105, 224, .1); }
+    .espn-private-toggle:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .espn-private-toggle[aria-expanded="true"] { border-color: rgba(23, 105, 224, .4); background: #f6f9ff; }
+    .espn-private-toggle .ept-icon {
+      width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+      background: var(--navy, #071827); color: var(--gold, #f6b73c);
+    }
+    .espn-private-toggle .ept-icon svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .espn-private-toggle.is-connected .ept-icon { background: #1d7a3f; color: #fff; }
+    .espn-private-toggle .ept-copy { min-width: 0; }
+    .espn-private-toggle strong { display: block; font-size: 13.5px; font-weight: 800; }
+    .espn-private-toggle .ept-copy span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .espn-private-toggle .ept-go { color: var(--muted); font-size: 18px; transition: transform .25s; }
+    .espn-private-toggle[aria-expanded="true"] .ept-go { transform: rotate(90deg); }
+    .espn-desktop { display: grid; gap: 8px; color: var(--ink); }
+    .espn-desktop ol { color: var(--muted); }
+    .espn-desktop .espn-desktop-why { color: var(--muted); }
+    .espn-desktop a { color: var(--blue); font-weight: 700; text-decoration: none; }
+
     .league-list { display: grid; }
     .league-row {
       display: grid;
@@ -1912,9 +1941,25 @@
               placeholder="ESPN league ID or league link" aria-label="ESPN league ID or league link" required />
           </label>
           <button class="signin-go" id="espnGo" type="submit">Open league</button>
-          <p class="signin-note" id="espnNote">Your league ID is the number after <code>leagueId=</code> in your league's address on fantasy.espn.com; pasting the whole link works too. A league that's viewable to the public needs nothing else. <a href="#" id="espnPrivateLink">Private league?</a></p>
+          <p class="signin-note" id="espnNote">Your league ID is the number after <code>leagueId=</code> in your league's address on fantasy.espn.com; pasting the whole link works too. A league that's viewable to the public needs nothing else.</p>
+          <button type="button" class="espn-private-toggle" id="espnPrivateToggle" aria-expanded="false" aria-controls="espnPrivate">
+            <span class="ept-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span>
+            <span class="ept-copy"><strong id="espnPrivateTitle">Private league?</strong><span id="espnPrivateSub">Connect your ESPN account to open it, and to list all your ESPN leagues here.</span></span>
+            <span class="ept-go" aria-hidden="true">›</span>
+          </button>
           <div class="espn-private" id="espnPrivate" hidden>
             <h4>Opening a private ESPN league</h4>
+            <!-- Phones and tablets: the keys can only be copied out of a
+                 desktop browser, so the panel says where to do it. -->
+            <div class="espn-desktop" id="espnDesktop" hidden>
+              <p><strong>Connect it from a computer, once.</strong> A private league opens with two keys ESPN keeps in your browser, and they can only be copied from a desktop browser's developer tools, which phones and tablets don't have.</p>
+              <ol>
+                <li id="espnDesktopSignIn">On a computer, open this site and sign in.</li>
+                <li>Pick <strong>ESPN</strong> ▸ <strong>Private league?</strong> and save your keys to your account.</li>
+                <li>Back here, your private leagues are listed and open with nothing to type.</li>
+              </ol>
+              <p class="espn-desktop-why"><a href="#" id="espnKeysAnyway">Have your keys already? Enter them here</a></p>
+            </div>
             <div id="espnKeys">
               <p>A private league opens with your ESPN keys: two values ESPN keeps in your browser once you're signed in. Find them on a computer:</p>
               <ol>
@@ -2154,6 +2199,26 @@
          too; otherwise they stay in this browser. Without the relay, keys
          can't be used, so there is nothing to enter. */
       const keys = ESPN.accountKeys;
+      // Phones and tablets: no developer tools to copy the keys from, so the
+      // panel sends them to a computer (unless they have the keys anyway).
+      const TOUCH = matchMedia("(hover: none) and (pointer: coarse)");
+      let keysAnyway = false;
+      let onAccountKnown = false;
+      // The private-league button says where things stand even while the
+      // panel is closed: not connected, or connected and where.
+      function drawToggle() {
+        const local = ESPN.proxyAvailable && Boolean(ESPN.savedAuth());
+        const connected = local || onAccountKnown;
+        const toggle = $("espnPrivateToggle");
+        toggle.classList.toggle("is-connected", connected);
+        toggle.setAttribute("aria-expanded", String(!espnPrivate.hidden));
+        $("espnPrivateTitle").textContent = connected ? "ESPN connected" : "Private league?";
+        $("espnPrivateSub").textContent = connected
+          ? `Your ESPN keys are saved ${onAccountKnown ? "to your account" : "in this browser"}, so your private leagues open and are listed below. Manage them here.`
+          : TOUCH.matches
+            ? "Connect your ESPN account from a computer, once; then your private leagues open here too."
+            : "Connect your ESPN account to open it, and to list all your ESPN leagues here.";
+      }
       let drawing = 0;
       async function drawPrivate() {
         const relay = ESPN.proxyAvailable;
@@ -2164,8 +2229,15 @@
           try { onAccount = (await keys.status()).saved; } catch (err) { onAccount = false; }
           if (turn !== drawing) return; // a newer drawing has started
         }
+        onAccountKnown = onAccount;
+        drawToggle();
         const saved = local || onAccount;
-        $("espnKeys").hidden = !relay || saved;
+        const desktopOnly = relay && !saved && TOUCH.matches && !keysAnyway;
+        $("espnDesktop").hidden = !desktopOnly;
+        $("espnDesktopSignIn").innerHTML = keys.signedIn()
+          ? `On a computer, open this site and sign in as <strong>${esc(window.Account.user.email || "you")}</strong>.`
+          : 'On a computer, open this site and sign in. <a href="#" id="espnSignIn">Sign in here too</a>, with the same account, so the keys carry over to this phone.';
+        $("espnKeys").hidden = !relay || saved || desktopOnly;
         // Where typed keys go: this browser, and the account if the member
         // is signed in and leaves the box ticked.
         $("espnToAccountChoice").hidden = !(relay && keys.signedIn());
@@ -2183,7 +2255,7 @@
             ? "Save them to your account to open your private leagues on your phone too, just by signing in there."
             : `<a href="#" id="espnSignIn">Sign in</a> to save them to your account, so your private leagues open on your phone too.`;
         const fine = $("espnFine");
-        fine.hidden = !relay;
+        fine.hidden = !relay || desktopOnly;
         fine.innerHTML = keys.available()
           ? "These two keys work like your ESPN password, so keep them to yourself. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay in this browser. Either way they're only used to read your league, through this site's relay to ESPN. <em>Forget them</em> removes them everywhere, and signing out of ESPN ends them."
           : "These two keys work like your ESPN password, so keep them to yourself. They stay in this browser, and are only used to read your league, through this site's relay to ESPN. <em>Forget them</em> removes them, and signing out of ESPN ends them.";
@@ -2214,6 +2286,7 @@
         }
         if (turn !== espnAsked) return;
         if (list === null) { showListing("espn", null); return; }
+        if (!local) { onAccountKnown = true; drawToggle(); }
         showListing("espn", {
           count: list.length,
           rows: list.map((l) => `
@@ -2247,8 +2320,15 @@
       });
       function openPrivate(open = true) {
         espnPrivate.hidden = !open;
+        drawToggle();
         if (open) drawPrivate();
       }
+      $("espnPrivateToggle").addEventListener("click", () => openPrivate(espnPrivate.hidden));
+      $("espnKeysAnyway").addEventListener("click", (event) => {
+        event.preventDefault();
+        keysAnyway = true;
+        drawPrivate();
+      });
       // The note is redrawn after an error, so its link is listened for here.
       espnNote.addEventListener("click", (event) => {
         if (!event.target.closest("#espnPrivateLink")) return;
@@ -2273,6 +2353,7 @@
       });
       $("espnForget").addEventListener("click", async () => {
         ESPN.clearAuth();
+        onAccountKnown = false;
         if (keys.signedIn()) {
           try { await keys.forget(); }
           catch (err) { say(`Removed from this browser, but your account couldn't forget them: ${err.message}`, { error: true }); return drawPrivate(); }
@@ -2311,6 +2392,7 @@
         }
         choose(platform === "espn" ? "espn" : "sleeper", { focus: !(saved && saved.username) || platform === "espn" });
       }
+      drawToggle();
       loadEspnLeagues();
     })();
   </script>
