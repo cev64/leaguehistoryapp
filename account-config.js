@@ -76,6 +76,14 @@ window.ACCOUNT_CONFIG = {
   STRIPE_PAYMENT_LINK: "",
   STRIPE_PORTAL_LINK: "",
 
+  // Visitor counts: Cloudflare Web Analytics, free and cookie-free (so no
+  // cookie banner). Cloudflare ▸ Analytics & Logs ▸ Web Analytics ▸ Add a
+  // site ▸ pigskinpantheon.com, pick the JavaScript snippet, and paste the
+  // token from it (the "token" value) here. Empty: nothing is loaded.
+  ANALYTICS: {
+    cloudflareToken: ""
+  },
+
   // Ads. Every slot on the site is a fixed-size box; with no provider set
   // it shows a labelled placeholder. For Google AdSense, set the publisher
   // id ("ca-pub-…") and, per slot name, the ad unit id from AdSense.

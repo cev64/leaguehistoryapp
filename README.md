@@ -425,6 +425,13 @@ configuration (site URL and redirect URLs) and to the functions'
 working there. Every link the site builds is relative to its own address,
 so nothing else changes.
 
+**Visitor counts.** GitHub Pages and the domain registrar don't count
+visits. Set `ANALYTICS.cloudflareToken` in `account-config.js` to a
+Cloudflare Web Analytics token (Cloudflare ▸ Analytics & Logs ▸ Web
+Analytics ▸ Add a site, JavaScript snippet) and every page loads its
+beacon: page views, visitors, referrers, countries and devices, with no
+cookies. Nothing loads while it's empty, or on localhost.
+
 The site is also an installable app (`manifest.webmanifest`, `sw.js`). Bump
 `CACHE_VERSION` in `sw.js` whenever a file in its precache list changes, or
 returning visitors keep the old copy.
