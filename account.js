@@ -9,7 +9,7 @@
 
    The plans:
      Free   one league, with ads; the league can be swapped once a month
-     Pro    $5 a month: unlimited leagues, no ads
+     Pro    $5 a month: unlimited leagues, the league AI chat (chat.js), no ads
 
    What pages see (window.Account):
      Account.ready            resolves once the session is known
@@ -485,7 +485,7 @@
       ? `<img src="${esc(league.avatar)}" alt="" width="56" height="56" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏈'}))">`
       : "<span>🏈</span>";
     const name = esc(league.name || "This league");
-    const proLine = `<b>Pro</b> · ${esc(PLANS.pro.price)}: unlimited leagues, no ads.`;
+    const proLine = `<b>Pro</b> · ${esc(PLANS.pro.price)}: unlimited leagues, the league AI, no ads.`;
     let title = "", copy = "", actions = "", foot = "";
 
     if (verdict.kind === "signed-out") {
@@ -675,7 +675,7 @@
       <button role="menuitem" class="acct-menu-item" data-act="panel">Account &amp; leagues</button>
       ${pro
         ? '<button role="menuitem" class="acct-menu-item" data-act="manage">Manage subscription</button>'
-        : `<button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="upgrade"><span>Go Pro</span><span>${esc(PLANS.pro.price)} · no ads</span></button>`}
+        : `<button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="upgrade"><span>Go Pro</span><span>${esc(PLANS.pro.price)} · AI chat · no ads</span></button>`}
       <div class="acct-menu-sep"></div>
       <button role="menuitem" class="acct-menu-item" data-act="signout">Sign out</button>`;
     menuEl.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
@@ -944,12 +944,12 @@
             <div class="acct-plan${pro ? "" : " is-current"}">
               <div class="acct-plan-name">${esc(PLANS.free.name)}${pro ? "" : "<em>Current</em>"}</div>
               <div class="acct-plan-price">${esc(PLANS.free.price)}</div>
-              <ul><li>1 league</li><li>Swap once a month</li><li>Ads</li></ul>
+              <ul><li>1 league</li><li>Swap once a month</li><li>No AI chat</li><li>Ads</li></ul>
             </div>
             <div class="acct-plan acct-plan-pro${pro ? " is-current" : ""}">
               <div class="acct-plan-name">${esc(PLANS.pro.name)}${pro ? "<em>Current</em>" : ""}</div>
               <div class="acct-plan-price">${esc(PLANS.pro.price)}</div>
-              <ul><li>Unlimited leagues</li><li>Add or remove any time</li><li>No ads</li></ul>
+              <ul><li>Ask the League AI</li><li>Unlimited leagues</li><li>Add or remove any time</li><li>No ads</li></ul>
             </div>
           </div>
           ${pro
