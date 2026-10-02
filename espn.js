@@ -31,6 +31,9 @@
               held by the relay), so their phone, or any device they sign
               in on, opens the league without typing them again
 
+   With keys (either kind), ESPN.myLeagues() lists the member's own football
+   leagues from their ESPN profile, for the front page to offer.
+
    Everything ESPN answers is reshaped to what the pages need before it is
    kept (IndexedDB, through sleeper.js), so a finished season costs nothing
    to open again for a month.
@@ -209,6 +212,35 @@
     accountSaved = Boolean(answer.saved);
     return answer;
   }
+  /* The member's own ESPN football leagues, newest season first, from the
+     teams on their ESPN profile (the relay's ?action=leagues): with the
+     keys in this browser, or else the ones saved to their account. Null
+     when there are no keys to ask with. */
+  async function myLeagues() {
+    if (!PROXY) return null;
+    const auth = savedAuth();
+    const token = auth ? null : await memberToken();
+    if (!auth && !token) return null;
+    const headers = {};
+    if (CFG.SUPABASE_ANON_KEY) headers.apikey = CFG.SUPABASE_ANON_KEY;
+    if (auth) {
+      headers["x-espn-s2"] = auth.s2;
+      headers["x-espn-swid"] = auth.swid;
+      if (CFG.SUPABASE_ANON_KEY) headers.Authorization = `Bearer ${CFG.SUPABASE_ANON_KEY}`;
+    } else {
+      headers["x-lh-account"] = "1";
+      headers.Authorization = `Bearer ${token}`;
+    }
+    const res = await fetch(`${PROXY}?action=leagues`, { headers, credentials: "omit" });
+    const answer = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      // No keys on the account is no list, not a failure.
+      if (!auth && res.status === 401 && /no ESPN keys/.test(answer.error || "")) return null;
+      throw new Error(answer.error || `The relay answered ${res.status}`);
+    }
+    return Array.isArray(answer.leagues) ? answer.leagues : [];
+  }
+
   const accountKeys = {
     available: accountsOn,
     signedIn: () => Boolean(accountsOn() && window.Account.user),
@@ -1005,6 +1037,6 @@
   window.ESPN = {
     parseLeague, isEspnId, leagueId: (n) => `${PREFIX}${n}`,
     savedAuth, saveAuth, clearAuth, tidyAuth,
-    proxyAvailable: Boolean(PROXY), accountKeys,
+    proxyAvailable: Boolean(PROXY), accountKeys, myLeagues,
   };
 })();

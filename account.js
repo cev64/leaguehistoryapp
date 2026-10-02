@@ -386,11 +386,27 @@
     await refresh();
   }
 
+  /* Taking a league off the account: with none left, or with the league on
+     screen gone, the next thing to do is find a league, so that's where the
+     member goes (reloading the league they just removed would only ask to
+     add it back, and on Pro would quietly do so). */
   async function unsync(leagueId) {
     const row = state.leagues.find((l) => l.league_id === leagueId);
     await backend.unsync(leagueId);
     await refresh();
-    if (row && admitted && (row.league_ids || [row.league_id]).some((id) => admitted.ids.includes(id))) relock();
+    const wasOpen = row && admitted && (row.league_ids || [row.league_id]).some((id) => admitted.ids.includes(id));
+    if (wasOpen || !state.leagues.length) findLeague();
+  }
+
+  // The front page's league finder: scrolled to there, or gone to.
+  function findLeague() {
+    const finder = document.getElementById("signinForm");
+    if (!finder) { location.href = "index.html"; return; }
+    closePanel();
+    const card = finder.closest(".card") || finder;
+    card.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+    const field = [...card.querySelectorAll("input")].find((el) => el.offsetParent);
+    if (field) setTimeout(() => field.focus({ preventScroll: true }), 350);
   }
 
   /* Checkout. Stripe's Payment Link, told who is paying so the webhook can

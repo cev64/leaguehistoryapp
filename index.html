@@ -2017,25 +2017,43 @@
       }
 
       function showLeagues(user, leagues) {
-        const card = document.getElementById("leaguesCard");
-        listing = "sleeper";
-        // Still hidden while the ESPN tab is showing.
-        card.hidden = form.hidden;
-        document.getElementById("leaguesTitle").textContent = `${user.name}'s Leagues`;
-        document.getElementById("leaguesMeta").textContent = leagues.length ? `${leagues.length} found` : "";
         const live = new Set(["in_season", "post_season", "drafting"]);
-        document.getElementById("leagueList").innerHTML = leagues.length
-          ? leagues.map((l) => `
+        showListing("sleeper", {
+          count: leagues.length,
+          rows: leagues.map((l) => `
             <a class="league-row" href="${leagueHref(l.id)}">
               ${badge(l.avatar, l.name)}
               <span class="league-name">
                 <strong>${esc(l.name)}${live.has(l.status) ? `<span class="league-status">Live</span>` : ""}</strong>
-                <span>${describe(l)}</span>
+                <span>Sleeper · ${describe(l)}</span>
               </span>
               <span class="league-go" aria-hidden="true">›</span>
-            </a>`).join("")
-          : `<div class="signin-empty">No NFL leagues on Sleeper for ${esc(user.name)} in the last ten seasons.</div>`;
+            </a>`).join(""),
+          note: leagues.length ? "" : `No NFL leagues on Sleeper for ${esc(user.name)} in the last ten seasons.`,
+        });
         document.getElementById("signedIn").textContent = "";
+      }
+
+      /* One list of the member's leagues on both platforms, whichever tab
+         is showing: Sleeper's from a username, ESPN's from their ESPN keys,
+         each row saying which. A platform's part is { count, rows, note },
+         or null when there's nothing to show for it. */
+      const listings = { sleeper: null, espn: null };
+      function showListing(platform, part) {
+        listings[platform] = part;
+        drawListing();
+      }
+      function drawListing() {
+        const parts = ["sleeper", "espn"].map((p) => [p, listings[p]]).filter(([, part]) => part);
+        const card = document.getElementById("leaguesCard");
+        card.hidden = !parts.length;
+        if (!parts.length) return;
+        const name = { sleeper: "Sleeper", espn: "ESPN" };
+        document.getElementById("leaguesTitle").textContent = "Leagues found";
+        document.getElementById("leaguesMeta").textContent = parts
+          .filter(([, part]) => part.count).map(([p, part]) => `${part.count} on ${name[p]}`).join(" · ");
+        document.getElementById("leagueList").innerHTML = parts.map(([, part]) => part.rows || "").join("") +
+          parts.filter(([, part]) => part.note).map(([, part]) => `<div class="signin-empty">${part.note}</div>`).join("");
       }
 
       async function findLeagues(name) {
@@ -2109,20 +2127,16 @@
       const espnNote = document.getElementById("espnNote");
       const espnDefault = espnNote.innerHTML;
       const espnPrivate = document.getElementById("espnPrivate");
-      const leaguesCard = document.getElementById("leaguesCard");
       const tabs = { sleeper: document.getElementById("tabSleeper"), espn: document.getElementById("tabEspn") };
       const PLATFORM_KEY = "lh-platform";
       const $ = (id) => document.getElementById(id);
-      // Which platform's leagues the list card is showing.
-      let listing = null;
-
       function choose(platform, { focus = true } = {}) {
         const espn = platform === "espn";
         tabs.sleeper.setAttribute("aria-selected", String(!espn));
         tabs.espn.setAttribute("aria-selected", String(espn));
         form.hidden = espn;
         espnForm.hidden = !espn;
-        leaguesCard.hidden = listing !== platform;
+        drawListing();
         try { localStorage.setItem(PLATFORM_KEY, platform); } catch (err) { /* ignore */ }
         if (focus) (espn ? espnInput : input).focus({ preventScroll: true });
       }
@@ -2174,7 +2188,46 @@
           ? "These two keys work like your ESPN password, so keep them to yourself. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay in this browser. Either way they're only used to read your league, through this site's relay to ESPN. <em>Forget them</em> removes them everywhere, and signing out of ESPN ends them."
           : "These two keys work like your ESPN password, so keep them to yourself. They stay in this browser, and are only used to read your league, through this site's relay to ESPN. <em>Forget them</em> removes them, and signing out of ESPN ends them.";
       }
-      if (window.Account && window.Account.on) window.Account.on(() => { if (!espnPrivate.hidden) drawPrivate(); });
+      if (window.Account && window.Account.on) window.Account.on(() => { if (!espnPrivate.hidden) drawPrivate(); loadEspnLeagues(); });
+
+      /* With ESPN keys (in this browser, or saved to the signed-in member's
+         account), the member's own ESPN leagues join the list under the
+         form, alongside a Sleeper username's. ESPN is asked again only when the
+         keys change hands: saved, forgotten, signed in or out. */
+      let espnAsked = 0;
+      let espnAskedFor = null;
+      async function loadEspnLeagues({ force = false } = {}) {
+        const local = Boolean(ESPN.savedAuth());
+        const who = window.Account && window.Account.user ? window.Account.user.id : "";
+        const askFor = `${local}|${who}`;
+        if (!force && askFor === espnAskedFor) return;
+        espnAskedFor = askFor;
+        const turn = ++espnAsked;
+        if (!ESPN.proxyAvailable || (!local && !keys.signedIn())) { showListing("espn", null); return; }
+        let list;
+        try {
+          list = await ESPN.myLeagues();
+        } catch (err) {
+          if (turn !== espnAsked) return;
+          showListing("espn", { count: 0, note: `ESPN didn't list your leagues (${esc(err.message)}). You can still open one by its ID or link on the ESPN tab.` });
+          return;
+        }
+        if (turn !== espnAsked) return;
+        if (list === null) { showListing("espn", null); return; }
+        showListing("espn", {
+          count: list.length,
+          rows: list.map((l) => `
+            <a class="league-row" href="${leagueHref(ESPN.leagueId(l.id))}">
+              ${badge(l.logo, l.name)}
+              <span class="league-name">
+                <strong>${esc(l.name)}</strong>
+                <span>${["ESPN", l.season ? `${l.season}` : "", l.size ? `${l.size} teams` : "", l.team ? `your team: ${esc(l.team)}` : ""].filter(Boolean).join(" · ")}</span>
+              </span>
+              <span class="league-go" aria-hidden="true">›</span>
+            </a>`).join(""),
+          note: list.length ? "" : "ESPN has no football leagues on the profile your keys belong to. You can still open one by its ID or link on the ESPN tab.",
+        });
+      }
       espnPrivate.addEventListener("click", (event) => {
         if (!event.target.closest("#espnSignIn")) return;
         event.preventDefault();
@@ -2213,8 +2266,9 @@
         swid.value = "";
         if ($("espnToAccountBox").checked) await toAccount();
         await drawPrivate();
+        loadEspnLeagues({ force: true });
         if (espnInput.value.trim()) { espnForm.requestSubmit(); return; }
-        say("✓ Keys saved. Now enter your league's ID or link above.");
+        say("✓ Keys saved. Your ESPN leagues are listed below; or enter a league's ID or link above.");
         espnInput.focus();
       });
       $("espnForget").addEventListener("click", async () => {
@@ -2225,6 +2279,7 @@
         }
         say(espnDefault, { html: true });
         drawPrivate();
+        loadEspnLeagues({ force: true });
       });
 
       espnForm.addEventListener("submit", (event) => {
@@ -2256,6 +2311,7 @@
         }
         choose(platform === "espn" ? "espn" : "sleeper", { focus: !(saved && saved.username) || platform === "espn" });
       }
+      loadEspnLeagues();
     })();
   </script>
 </body>

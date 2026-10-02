@@ -164,8 +164,11 @@ with a note that links back to the panel.
 - Scores are ESPN's own, so any custom scoring is already in them. If an
   ESPN league plays an extra weekly game against the league median, those
   extra wins aren't added to the site's records.
-- There is no ESPN username search (ESPN has no public lookup); visitors
-  open a league by its ID or link.
+- There is no ESPN username search (ESPN has no public lookup). With ESPN
+  keys saved (in the browser or to the account), the front page lists the
+  member's own ESPN football leagues, from the teams on their ESPN profile
+  (the relay's `?action=leagues`), in the same list as their Sleeper
+  leagues; without keys, a league opens by its ID or link.
 - ESPN's fantasy API is unofficial and undocumented. It has been stable for
   years and the community libraries rely on it, but it can change without
   notice.
