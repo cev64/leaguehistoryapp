@@ -367,16 +367,40 @@ returning visitors keep the old copy.
 
 ## Accounts, plans and ads
 
-Visitors sign in to open a league. Two plans:
+Visitors sign in to open a league. Three plans:
 
 | Plan | Price | Leagues | Ask the League (AI) | Ads |
 | --- | --- | --- | --- | --- |
 | Free | $0 | 1, swappable once every 30 days | Preview only | Yes |
-| Pro | $5/month | Unlimited, add or remove any time | Yes | No |
+| Pro | $10/month | Unlimited, add or remove any time | Yes | No |
+| League Pass | $20 per member a year, billed annually | Pro for everyone on it | Yes | No |
 
 A league is synced by its whole history (every season's league id), so the
 new league Sleeper creates when a league renews is still the same league and
 never costs a swap.
+
+### League Pass
+
+One member (the owner) buys Pro for their whole league: they pick the
+league and how many members (2 to 60, themselves included), and pay $20 a
+member for the year (8 members $160, 10 members $200). After paying they
+get an invite link to send their league. Following it, a league-mate is
+asked to create an account or sign in ("Charlie invited you to SLUH22"),
+takes a seat, gets Pro and has the league added to their account.
+
+The owner's account panel shows the pass: who has joined, open seats, the
+link (copy, share, or make a new one so the old one stops working),
+Remove and Restore for each member, and a seat stepper to add or drop
+seats (Stripe charges or credits the difference for the rest of the year).
+A removed member loses Pro and the link won't let them back in unless the
+owner restores them.
+
+A member's plan is worked out in one place, `refresh_plan()`: Pro if their
+own subscription is paid, if they hold a seat on a paid-up pass, or if
+they're a comp (`plan_status = 'comp'` on their profile, set by hand in the
+table editor to give someone Pro for free). Invite links are built from
+the site's own address, so they keep working when the site moves to its
+own domain.
 
 - `account-config.js` — the settings: Supabase keys, plan names and
   prices, the swap window, Stripe links and the ad network.
@@ -389,8 +413,11 @@ never costs a swap.
   `league_changes` tables with row-level security, and `sync_league()` /
   `unsync_league()`, which enforce the free plan's one league and 30-day
   swap on the server.
-- `supabase/functions/stripe-webhook/` — sets a profile's plan from Stripe's
-  subscription events. Nothing else can write a plan.
+- `supabase/functions/stripe-webhook/` — keeps Pro subscriptions and
+  League Passes in step with Stripe's events, then works out the plans.
+  Nothing else can write a plan.
+- `supabase/functions/league-pass/` — starts a League Pass checkout and
+  changes a pass's seats.
 - `supabase/functions/espn-proxy/` — the relay for private ESPN leagues,
   and the encrypted store for ESPN keys saved to accounts (see
   [ESPN leagues](#espn-leagues)).
@@ -412,12 +439,17 @@ Going live:
    reset emails land there). Turn on Google under Providers if wanted, and
    set `GOOGLE_SIGN_IN: true`.
 3. Put the project URL and anon key in `account-config.js`.
-4. Stripe: a $5/month recurring price, a Payment Link for it and the
-   customer portal. Put both links in `account-config.js`.
+4. Stripe: a $10/month recurring price, a Payment Link for it and the
+   customer portal. Put both links in `account-config.js`. For League
+   Pass, a product with a recurring **yearly** price of $20 per unit (the
+   seats are its quantity): `supabase secrets set
+   STRIPE_LEAGUE_PRICE_ID=price_…`.
 5. Deploy the webhook (`supabase functions deploy stripe-webhook
    --no-verify-jwt`), set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
    and point a Stripe webhook at it for `checkout.session.completed` and
-   `customer.subscription.*`.
+   `customer.subscription.*`. Deploy `league-pass` the same way and run
+   `20261004000000_league_pass.sql`. The site finds it at
+   `<SUPABASE_URL>/functions/v1/league-pass` (or `LEAGUE_PASS_URL`).
 6. For private ESPN leagues, deploy the relay
    (`supabase functions deploy espn-proxy --no-verify-jwt`) and set
    `ALLOWED_ORIGINS` to the site's address (`supabase secrets set

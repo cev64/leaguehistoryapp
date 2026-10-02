@@ -33,7 +33,8 @@
   const CFG = window.ACCOUNT_CONFIG || {};
   const ENDPOINT = CFG.AI_CHAT_URL ||
     (CFG.SUPABASE_URL ? `${String(CFG.SUPABASE_URL).replace(/\/+$/, "")}/functions/v1/league-chat` : "");
-  const PRO_PRICE = (CFG.PLANS && CFG.PLANS.pro && CFG.PLANS.pro.price) || "$5/month";
+  const PRO_PRICE = (CFG.PLANS && CFG.PLANS.pro && CFG.PLANS.pro.price) || "$10/month";
+  const PASS_PRICE = `$${(CFG.PLANS && CFG.PLANS.league && CFG.PLANS.league.perMember) || 20}`;
   const REDUCE = matchMedia("(prefers-reduced-motion: reduce)");
   const PHONE = matchMedia("(max-width: 640px)");
   // A conversation this long is closed for a fresh one: the AI reads all of
@@ -934,6 +935,7 @@
             <li style="--i:3">${ICON.check}Plus unlimited leagues and no ads</li>
           </ul>
           <button type="button" class="lhc-upgrade" data-act="upgrade"><span>Go Pro · ${esc(PRO_PRICE)}</span></button>
+          <button type="button" class="lhc-pass" data-act="pass">Or get it for your whole league: only ${esc(PASS_PRICE)} per member a year</button>
           <span class="lhc-lock-fine">Cancel any time.</span>
         </div>
       </div>`;
@@ -944,6 +946,7 @@
       if (!pro()) {
         log.innerHTML = paywall();
         log.querySelector('[data-act="upgrade"]').addEventListener("click", () => window.Account && window.Account.upgrade());
+        log.querySelector('[data-act="pass"]').addEventListener("click", () => window.Account && window.Account.openLeaguePass && window.Account.openLeaguePass());
         form.hidden = true;
         panel.querySelector(".lhc-fine").hidden = true;
         panel.querySelector('[data-act="fresh"]').hidden = true;

@@ -417,3 +417,74 @@ html.lh-gated { overflow: hidden; }
 .ad-dark .ad-ph { color: rgba(219, 229, 238, .45); }
 
 html.lh-no-ads .ad-wrap, .ad-wrap.ad-off { display: none !important; }
+
+/* ---------------------------------------------------------------
+   League Pass: the plan card, the checkout, the owner's section, and
+   the invite a friend lands on
+   --------------------------------------------------------------- */
+.acct-plan-league { grid-column: 1 / -1; background: linear-gradient(135deg, #0f2a44, var(--acct-navy)); border-color: transparent; color: #fff; }
+.acct-plan-league .acct-plan-name { color: #fff; }
+.acct-plan-league .acct-plan-name em { color: var(--acct-gold); }
+.acct-plan-league .acct-plan-price small { font: 600 12px/1 var(--font-body, Inter, sans-serif); color: #c9d5df; text-transform: none; letter-spacing: 0; }
+.acct-plan-league ul { color: #dbe4ee; }
+.acct-plan-league.is-current { box-shadow: 0 0 0 2px var(--acct-gold) inset; }
+.acct-pass-cta { width: 100%; margin-top: 8px; border-color: rgba(246, 183, 60, .7); background: #fffaf0; color: #7a5200; }
+.acct-pass-cta:hover { background: #fff3da; }
+
+.acct-pass-kicker { display: block; margin-bottom: 6px; color: #b07a0c; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.acct-invite-card .acct-pass-kicker, .acct-invite-card h2, .acct-invite-card .acct-reason { text-align: center; }
+.acct-invite { z-index: 290; }
+.acct-invite-card .acct-gate-league { margin: 0 auto 12px; }
+.acct-invite-card .acct-gate-actions { justify-content: center; }
+.acct-invite-card .acct-muted { text-align: center; }
+.acct-pass-buy .acct-modal-card { width: min(460px, 100%); }
+.acct-pass-form { gap: 14px; }
+.acct-pass-form select {
+  width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--acct-line); border-radius: 12px;
+  background: #fff; color: var(--acct-ink); font: inherit; font-size: 15px;
+}
+.acct-stepper { display: inline-flex; justify-self: start; align-items: center; border: 1px solid var(--acct-line); border-radius: 12px; overflow: hidden; background: #fff; }
+.acct-stepper button { width: 44px; height: 44px; border: 0; background: #f2f4f7; color: var(--acct-ink); font-size: 20px; font-weight: 700; cursor: pointer; }
+.acct-stepper button:hover { background: #e7eaef; }
+.acct-stepper input, .acct-stepper output {
+  width: 64px; height: 44px; border: 0; text-align: center; font: 800 18px/44px var(--font-body, Inter, sans-serif);
+  color: var(--acct-ink); background: #fff; -moz-appearance: textfield; appearance: textfield;
+  padding: 0; border-radius: 0; box-shadow: none;
+}
+.acct-stepper input::-webkit-outer-spin-button, .acct-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.acct-stepper-small button { width: 32px; height: 32px; font-size: 16px; }
+.acct-btn[hidden] { display: none; }
+.acct-stepper-small output { width: 40px; height: 32px; line-height: 32px; font-size: 14px; }
+.acct-pass-total {
+  display: flex; align-items: baseline; gap: 10px; padding: 14px 16px; border-radius: 14px;
+  background: linear-gradient(135deg, #0f2a44, var(--acct-navy)); color: #fff;
+}
+.acct-pass-total strong { font: 700 34px/1 var(--font-display, "Barlow Condensed", sans-serif); color: var(--acct-gold); }
+.acct-pass-total span { color: #c9d5df; font-size: 13px; }
+
+.acct-pass { display: grid; gap: 10px; padding: 12px; border-radius: 12px; background: #f7f8fa; }
+.acct-pass + .acct-pass { margin-top: 10px; }
+.acct-pass-head { display: flex; align-items: center; gap: 10px; }
+.acct-pass-head img, .acct-pass-head .acct-league-mark { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; flex: 0 0 auto; }
+.acct-pass-status { flex: 0 0 auto; padding: 4px 8px; border-radius: 999px; background: #e6f4ea; color: #1d7a3f; font-size: 11px; font-weight: 800; }
+.acct-pass-status.is-off { background: #fdecec; color: var(--acct-red); }
+.acct-pass-meter { height: 6px; border-radius: 999px; background: #e3e8ee; overflow: hidden; }
+.acct-pass-meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--acct-blue), var(--acct-gold)); transition: width .4s var(--acct-ease); }
+.acct-pass-invite { display: grid; gap: 6px; }
+.acct-pass-invite-label { display: flex; align-items: center; gap: 6px; color: var(--acct-ink-2); font-size: 12px; font-weight: 700; }
+.acct-pass-invite-label svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.acct-copy { display: flex; gap: 6px; }
+.acct-copy input {
+  flex: 1; min-width: 0; height: 34px; padding: 0 10px; border: 1px solid var(--acct-line); border-radius: 9px;
+  background: #fff; color: var(--acct-ink); font: 500 12.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.acct-pass-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.acct-members { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.acct-member { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-top: 1px solid var(--acct-line); }
+.acct-member:first-child { border-top: 0; }
+.acct-member .acct-avatar { width: 30px; height: 30px; font-size: 12px; }
+.acct-member strong em { font-style: normal; margin-left: 4px; padding: 1px 6px; border-radius: 999px; background: #e8efff; color: var(--acct-blue); font-size: 10px; font-weight: 800; }
+.acct-member.is-removed { opacity: .6; }
+.acct-member.is-open .acct-avatar { background: #fff; color: var(--acct-ink-3); border: 1px dashed #c3ccd6; }
+.acct-member .acct-league-copy span { overflow-wrap: anywhere; }
+.acct-pass-seats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--acct-ink-2); font-size: 12.5px; font-weight: 700; }
