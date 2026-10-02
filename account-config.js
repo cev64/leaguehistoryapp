@@ -81,7 +81,7 @@ window.ACCOUNT_CONFIG = {
   // site ▸ pigskinpantheon.com, pick the JavaScript snippet, and paste the
   // token from it (the "token" value) here. Empty: nothing is loaded.
   ANALYTICS: {
-    cloudflareToken: ""
+    cloudflareToken: "30f2264b39864e13b2e4f71d7652c5d8"
   },
 
   // Ads. Every slot on the site is a fixed-size box; with no provider set
