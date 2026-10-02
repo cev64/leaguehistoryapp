@@ -44,14 +44,22 @@ window.ACCOUNT_CONFIG = {
 
   PLANS: {
     free: { name: "Free", price: "$0", leagues: 1, ads: true },
-    pro: { name: "Pro", price: "$5/month", leagues: Infinity, ads: false }
+    pro: { name: "Pro", price: "$10/month", leagues: Infinity, ads: false },
+    // One member buys Pro for the whole league: perMember dollars a year
+    // for each member, the buyer included. The Stripe price itself lives in
+    // the league-pass function (STRIPE_LEAGUE_PRICE_ID).
+    league: { name: "League Pass", perMember: 20, price: "$20 per member a year", minSeats: 2, maxSeats: 60 }
   },
+
+  // The League Pass function (supabase/functions/league-pass), which starts
+  // its checkout. Left empty, it is <SUPABASE_URL>/functions/v1/league-pass.
+  LEAGUE_PASS_URL: "",
 
   // How long a free account's synced league is locked in before it can be
   // swapped for another: one change a month.
   SWAP_DAYS: 30,
 
-  // Stripe. A Payment Link for the $5/month Pro price (Stripe ▸ Payment
+  // Stripe. A Payment Link for the $10/month Pro price (Stripe ▸ Payment
   // Links), and the customer portal link (Stripe ▸ Settings ▸ Billing ▸
   // Customer portal) for managing or cancelling. The account page adds
   // client_reference_id=<user id> and the email to the payment link, which

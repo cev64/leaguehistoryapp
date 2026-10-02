@@ -9,7 +9,11 @@
 
    The plans:
      Free   one league, with ads; the league can be swapped once a month
-     Pro    $5 a month: unlimited leagues, the league AI chat (chat.js), no ads
+     Pro    $10 a month: unlimited leagues, the league AI chat (chat.js), no ads
+     League Pass  $20 per member a year: one member buys Pro for their
+            whole league and shares an invite link; everyone who joins
+            through it is on Pro while the pass is paid (see "League Pass"
+            below, and supabase/migrations/20261004000000_league_pass.sql)
 
    What pages see (window.Account):
      Account.ready            resolves once the session is known
@@ -20,6 +24,7 @@
      Account.accessToken()    the signed-in session's token (Supabase only),
                               for the ESPN relay's saved keys
      Account.openSignIn(), openPanel(), upgrade(), signOut()
+     Account.openLeaguePass() the League Pass checkout, for the league on screen
 
    Plain script, loaded in <head> after account-config.js, so the ad slots
    know whether to show before the page first paints. */
@@ -34,8 +39,12 @@
   const SWAP_DAYS = Number(CFG.SWAP_DAYS) || 30;
   const PLANS = CFG.PLANS || {
     free: { name: "Free", price: "$0", leagues: 1, ads: true },
-    pro: { name: "Pro", price: "$5/month", leagues: Infinity, ads: false },
+    pro: { name: "Pro", price: "$10/month", leagues: Infinity, ads: false },
   };
+  const LEAGUE = Object.assign({ name: "League Pass", perMember: 20, price: "$20 per member a year", minSeats: 2, maxSeats: 60 }, PLANS.league || {});
+  const PASS_URL = CFG.LEAGUE_PASS_URL ||
+    (CFG.SUPABASE_URL ? `${String(CFG.SUPABASE_URL).replace(/\/+$/, "")}/functions/v1/league-pass` : "");
+  const money = (n) => `$${Number(n).toLocaleString("en-US")}`;
   const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
 
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
@@ -74,12 +83,22 @@
     }
     if (code === "not_signed_in") return "Sign in first.";
     if (code === "bad_league") return "That isn't a Sleeper or ESPN league.";
+    if (code === "invite_unknown") return "That invite link isn't valid anymore. Ask for a new one.";
+    if (code === "pass_inactive") return "That League Pass isn't active right now.";
+    if (code === "invite_removed") return "The league's organizer took this seat back. Ask them to restore it.";
+    if (code === "pass_full") return "Every seat on that League Pass is taken. Ask the organizer to add one.";
+    if (code === "not_owner") return "Only the person who bought the League Pass can do that.";
+    if (code === "seats_in_use" || code === "bad_seats") return raw.slice(raw.indexOf(":") + 1).trim() || "That number of seats won't work.";
+    if (code === "pass_not_set_up") return "League Pass payments aren't set up yet.";
     if (/invalid login credentials/i.test(raw)) return "That email and password don't match an account.";
     if (/already registered|already been registered|user_already_exists/i.test(raw)) return "There's already an account with that email. Sign in instead.";
     if (/password should be at least|weak_password/i.test(raw)) return "Use a password of at least 8 characters.";
     if (/email not confirmed/i.test(raw)) return "Confirm your email first: the link is in your inbox.";
     if (/rate limit|too many/i.test(raw)) return "Too many tries. Wait a minute and try again.";
     if (/failed to fetch|network/i.test(raw)) return "Couldn't reach the server. Check your connection.";
+    // a server's own sentence, after its code
+    const said = raw.match(/^[a-z_]+:(.+)$/);
+    if (said) return said[1].trim().charAt(0).toUpperCase() + said[1].trim().slice(1);
     return raw || "Something went wrong.";
   }
 
@@ -157,7 +176,49 @@
         const { data } = await client.auth.getSession();
         return (data.session && data.session.access_token) || null;
       },
+
+      // League Pass: the database functions, and the league-pass function
+      // for anything that involves Stripe.
+      async passes() {
+        return check(await client.rpc("my_league_passes")) || { owned: [], member_of: [] };
+      },
+      async invite(code) {
+        return check(await client.rpc("league_pass_invite", { p_code: code }));
+      },
+      async joinPass(code) {
+        return check(await client.rpc("join_league_pass", { p_code: code }));
+      },
+      async setPassMember(passId, userId, active) {
+        check(await client.rpc("set_league_pass_member", { p_pass_id: passId, p_user_id: userId, p_active: active }));
+      },
+      async resetPassLink(passId) {
+        return check(await client.rpc("reset_league_pass_link", { p_pass_id: passId }));
+      },
+      async buyPass({ league, seats, returnUrl }) {
+        return passCall("checkout", {
+          league_id: league.id, league_ids: league.ids, league_name: league.name, league_avatar: league.avatar,
+          seats, return_url: returnUrl,
+        });
+      },
+      async setPassSeats(passId, seats) {
+        return passCall("seats", { pass_id: passId, seats });
+      },
     };
+
+    async function passCall(action, body) {
+      if (!PASS_URL) throw new Error("pass_not_set_up");
+      const { data } = await client.auth.getSession();
+      const token = data.session && data.session.access_token;
+      if (!token) throw new Error("not_signed_in");
+      const res = await fetch(`${PASS_URL}?action=${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: CFG.SUPABASE_ANON_KEY },
+        body: JSON.stringify(body),
+      });
+      const answer = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(answer.code === "not_set_up" ? "pass_not_set_up" : `${answer.code || "error"}:${answer.error || `The server answered ${res.status}`}`);
+      return answer;
+    }
   }
 
   /* Preview: the same behaviour, kept in this browser. It follows the rules
@@ -181,6 +242,19 @@
     const current = (db) => db.session && db.users[db.session];
     const toUser = (u) => u && { id: u.id, email: u.email, name: u.name || "" };
     let notify = () => {};
+    // A member's plan, as refresh_plan() works it out on the live site: their
+    // own Pro, or a seat on a League Pass.
+    const onPass = (db, userId) => (db.passes || []).some((p) => p.status === "active" &&
+      p.members.some((m) => m.user_id === userId && !m.removed_at));
+    const planOf = (db, u) => (u.plan === "pro" || onPass(db, u.id) ? "pro" : "free");
+    const nameOf = (db, id) => { const x = db.users[id]; return x ? (x.name || x.email.split("@")[0]) : "Someone"; };
+    const passView = (db, p) => ({
+      id: p.id, league_id: p.league_id, league_name: p.league_name, league_avatar: p.league_avatar,
+      seats: p.seats, status: p.status, live: p.status === "active", current_period_end: p.current_period_end,
+      invite_code: p.invite_code, created_at: p.created_at,
+      members: p.members.map((m) => ({ ...m, name: nameOf(db, m.user_id), email: (db.users[m.user_id] || {}).email || "" })),
+    });
+    const code = () => uid().replace(/-/g, "").slice(0, 24);
 
     return {
       async init(onAuth) {
@@ -193,7 +267,7 @@
         const u = load().users[user.id] || {};
         return {
           id: user.id, email: u.email, display_name: u.name || "", sleeper_username: u.sleeper || "",
-          plan: u.plan || "free", current_period_end: u.plan === "pro" ? Date.now() + 30 * DAY : null,
+          plan: planOf(load(), u), current_period_end: u.plan === "pro" ? Date.now() + 30 * DAY : null,
         };
       },
       async leagues() {
@@ -256,7 +330,7 @@
           save(db);
           return had;
         }
-        if (u.plan !== "pro" && u.leagues.length >= PLANS.free.leagues) throw new Error("free_limit");
+        if (planOf(db, u) !== "pro" && u.leagues.length >= PLANS.free.leagues) throw new Error("free_limit");
         const row = { league_id: league.id, league_ids: ids, name: league.name, avatar: league.avatar, synced_at: Date.now() };
         u.leagues.push(row);
         save(db);
@@ -269,7 +343,7 @@
         const row = (u.leagues || []).find((l) => l.league_id === leagueId || l.league_ids.includes(leagueId));
         if (!row) return;
         const unlocks = new Date(row.synced_at).getTime() + SWAP_DAYS * DAY;
-        if (u.plan !== "pro" && unlocks > Date.now()) throw new Error(`swap_locked:${new Date(unlocks).toISOString()}`);
+        if (planOf(db, u) !== "pro" && unlocks > Date.now()) throw new Error(`swap_locked:${new Date(unlocks).toISOString()}`);
         u.leagues = u.leagues.filter((l) => l !== row);
         save(db);
       },
@@ -283,6 +357,100 @@
         const db = load();
         const u = current(db);
         if (u) { (u.leagues || []).forEach((l) => { l.synced_at = Date.now() - SWAP_DAYS * DAY - 1000; }); save(db); }
+      },
+
+      // League Pass, with the database functions' rules. Buying one needs no
+      // payment here: the pass is active at once.
+      async passes() {
+        const db = load();
+        const u = current(db);
+        if (!u) return { owned: [], member_of: [] };
+        const all = db.passes || [];
+        return {
+          owned: all.filter((p) => p.owner_id === u.id).map((p) => passView(db, p)),
+          member_of: all.filter((p) => p.owner_id !== u.id && p.members.some((m) => m.user_id === u.id && !m.removed_at))
+            .map((p) => ({ id: p.id, league_id: p.league_id, league_name: p.league_name, live: p.status === "active",
+              current_period_end: p.current_period_end, owner_name: nameOf(db, p.owner_id) })),
+        };
+      },
+      async invite(inviteCode) {
+        const db = load();
+        const p = (db.passes || []).find((x) => x.invite_code === inviteCode);
+        if (!p) throw new Error("invite_unknown");
+        const u = current(db);
+        const mine = u && p.members.find((m) => m.user_id === u.id);
+        return {
+          league_id: p.league_id, league_name: p.league_name, league_avatar: p.league_avatar,
+          owner_name: nameOf(db, p.owner_id), is_owner: Boolean(u && p.owner_id === u.id),
+          seats: p.seats, used: p.members.filter((m) => !m.removed_at).length, live: p.status === "active",
+          joined: Boolean(mine && !mine.removed_at), removed: Boolean(mine && mine.removed_at),
+        };
+      },
+      async joinPass(inviteCode) {
+        const db = load();
+        const u = current(db);
+        if (!u) throw new Error("not_signed_in");
+        const p = (db.passes || []).find((x) => x.invite_code === inviteCode);
+        if (!p) throw new Error("invite_unknown");
+        if (p.status !== "active") throw new Error("pass_inactive");
+        const mine = p.members.find((m) => m.user_id === u.id);
+        if (mine && mine.removed_at) throw new Error("invite_removed");
+        if (!mine) {
+          if (p.members.filter((m) => !m.removed_at).length >= p.seats) throw new Error("pass_full");
+          p.members.push({ user_id: u.id, role: "member", joined_at: new Date().toISOString(), removed_at: null });
+        }
+        u.leagues = u.leagues || [];
+        if (!u.leagues.some((l) => l.league_ids.includes(p.league_id))) {
+          u.leagues.push({ league_id: p.league_id, league_ids: p.league_ids, name: p.league_name, avatar: p.league_avatar, synced_at: Date.now() });
+        }
+        save(db);
+        return { pass_id: p.id, league_id: p.league_id, league_name: p.league_name };
+      },
+      async setPassMember(passId, userId, active) {
+        const db = load();
+        const u = current(db);
+        const p = (db.passes || []).find((x) => x.id === passId);
+        if (!u || !p || p.owner_id !== u.id) throw new Error("not_owner");
+        const m = p.members.find((x) => x.user_id === userId);
+        if (!m || m.role === "owner") return;
+        if (active && !m.removed_at) return;
+        if (active && p.members.filter((x) => !x.removed_at).length >= p.seats) throw new Error("pass_full");
+        m.removed_at = active ? null : new Date().toISOString();
+        save(db);
+      },
+      async resetPassLink(passId) {
+        const db = load();
+        const u = current(db);
+        const p = (db.passes || []).find((x) => x.id === passId);
+        if (!u || !p || p.owner_id !== u.id) throw new Error("not_owner");
+        p.invite_code = code();
+        save(db);
+        return p.invite_code;
+      },
+      async buyPass({ league, seats }) {
+        const db = load();
+        const u = current(db);
+        if (!u) throw new Error("not_signed_in");
+        const p = {
+          id: uid(), owner_id: u.id, league_id: league.id, league_ids: league.ids, league_name: league.name,
+          league_avatar: league.avatar, seats, status: "active", invite_code: code(),
+          current_period_end: new Date(Date.now() + 365 * DAY).toISOString(), created_at: new Date().toISOString(),
+          members: [{ user_id: u.id, role: "owner", joined_at: new Date().toISOString(), removed_at: null }],
+        };
+        db.passes = [...(db.passes || []), p];
+        save(db);
+        return { pass_id: p.id, url: null };
+      },
+      async setPassSeats(passId, seats) {
+        const db = load();
+        const u = current(db);
+        const p = (db.passes || []).find((x) => x.id === passId);
+        if (!u || !p || p.owner_id !== u.id) throw new Error("not_owner");
+        const used = p.members.filter((m) => !m.removed_at).length;
+        if (seats < used) throw new Error(`seats_in_use:${used} members have joined: remove some before going below that`);
+        p.seats = seats;
+        save(db);
+        return { seats };
       },
     };
   }
@@ -301,7 +469,7 @@
   /* ------------------------------------------------------------ state */
 
   const backend = CONFIGURED ? supabaseBackend() : previewBackend();
-  const state = { mode: MODE, ready: false, user: null, profile: null, leagues: [], recovering: false };
+  const state = { mode: MODE, ready: false, user: null, profile: null, leagues: [], passes: { owned: [], member_of: [] }, recovering: false };
   const listeners = new Set();
 
   const plan = () => (state.profile && state.profile.plan === "pro" ? "pro" : "free");
@@ -317,9 +485,13 @@
   async function refresh() {
     if (state.user) {
       try {
-        const [profile, leagues] = await Promise.all([backend.profile(state.user), backend.leagues()]);
+        const [profile, leagues, passes] = await Promise.all([
+          backend.profile(state.user), backend.leagues(),
+          backend.passes().catch(() => ({ owned: [], member_of: [] })),
+        ]);
         state.profile = profile;
         state.leagues = leagues || [];
+        state.passes = passes || { owned: [], member_of: [] };
       } catch (err) {
         console.warn("Account:", err);
         state.profile = state.profile || { plan: "free" };
@@ -327,6 +499,7 @@
     } else {
       state.profile = null;
       state.leagues = [];
+      state.passes = { owned: [], member_of: [] };
     }
     emit();
   }
@@ -367,6 +540,8 @@
      to it (signing out, unsyncing it) reloads the page, which puts the gate
      back up. */
   let admitted = null;
+  // The league this page is about, once loaded, for the League Pass checkout.
+  let seenLeague = null;
   const relock = () => { if (admitted && REQUIRE) location.reload(); };
   // A league page under the gate: its ads wait until the page is let in, so
   // none is ever served behind the sign-in screen.
@@ -465,10 +640,13 @@
   listeners.add(() => { if (gateWake) { const w = gateWake; gateWake = null; w(); } });
 
   async function admit(model) {
+    const ids = [...new Set([model.leagueId, ...model.seasons.map((s) => s.leagueId)].filter(Boolean).map(String))];
+    const newest = model.current || model.seasons[model.seasons.length - 1];
+    const league = { id: String(model.leagueId), ids, name: model.name, avatar: model.avatar,
+      teams: newest ? Object.keys(newest.teams || {}).length : 0 };
+    seenLeague = league;
     await ready;
     if (!REQUIRE) return;
-    const ids = [...new Set([model.leagueId, ...model.seasons.map((s) => s.leagueId)].filter(Boolean).map(String))];
-    const league = { id: String(model.leagueId), ids, name: model.name, avatar: model.avatar };
     for (;;) {
       const verdict = judge(league);
       if (verdict.kind === "ok") {
@@ -501,7 +679,7 @@
       ? `<img src="${esc(league.avatar)}" alt="" width="56" height="56" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏈'}))">`
       : "<span>🏈</span>";
     const name = esc(league.name || "This league");
-    const proLine = `<b>Pro</b> · ${esc(PLANS.pro.price)}: unlimited leagues, the league AI, no ads.`;
+    const proLine = `<b>Pro</b> · ${esc(PLANS.pro.price)}: unlimited leagues, the league AI, no ads. Or get it for your whole league: only ${money(LEAGUE.perMember)} per member for a year.`;
     let title = "", copy = "", actions = "", foot = "";
 
     if (verdict.kind === "signed-out") {
@@ -513,7 +691,8 @@
       title = `Add ${name} to your account`;
       copy = `Your free plan includes one league. Once it's added you can swap it for another once every ${SWAP_DAYS} days.`;
       actions = `<button class="acct-btn acct-btn-primary" data-act="sync">Add this league</button>
-        <button class="acct-btn" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>`;
+        <button class="acct-btn" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>
+        <button class="acct-btn" data-act="pass">Whole league · ${money(LEAGUE.perMember)}/member a year</button>`;
     } else if (verdict.kind === "free-full" || verdict.kind === "over-limit") {
       const cur = verdict.current;
       const curName = esc((cur && cur.name) || "your league");
@@ -521,10 +700,12 @@
       if (cur && canSwap(cur)) {
         copy = `Free accounts hold one league. You can swap ${curName} for ${name} now; after that, the next swap opens ${fmtDate(Date.now() + SWAP_DAYS * DAY)}.`;
         actions = `<button class="acct-btn acct-btn-primary" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>
+          <button class="acct-btn" data-act="pass">Whole league · ${money(LEAGUE.perMember)}/member a year</button>
           <button class="acct-btn" data-act="swap">Swap to this league</button>`;
       } else {
         copy = `Free accounts hold one league and can swap it once every ${SWAP_DAYS} days. Your next swap opens ${cur ? fmtDate(unlocksAt(cur)) : "soon"}. ${proLine}`;
-        actions = `<button class="acct-btn acct-btn-primary" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>`;
+        actions = `<button class="acct-btn acct-btn-primary" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>
+          <button class="acct-btn" data-act="pass">Whole league · ${money(LEAGUE.perMember)}/member a year</button>`;
       }
       if (cur) foot = `<a class="acct-link" href="${esc(leagueHref(cur))}">Open ${curName} instead</a>`;
     } else if (verdict.kind === "pro-add") {
@@ -550,6 +731,7 @@
       if (act === "signin") return openAuth("signin");
       if (act === "signup") return openAuth("signup");
       if (act === "upgrade") return upgrade();
+      if (act === "pass") return openLeaguePass(league);
       if (act === "retry") return emit();
       busy(btn, true);
       try {
@@ -689,15 +871,19 @@
       </div>
       <div class="acct-menu-sep"></div>
       <button role="menuitem" class="acct-menu-item" data-act="panel">Account &amp; leagues</button>
+      ${ownedPasses().length ? `<button role="menuitem" class="acct-menu-item" data-act="passes">${esc(LEAGUE.name)} · invite link</button>` : ""}
       ${pro
-        ? '<button role="menuitem" class="acct-menu-item" data-act="manage">Manage subscription</button>'
-        : `<button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="upgrade"><span>Go Pro</span><span>${esc(PLANS.pro.price)} · AI chat · no ads</span></button>`}
+        ? (seatOn() ? "" : '<button role="menuitem" class="acct-menu-item" data-act="manage">Manage subscription</button>')
+        : `<button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="upgrade"><span>Go Pro</span><span>${esc(PLANS.pro.price)} · AI chat · no ads</span></button>
+           <button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="pass"><span>Whole league</span><span>${money(LEAGUE.perMember)}/member a year</span></button>`}
       <div class="acct-menu-sep"></div>
       <button role="menuitem" class="acct-menu-item" data-act="signout">Sign out</button>`;
     menuEl.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
       const act = b.dataset.act;
       closeMenu();
       if (act === "panel") openPanel();
+      else if (act === "passes") openPanel("pass");
+      else if (act === "pass") openLeaguePass();
       else if (act === "manage") manage();
       else if (act === "upgrade") upgrade();
       else if (act === "signout") signOut();
@@ -781,7 +967,7 @@
         </form>`;
     } else if (view === "signup") {
       body = `<h2 id="acctModalTitle">Create your account</h2>
-        <p class="acct-reason">${esc(reason || `Free: one league with ads. Pro (${PLANS.pro.price}): unlimited leagues, no ads.`)}</p>
+        <p class="acct-reason">${esc(reason || `Free: one league with ads. Pro (${PLANS.pro.price}): unlimited leagues, the league AI, no ads. Or ${money(LEAGUE.perMember)} per member a year for your whole league.`)}</p>
         ${google}
         <form class="acct-form" novalidate>
           ${field("name", "Name", "text", 'autocomplete="nickname" maxlength="60" placeholder="What the league calls you"')}
@@ -915,6 +1101,8 @@
     const p = state.profile || {};
     const open = openLeagues();
     const renews = p.current_period_end ? fmtDate(p.current_period_end) : null;
+    const passSeat = seatOn();
+    const onPass = Boolean(passSeat) || ownedPasses().some((x) => x.live);
 
     const leagueRows = state.leagues.map((l) => {
       const locked = !open.includes(l);
@@ -954,6 +1142,8 @@
           <a class="acct-btn acct-btn-small" href="index.html">Find a league</a>
         </section>
 
+        ${passSection()}
+
         <section data-section="plan">
           <h3>Plan</h3>
           <div class="acct-plans">
@@ -962,16 +1152,24 @@
               <div class="acct-plan-price">${esc(PLANS.free.price)}</div>
               <ul><li>1 league</li><li>Swap once a month</li><li>No AI chat</li><li>Ads</li></ul>
             </div>
-            <div class="acct-plan acct-plan-pro${pro ? " is-current" : ""}">
-              <div class="acct-plan-name">${esc(PLANS.pro.name)}${pro ? "<em>Current</em>" : ""}</div>
+            <div class="acct-plan acct-plan-pro${pro && !onPass ? " is-current" : ""}">
+              <div class="acct-plan-name">${esc(PLANS.pro.name)}${pro && !onPass ? "<em>Current</em>" : ""}</div>
               <div class="acct-plan-price">${esc(PLANS.pro.price)}</div>
               <ul><li>Ask the League AI</li><li>Unlimited leagues</li><li>Add or remove any time</li><li>No ads</li></ul>
             </div>
+            <div class="acct-plan acct-plan-league${onPass ? " is-current" : ""}">
+              <div class="acct-plan-name">${esc(LEAGUE.name)}${onPass ? "<em>Current</em>" : "<em>Best value</em>"}</div>
+              <div class="acct-plan-price">${money(LEAGUE.perMember)} <small>per member a year</small></div>
+              <ul><li>Pro for everyone in your league</li><li>One invite link to share</li><li>${money(LEAGUE.perMember * 10)} a year for a 10-team league, billed annually</li></ul>
+            </div>
           </div>
-          ${pro
+          ${passSeat ? `<p class="acct-muted">You're on Pro through <strong>${esc(passSeat.league_name || "your league")}</strong>'s ${esc(LEAGUE.name)}, from ${esc(passSeat.owner_name || "a league-mate")}.</p>` : ""}
+          ${pro && !passSeat
             ? `<p class="acct-muted">${renews ? `Renews ${renews}.` : ""} Cancel or change your card in the billing portal.</p>
                <button type="button" class="acct-btn acct-btn-small" data-act="manage">Manage subscription</button>`
+            : pro ? ""
             : `<button type="button" class="acct-btn acct-btn-primary" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>`}
+          <button type="button" class="acct-btn acct-pass-cta" data-act="pass">${ownedPasses().length ? `Get a ${esc(LEAGUE.name)} for another league` : `Get it for your whole league · ${money(LEAGUE.perMember)}/member a year`}</button>
           ${MODE === "preview" ? `<div class="acct-preview-tools">
               <span>Preview tools</span>
               <button type="button" class="acct-btn acct-btn-small acct-btn-quiet" data-act="preview-plan">Switch to ${pro ? "Free" : "Pro"}</button>
@@ -998,11 +1196,13 @@
     panelEl.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", async () => {
       const act = b.dataset.act;
       if (act === "upgrade") upgrade();
+      else if (act === "pass") { closePanel(); openLeaguePass(); }
       else if (act === "manage") manage();
       else if (act === "signout") { closePanel(); signOut(); }
       else if (act === "preview-plan") { backend.setPlan(pro ? "free" : "pro"); await refresh(); toast(`Preview: now on ${pro ? "Free" : "Pro"}.`); }
       else if (act === "preview-unlock") { backend.unlockSwaps(); await refresh(); toast("Preview: swap lock lifted."); }
     }));
+    wirePassSection(panelEl);
     panelEl.querySelectorAll("[data-unsync]").forEach((b) => b.addEventListener("click", async () => {
       const row = state.leagues.find((l) => l.league_id === b.dataset.unsync);
       const sure = await confirmBox({
@@ -1032,6 +1232,362 @@
         el.hidden = false;
       }
     });
+  }
+
+  /* ------------------------------------------------------------ League Pass */
+
+  /* One member (the pass's owner) buys Pro for the whole league, at
+     LEAGUE.perMember dollars a member a year, the owner's own seat
+     included. They get an invite link (the site's front page with
+     ?invite=<code>, on whatever address the site is served from) to send
+     the league; whoever signs in through it takes a seat and is on Pro while
+     the pass is paid. The owner's panel shows the seats, who has joined
+     (remove or restore anyone), a new link, and more or fewer seats. */
+  const inviteUrl = (inviteCode) => new URL(`index.html?invite=${encodeURIComponent(inviteCode)}`, location.href).href;
+  const yearly = (seats) => money(seats * LEAGUE.perMember);
+  const clampSeats = (n) => Math.max(LEAGUE.minSeats, Math.min(LEAGUE.maxSeats, Math.round(Number(n) || 0)));
+  const ownedPasses = () => (state.passes && state.passes.owned) || [];
+  const seatOn = () => ((state.passes && state.passes.member_of) || []).find((p) => p.live) || null;
+  const ICON_LINK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>';
+
+  /* The checkout: which league, how many members, what it comes to. */
+  function openLeaguePass(context = null) {
+    closeMenu();
+    if (!state.user) {
+      openAuth("signup", { reason: `Create a free account first, then get the ${LEAGUE.name} for your league.` });
+      return;
+    }
+    const choices = [];
+    const add = (l) => { if (l && l.id && !choices.some((c) => c.ids.some((id) => l.ids.includes(id)))) choices.push(l); };
+    add(context);
+    add(seenLeague);
+    state.leagues.forEach((row) => add({ id: row.league_id, ids: row.league_ids || [row.league_id], name: row.name, avatar: row.avatar, teams: 0 }));
+    const el = document.createElement("div");
+    el.className = "acct-modal acct-pass-buy open";
+    const first = choices[0];
+    let seats = clampSeats((first && first.teams) || 10);
+    el.innerHTML = `<div class="acct-modal-backdrop" data-close></div>
+      <div class="acct-modal-card" role="dialog" aria-modal="true" aria-labelledby="acctPassTitle">
+        <button type="button" class="acct-close" data-close aria-label="Close">&times;</button>
+        <span class="acct-pass-kicker">${esc(LEAGUE.name)}</span>
+        <h2 id="acctPassTitle">Pro for your whole league</h2>
+        <p class="acct-reason">Everyone in your league gets Pro: the league AI, every season, unlimited leagues and no ads. <strong>Only ${money(LEAGUE.perMember)} per member for a whole year</strong>, billed annually.</p>
+        ${choices.length ? `
+        <form class="acct-form acct-pass-form">
+          <label class="acct-field"><span>League</span>
+            <select name="league">${choices.map((c, i) => `<option value="${i}">${esc(c.name || c.id)}</option>`).join("")}</select>
+          </label>
+          <div class="acct-field"><span>Members, you included</span>
+            <div class="acct-stepper">
+              <button type="button" data-step="-1" aria-label="One fewer">&minus;</button>
+              <input name="seats" type="number" inputmode="numeric" min="${LEAGUE.minSeats}" max="${LEAGUE.maxSeats}" value="${seats}" aria-label="Members">
+              <button type="button" data-step="1" aria-label="One more">+</button>
+            </div>
+          </div>
+          <div class="acct-pass-total" aria-live="polite"><strong data-total>${yearly(seats)}</strong><span data-math>a year · ${money(LEAGUE.perMember)} × ${seats} members</span></div>
+          <p class="acct-error" role="alert" hidden></p>
+          <button type="submit" class="acct-btn acct-btn-primary acct-btn-wide" data-go>Continue to payment · ${yearly(seats)}</button>
+          <p class="acct-muted">After paying you get an invite link to send your league. You can remove people, invite others and add seats any time.</p>
+        </form>`
+        : `<p class="acct-muted">Add your league to your account first: open it from the front page.</p>
+           <a class="acct-btn acct-btn-primary acct-btn-wide" href="index.html">Find your league</a>`}
+        ${MODE === "preview" ? '<p class="acct-preview-note">Preview mode: no payment is taken; the pass starts at once.</p>' : ""}
+      </div>`;
+    document.body.appendChild(el);
+    document.documentElement.classList.add("lh-modal-open");
+    const close = () => { el.remove(); document.documentElement.classList.remove("lh-modal-open"); };
+    el.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) close(); });
+    el.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+    const form = el.querySelector(".acct-pass-form");
+    if (!form) return;
+    const input = form.querySelector('input[name="seats"]');
+    const select = form.querySelector('select[name="league"]');
+    const draw = () => {
+      el.querySelector("[data-total]").textContent = yearly(seats);
+      el.querySelector("[data-math]").textContent = `a year · ${money(LEAGUE.perMember)} × ${seats} members`;
+      el.querySelector("[data-go]").textContent = `Continue to payment · ${yearly(seats)}`;
+    };
+    form.querySelectorAll("[data-step]").forEach((b) => b.addEventListener("click", () => {
+      seats = clampSeats(seats + Number(b.dataset.step));
+      input.value = seats;
+      draw();
+    }));
+    input.addEventListener("input", () => { if (input.value) { seats = clampSeats(input.value); draw(); } });
+    input.addEventListener("change", () => { input.value = seats; });
+    select.addEventListener("change", () => {
+      const c = choices[Number(select.value)];
+      if (c && c.teams) { seats = clampSeats(c.teams); input.value = seats; draw(); }
+    });
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const go = form.querySelector("[data-go]");
+      const err = form.querySelector(".acct-error");
+      go.disabled = true;
+      go.classList.add("is-busy");
+      err.hidden = true;
+      try {
+        const back = new URL(location.href);
+        ["pass", "paid", "invite"].forEach((k) => back.searchParams.delete(k));
+        const league = choices[Number(select.value)];
+        const res = await backend.buyPass({ league, seats, returnUrl: back.href });
+        if (res && res.url) { location.href = res.url; return; }
+        close();
+        await refresh();
+        openPanel("pass");
+        toast(`${LEAGUE.name} on. Send your league the invite link.`);
+      } catch (error) {
+        err.textContent = explain(error);
+        err.hidden = false;
+        go.disabled = false;
+        go.classList.remove("is-busy");
+      }
+    });
+    setTimeout(() => (input || el.querySelector(".acct-close")).focus(), 50);
+  }
+
+  /* The owner's passes, in the account panel. */
+  function passSection() {
+    const passes = ownedPasses();
+    if (!passes.length) return "";
+    return `<section data-section="pass">
+      <h3>${esc(LEAGUE.name)} <span>${passes.length > 1 ? `${passes.length} leagues` : ""}</span></h3>
+      ${passes.map((p) => {
+        const here = p.members.filter((m) => !m.removed_at);
+        const open = Math.max(0, p.seats - here.length);
+        const status = p.live ? (p.status === "past_due" ? "Payment due" : "Active") : p.status === "canceled" ? "Ended" : "Not active";
+        const when = p.current_period_end ? `${p.live && p.status !== "canceled" ? "Renews" : "Ended"} ${fmtDate(p.current_period_end)}` : "";
+        return `<div class="acct-pass" data-pass="${esc(p.id)}">
+          <div class="acct-pass-head">
+            ${p.league_avatar ? `<img src="${esc(p.league_avatar)}" alt="" width="36" height="36">` : '<span class="acct-league-mark">🏈</span>'}
+            <div class="acct-league-copy"><strong>${esc(p.league_name || "Your league")}</strong><span>${here.length} of ${p.seats} seats taken${when ? ` · ${when}` : ""}</span></div>
+            <span class="acct-pass-status${p.live ? "" : " is-off"}">${status}</span>
+          </div>
+          <div class="acct-pass-meter" role="img" aria-label="${here.length} of ${p.seats} seats taken"><span style="width:${Math.min(100, (here.length / p.seats) * 100)}%"></span></div>
+          ${p.live ? `
+          <div class="acct-pass-invite">
+            <span class="acct-pass-invite-label">${ICON_LINK}Invite link${open ? ` · ${open} seat${open === 1 ? "" : "s"} open` : " · every seat taken"}</span>
+            <div class="acct-copy"><input readonly value="${esc(inviteUrl(p.invite_code))}" aria-label="Invite link"><button type="button" class="acct-btn acct-btn-small acct-btn-primary" data-pass-act="copy">Copy</button></div>
+            <div class="acct-pass-row">
+              ${navigator.share ? '<button type="button" class="acct-btn acct-btn-small" data-pass-act="share">Share…</button>' : ""}
+              <button type="button" class="acct-btn acct-btn-small acct-btn-quiet" data-pass-act="relink" title="The old link stops working">New link</button>
+            </div>
+          </div>` : `<p class="acct-muted">This pass isn't active, so nobody on it has Pro through it. ${p.status === "past_due" || p.status === "unpaid" ? "Update the card in the billing portal to turn it back on." : ""}</p>`}
+          <ul class="acct-members">
+            ${p.members.map((m) => `<li class="acct-member${m.removed_at ? " is-removed" : ""}">
+              <span class="acct-avatar">${esc(String(m.name || "?").charAt(0).toUpperCase())}</span>
+              <div class="acct-league-copy"><strong>${esc(m.name || "Member")}${m.role === "owner" ? " <em>You</em>" : ""}</strong>
+                <span>${esc(m.email || "")}${m.role === "owner" ? "" : m.removed_at ? ` · removed ${fmtDate(m.removed_at)}` : ` · joined ${fmtDate(m.joined_at)}`}</span></div>
+              ${m.role === "owner" ? "" : m.removed_at
+                ? `<button type="button" class="acct-btn acct-btn-small" data-member="${esc(m.user_id)}" data-active="1">Restore</button>`
+                : `<button type="button" class="acct-btn acct-btn-small acct-btn-quiet" data-member="${esc(m.user_id)}" data-active="0">Remove</button>`}
+            </li>`).join("")}
+            ${open && p.live ? `<li class="acct-member is-open"><span class="acct-avatar acct-avatar-empty">+</span><div class="acct-league-copy"><strong>${open} open seat${open === 1 ? "" : "s"}</strong><span>Anyone with the link can take one.</span></div></li>` : ""}
+          </ul>
+          ${p.live ? `<div class="acct-pass-seats">
+            <span>Seats</span>
+            <div class="acct-stepper acct-stepper-small">
+              <button type="button" data-seat-step="-1" aria-label="One fewer seat">&minus;</button>
+              <output data-seats>${p.seats}</output>
+              <button type="button" data-seat-step="1" aria-label="One more seat">+</button>
+            </div>
+            <button type="button" class="acct-btn acct-btn-small" data-pass-act="seats" hidden></button>
+          </div>` : ""}
+        </div>`;
+      }).join("")}
+      <p class="acct-muted">Removing someone frees their seat and ends their Pro; the link still won't let them back in unless you restore them. Seat changes are charged (or credited) for the rest of the year.</p>
+      ${MODE === "supabase" && CFG.STRIPE_PORTAL_LINK ? '<button type="button" class="acct-btn acct-btn-small" data-act="manage">Billing and receipts</button>' : ""}
+    </section>`;
+  }
+
+  function wirePassSection(root) {
+    root.querySelectorAll("[data-pass]").forEach((card) => {
+      const pass = ownedPasses().find((p) => p.id === card.dataset.pass);
+      if (!pass) return;
+      const link = card.querySelector(".acct-copy input");
+      card.querySelectorAll("[data-pass-act]").forEach((b) => b.addEventListener("click", async () => {
+        const act = b.dataset.passAct;
+        if (act === "copy") {
+          try { await navigator.clipboard.writeText(link.value); toast("Invite link copied."); }
+          catch (err) { link.select(); toast("Select the link and copy it."); }
+        } else if (act === "share") {
+          try {
+            await navigator.share({ title: `Join ${pass.league_name || "our league"} on League History`,
+              text: `I got us the ${LEAGUE.name}: Pro on League History for everyone in ${pass.league_name || "the league"}. Join here:`, url: link.value });
+          } catch (err) { /* closed */ }
+        } else if (act === "relink") {
+          const sure = await confirmBox({ title: "Make a new link?", body: "The current link stops working. People who already joined keep their seats.", yes: "New link" });
+          if (!sure) return;
+          try { await backend.resetPassLink(pass.id); await refresh(); toast("New invite link ready."); } catch (err) { toast(explain(err)); }
+        } else if (act === "seats") {
+          const seats = Number(card.querySelector("[data-seats]").textContent);
+          b.disabled = true;
+          try { await backend.setPassSeats(pass.id, seats); await refresh(); toast(`${LEAGUE.name} now covers ${seats} members.`); }
+          catch (err) { toast(explain(err)); b.disabled = false; }
+        }
+      }));
+      card.querySelectorAll("[data-seat-step]").forEach((b) => b.addEventListener("click", () => {
+        const out = card.querySelector("[data-seats]");
+        const used = pass.members.filter((m) => !m.removed_at).length;
+        const next = Math.max(Math.max(LEAGUE.minSeats, used), Math.min(LEAGUE.maxSeats, Number(out.textContent) + Number(b.dataset.seatStep)));
+        out.textContent = next;
+        const save = card.querySelector('[data-pass-act="seats"]');
+        const diff = next - pass.seats;
+        save.hidden = diff === 0;
+        save.textContent = diff > 0
+          ? `Add ${diff} · ${money(diff * LEAGUE.perMember)}/yr`
+          : `Remove ${-diff} · ${money(-diff * LEAGUE.perMember)}/yr less`;
+      }));
+      card.querySelectorAll("[data-member]").forEach((b) => b.addEventListener("click", async () => {
+        const active = b.dataset.active === "1";
+        const who = pass.members.find((m) => m.user_id === b.dataset.member);
+        if (!active) {
+          const sure = await confirmBox({ title: `Remove ${esc((who && who.name) || "them")}?`,
+            body: "Their seat opens for someone else and their Pro ends. You can restore them later if there's a seat.", yes: "Remove" });
+          if (!sure) return;
+        }
+        b.disabled = true;
+        try { await backend.setPassMember(pass.id, b.dataset.member, active); await refresh(); toast(active ? "Restored." : "Removed."); }
+        catch (err) { toast(explain(err)); b.disabled = false; }
+      }));
+    });
+  }
+
+  /* ------------------------------------------------------------ invitations */
+
+  /* A friend arriving through an invite link (?invite=<code>): who invited
+     them to which league, and the way in. The code is kept in this browser
+     until it's used, so signing up (and confirming the email) doesn't lose
+     it. */
+  const INVITE_KEY = "lh-invite";
+  let inviteEl = null;
+  let inviteCode = null;
+  let inviteInfo = null;
+  let inviteJoined = null;
+
+  async function showInvite(code) {
+    inviteCode = code;
+    try { inviteInfo = await backend.invite(code); }
+    catch (err) { inviteInfo = { error: explain(err) }; }
+    drawInvite();
+  }
+  function closeInvite(forget) {
+    if (inviteEl) { inviteEl.remove(); inviteEl = null; document.documentElement.classList.remove("lh-modal-open"); }
+    if (forget) { store.del(INVITE_KEY); inviteCode = null; }
+  }
+  function drawInvite() {
+    if (!inviteCode || !inviteInfo) return;
+    if (!inviteEl) {
+      inviteEl = document.createElement("div");
+      inviteEl.className = "acct-modal acct-invite open";
+      document.body.appendChild(inviteEl);
+      document.documentElement.classList.add("lh-modal-open");
+      inviteEl.addEventListener("keydown", (e) => { if (e.key === "Escape") closeInvite(false); });
+    }
+    const i = inviteInfo;
+    const league = esc(i.league_name || "your league");
+    const owner = esc(i.owner_name || "A league-mate");
+    const leagueLink = i.league_id ? `season.html?league=${encodeURIComponent(i.league_id)}` : "index.html";
+    let title, copy, actions, done = false;
+    if (i.error) {
+      title = "This invite won't open";
+      copy = esc(i.error);
+      actions = '<button type="button" class="acct-btn acct-btn-primary" data-inv="forget">OK</button>';
+      done = true;
+    } else if (inviteJoined || i.joined) {
+      title = `You're in ${league}`;
+      copy = `You have a seat on ${owner}'s ${esc(LEAGUE.name)}: Pro is on, and ${league} is on your account.`;
+      actions = `<a class="acct-btn acct-btn-primary" href="${esc(leagueLink)}" data-inv="go">Open ${league}</a>`;
+      done = true;
+    } else if (i.is_owner) {
+      title = "This is your invite link";
+      copy = `Send it to the rest of ${league}: each person who signs in through it takes one of your ${i.seats} seats.`;
+      actions = '<button type="button" class="acct-btn acct-btn-primary" data-inv="forget">Got it</button>';
+      done = true;
+    } else if (i.removed) {
+      title = "Your seat was taken back";
+      copy = `${owner} removed you from ${league}'s ${esc(LEAGUE.name)}. Ask them to restore your seat.`;
+      actions = '<button type="button" class="acct-btn acct-btn-primary" data-inv="forget">OK</button>';
+      done = true;
+    } else if (!i.live) {
+      title = "This pass isn't active";
+      copy = `${owner}'s ${esc(LEAGUE.name)} for ${league} isn't paid up right now. Let them know.`;
+      actions = '<button type="button" class="acct-btn acct-btn-primary" data-inv="forget">OK</button>';
+      done = true;
+    } else if (i.used >= i.seats) {
+      title = "Every seat is taken";
+      copy = `All ${i.seats} seats on ${league}'s ${esc(LEAGUE.name)} are taken. Ask ${owner} to add one.`;
+      actions = '<button type="button" class="acct-btn acct-btn-primary" data-inv="forget">OK</button>';
+      done = true;
+    } else {
+      title = `Join ${league}`;
+      copy = `<strong>${owner}</strong> invited you to ${league} on League History, and your seat comes with <strong>Pro, on them</strong>: every season of your league, the league AI, unlimited leagues and no ads.`;
+      actions = state.user
+        ? `<button type="button" class="acct-btn acct-btn-primary" data-inv="join">Join ${league}</button>`
+        : `<button type="button" class="acct-btn acct-btn-primary" data-inv="signup">Create free account</button>
+           <button type="button" class="acct-btn" data-inv="signin">I have an account</button>`;
+    }
+    inviteEl.innerHTML = `<div class="acct-modal-backdrop" data-inv="close"></div>
+      <div class="acct-modal-card acct-invite-card" role="dialog" aria-modal="true" aria-labelledby="acctInviteTitle">
+        <button type="button" class="acct-close" data-inv="close" aria-label="Close">&times;</button>
+        <div class="acct-gate-league">${i.league_avatar ? `<img src="${esc(i.league_avatar)}" alt="" width="56" height="56">` : "<span>🏈</span>"}</div>
+        <span class="acct-pass-kicker">${done ? esc(LEAGUE.name) : "You're invited"}</span>
+        <h2 id="acctInviteTitle">${title}</h2>
+        <p class="acct-reason">${copy}</p>
+        ${!done && !i.error ? `<p class="acct-muted">${i.seats - i.used} of ${i.seats} seats left.${state.user ? ` Signed in as ${esc(state.user.email || "")}.` : ""}</p>` : ""}
+        <p class="acct-error" role="alert" hidden></p>
+        <div class="acct-gate-actions">${actions}</div>
+      </div>`;
+    if (done && !inviteJoined) store.del(INVITE_KEY);
+    inviteEl.querySelectorAll("[data-inv]").forEach((b) => b.addEventListener("click", async (e) => {
+      const act = b.dataset.inv;
+      if (act === "close") { closeInvite(done); return; }
+      if (act === "forget") { closeInvite(true); return; }
+      if (act === "go") { store.del(INVITE_KEY); return; }
+      if (act === "signup") { openAuth("signup", { reason: `Create your account to join ${i.league_name || "the league"}. It's free: ${i.owner_name || "your league-mate"} has your seat covered.` }); return; }
+      if (act === "signin") { openAuth("signin", { reason: `Sign in to join ${i.league_name || "the league"}.` }); return; }
+      if (act === "join") {
+        e.preventDefault();
+        b.disabled = true;
+        b.classList.add("is-busy");
+        try {
+          inviteJoined = await backend.joinPass(inviteCode);
+          store.del(INVITE_KEY);
+          await refresh();
+          toast(`Welcome to ${i.league_name || "the league"}: Pro is on.`);
+          drawInvite();
+        } catch (err) {
+          const el = inviteEl.querySelector(".acct-error");
+          el.textContent = explain(err);
+          el.hidden = false;
+          b.disabled = false;
+          b.classList.remove("is-busy");
+        }
+      }
+    }));
+    // Signing in from the invite: the sign-in dialog opens over this card.
+    const first = inviteEl.querySelector(".acct-btn-primary");
+    if (first && !document.querySelector(".acct-modal.open:not(.acct-invite)")) first.focus({ preventScroll: true });
+  }
+  // Signing in or out redraws the card (from "create account" to "join").
+  listeners.add(() => { if (inviteEl && inviteCode && !inviteJoined) showInvite(inviteCode); });
+
+  /* Back from Stripe's checkout (?pass=<id>&paid=1): the webhook turns the
+     pass on a moment later, so the panel waits for it, then shows the
+     link. */
+  async function afterCheckout(passId) {
+    await ready;
+    openPanel("pass");
+    toast("Payment received. Setting up your League Pass…");
+    for (let i = 0; i < 20; i++) {
+      await refresh();
+      if (ownedPasses().some((p) => p.id === passId && p.live)) {
+        openPanel("pass");
+        toast("Your League Pass is on. Copy the invite link and send it to your league.");
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 2500));
+    }
+    toast("Your payment went through; the pass is still being set up. Check back in a minute.");
   }
 
   /* ------------------------------------------------------------ front page */
@@ -1282,6 +1838,27 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
 
+  /* An invite link (?invite=), or the way back from paying for a League Pass
+     (?pass=&paid=1): both come off the address once read. */
+  (function arrivals() {
+    const params = new URLSearchParams(location.search);
+    const invite = params.get("invite");
+    const passId = params.get("paid") === "1" ? params.get("pass") : null;
+    if (invite || passId) {
+      const clean = new URL(location.href);
+      ["invite", "pass", "paid"].forEach((k) => clean.searchParams.delete(k));
+      history.replaceState(history.state, "", clean.href);
+    }
+    if (invite && /^[A-Za-z0-9_-]{6,64}$/.test(invite)) store.set(INVITE_KEY, invite);
+    const pending = store.get(INVITE_KEY);
+    const go = () => {
+      if (passId) afterCheckout(passId);
+      else if (typeof pending === "string" && pending) ready.then(() => showInvite(pending));
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go);
+    else go();
+  })();
+
   const api = {
     mode: MODE,
     ready,
@@ -1298,6 +1875,9 @@
     openPanel,
     upgrade,
     signOut,
+    openLeaguePass: (league) => openLeaguePass(league || null),
+    get passes() { return state.passes; },
+    leaguePass: LEAGUE,
   };
   window.Account = api;
 })();
