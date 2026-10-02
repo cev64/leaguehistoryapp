@@ -13,7 +13,10 @@
 -- profiles.plan is untouched, so a member who pays keeps their plan through
 -- the switch either way.
 --
--- Apply with `supabase db push`, or paste into Supabase ▸ SQL editor.
+-- Apply with `supabase db push`, or paste into Supabase ▸ SQL editor. If the
+-- editor offers to enable Row Level Security on new tables, run it without:
+-- it misreads SELECT INTO inside sync_league() as a new table and breaks the
+-- function (app_settings turns RLS on itself).
 
 create table if not exists public.app_settings (
   id                boolean primary key default true check (id),  -- one row only
@@ -115,10 +118,12 @@ begin
   if uid is null then
     raise exception 'not_signed_in';
   end if;
-  select * into target from public.synced_leagues
-   where user_id = uid and (league_id = p_league_id or p_league_id = any (league_ids))
-   limit 1;
-  if not found then
+  -- An assignment rather than SELECT INTO: the Supabase SQL editor's
+  -- automatic RLS step mistakes SELECT INTO for creating a table.
+  target := (select s from public.synced_leagues s
+              where s.user_id = uid and (s.league_id = p_league_id or p_league_id = any (s.league_ids))
+              limit 1);
+  if target.id is null then
     return;
   end if;
 
