@@ -64,9 +64,18 @@ export function initMaterials({ envMap, quality }) {
     pewter: metal(0x7d8794, 0.34),
     bronze: metal(0x9a6a38, 0.32),
     tarnish: metal(0x6d6553, 0.55),
-    porcelain: new THREE.MeshStandardMaterial({
-      color: 0xf2f6f9, metalness: 0.04, roughness: 0.1, envMap, envMapIntensity: 1.2
+    // Glazed china: a white just off pure, so the spotlight models its curves
+    // instead of blowing them out flat, under a clear glaze that carries the
+    // sharp highlights.
+    porcelain: new THREE.MeshPhysicalMaterial({
+      color: 0xdfe5eb, metalness: 0, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.06,
+      envMap, envMapIntensity: 0.85
     }),
+    water: new THREE.MeshStandardMaterial({
+      color: 0x3f7fa6, metalness: 0.2, roughness: 0.04, envMap, envMapIntensity: 1.4,
+      transparent: true, opacity: 0.9
+    }),
+    tissue: new THREE.MeshStandardMaterial({ color: 0xf4f1ea, metalness: 0, roughness: 0.85 }),
     marble: new THREE.MeshStandardMaterial({
       map: marble, color: 0xffffff, metalness: 0.2, roughness: 0.42, envMap, envMapIntensity: 0.7
     }),
@@ -640,61 +649,199 @@ export function buildPlaque(item, { mounted = false } = {}) {
   return group;
 }
 
-/* The cellar prize. A trophy would be too kind.
+/* The cellar prize. A trophy would be too kind, so it's a throne.
 
-   Modelled facing +Z like everything else: the bowl opens toward the viewer,
-   the tank sits behind it on a shelf, and the lid is propped up the way it
-   always is in the photograph somebody posts in the group chat. The crest goes
-   on the front of the pedestal, the only face of a toilet you can actually
-   see from the aisle. */
+   Built the way the league trophy is, so the two read as a set from down the
+   hall: a black stepped plinth with the year on a gold-framed plate, and on it
+   a glazed toilet dressed in the same gold as the cup (seat, flush lever,
+   bolt caps, the trim on the cistern). Modelled facing +Z: the bowl reaches
+   toward the viewer and the lid stands up against the cistern, which makes it
+   the one broad face on show, so that's where the last-place crest goes. A
+   roll of paper waits on a gold spindle beside it. */
+const THRONE = {
+  plinthTop: 0.07,
+  blockTop: 0.36,
+  blockDepth: 0.56,
+  // the bowl is lathed round and stretched front to back
+  bowlZ: 0.07,
+  long: 1.28,
+  rim: 0.452
+};
+
+function ovalShape(rx, rz, hole = null) {
+  const shape = new THREE.Shape();
+  shape.absellipse(0, 0, rx, rz, 0, TAU, false, 0);
+  if (hole) {
+    const path = new THREE.Path();
+    path.absellipse(0, hole.dz || 0, hole.rx, hole.rz, 0, TAU, true, 0);
+    shape.holes.push(path);
+  }
+  return shape;
+}
+
+function slab(shape, depth, bevel) {
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 4, curveSegments: 48
+  });
+  geometry.translate(0, 0, -depth / 2);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+const throneParts = {};
+function throneParts_() {
+  if (throneParts.bowl) return throneParts;
+  // Foot, trap and bowl in one lathe, walking back down the inside to the
+  // waterline so the bowl is hollow from above.
+  throneParts.bowl = lathe([
+    [0.000, 0.000], [0.172, 0.000], [0.182, 0.012], [0.176, 0.032],
+    [0.146, 0.064], [0.124, 0.120], [0.120, 0.180], [0.132, 0.230],
+    [0.160, 0.272], [0.200, 0.312], [0.234, 0.350], [0.254, 0.390],
+    [0.262, 0.420], [0.260, 0.440], [0.248, THRONE.rim], [0.228, 0.448],
+    [0.206, 0.426], [0.170, 0.384], [0.124, 0.350], [0.000, 0.338]
+  ], 64);
+  throneParts.water = new THREE.CircleGeometry(0.13, 40);
+  throneParts.seat = slab(ovalShape(0.262, 0.335, { rx: 0.165, rz: 0.222, dz: -0.012 }), 0.018, 0.012);
+  throneParts.lidBack = slab(ovalShape(0.252, 0.300), 0.016, 0.01);
+  throneParts.lid = slab(ovalShape(0.238, 0.286), 0.022, 0.014);
+  throneParts.neck = roundedBox(0.30, 0.44, 0.36, 0.07);
+  throneParts.tank = roundedBox(0.56, 0.52, 0.22, 0.06);
+  throneParts.tankLid = roundedBox(0.60, 0.05, 0.26, 0.022);
+  throneParts.tankTrim = roundedBox(0.605, 0.014, 0.265, 0.007);
+
+  throneParts.plinth = roundedBox(0.84, THRONE.plinthTop, 0.70, 0.03);
+  throneParts.block = roundedBox(0.70, THRONE.blockTop - THRONE.plinthTop, THRONE.blockDepth, 0.035);
+  throneParts.band = roundedBox(0.72, 0.024, THRONE.blockDepth + 0.02, 0.012);
+  throneParts.plate = new THREE.PlaneGeometry(0.40, 0.40 * 0.449);
+  throneParts.plateFrame = roundedBox(0.44, 0.40 * 0.449 + 0.036, 0.014, 0.012);
+
+  throneParts.roll = new THREE.CylinderGeometry(0.066, 0.066, 0.11, 32, 1, true);
+  throneParts.rollEnd = new THREE.RingGeometry(0.02, 0.066, 32);
+  throneParts.spindle = new THREE.CylinderGeometry(0.011, 0.011, 0.15, 12);
+  throneParts.post = new THREE.CylinderGeometry(0.012, 0.016, 0.12, 12);
+  return throneParts;
+}
+
 export function buildToilet(item) {
+  const parts = throneParts_();
+  const gold = shared.trophyGold;
+  const china = shared.porcelain;
   const group = new THREE.Group();
+  const shadowed = (mesh) => { mesh.castShadow = true; return mesh; };
 
-  const bowl = new THREE.Mesh(lathe([
-    [0.000, 0.000], [0.215, 0.000], [0.222, 0.034], [0.155, 0.080],
-    [0.122, 0.190], [0.142, 0.300], [0.196, 0.382], [0.252, 0.432],
-    [0.274, 0.466], [0.268, 0.492], [0.228, 0.488], [0.208, 0.450],
-    [0.152, 0.398], [0.122, 0.336], [0.000, 0.326]
-  ], 48), shared.porcelain);
-  bowl.castShadow = true;
-  bowl.scale.set(1.14, 1, 1.02);
+  /* ---------------------------------------------------------------- plinth */
+  const plinth = new THREE.Mesh(parts.plinth, shared.trophyBlack);
+  plinth.position.y = THRONE.plinthTop / 2;
+  const block = shadowed(new THREE.Mesh(parts.block, shared.trophyBlack));
+  block.position.y = (THRONE.plinthTop + THRONE.blockTop) / 2;
+  const band = new THREE.Mesh(parts.band, gold);
+  band.position.y = THRONE.blockTop - 0.012;
 
-  const seat = new THREE.Mesh(new THREE.TorusGeometry(0.228, 0.034, 12, 44), shared.porcelain);
-  seat.rotation.x = Math.PI / 2;
-  seat.scale.set(1.16, 1, 1);
-  seat.position.y = 0.512;
+  const plateY = (THRONE.plinthTop + THRONE.blockTop) / 2 - 0.008;
+  const plateFrame = new THREE.Mesh(parts.plateFrame, gold);
+  plateFrame.position.set(0, plateY, THRONE.blockDepth / 2 + 0.004);
+  const plate = new THREE.Mesh(parts.plate, new THREE.MeshStandardMaterial({
+    map: yearPlateTexture({ year: item.year, color: item.color }),
+    metalness: 0.3,
+    roughness: 0.34,
+    envMap: shared.envMap,
+    envMapIntensity: 0.9
+  }));
+  plate.position.set(0, plateY, THRONE.blockDepth / 2 + 0.013);
+  group.add(plinth, block, band, plateFrame, plate);
 
-  // The shelf the cistern stands on, and the cistern itself.
-  const shelf = new THREE.Mesh(roundedBox(0.5, 0.34, 0.34, 0.05), shared.porcelain);
-  shelf.position.set(0, 0.17, -0.34);
-  const tank = new THREE.Mesh(roundedBox(0.52, 0.46, 0.26, 0.045), shared.porcelain);
-  tank.position.set(0, 0.57, -0.34);
-  tank.castShadow = true;
-  const tankLid = new THREE.Mesh(roundedBox(0.58, 0.055, 0.32, 0.025), shared.porcelain);
-  tankLid.position.set(0, 0.825, -0.34);
+  /* ---------------------------------------------------------------- throne */
+  const throne = new THREE.Group();
+  throne.position.y = THRONE.blockTop;
 
-  // Lid propped against the cistern.
-  const lid = new THREE.Mesh(roundedBox(0.48, 0.045, 0.44, 0.13), shared.porcelain);
-  lid.position.set(0, 0.70, -0.16);
-  lid.rotation.x = 1.28;
+  const bowl = shadowed(new THREE.Mesh(parts.bowl, china));
+  bowl.scale.z = THRONE.long;
+  bowl.position.z = THRONE.bowlZ;
+  const water = new THREE.Mesh(parts.water, shared.water);
+  water.rotation.x = -Math.PI / 2;
+  water.scale.y = THRONE.long;
+  water.position.set(0, 0.357, THRONE.bowlZ);
 
-  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.085, 12), shared.tarnish);
-  handle.rotation.z = Math.PI / 2;
-  handle.position.set(0.21, 0.74, -0.24);
+  // The seat, in gold, resting on the rim.
+  const seat = shadowed(new THREE.Mesh(parts.seat, gold));
+  seat.rotation.x = -Math.PI / 2;
+  seat.position.set(0, THRONE.rim + 0.024, THRONE.bowlZ);
 
-  // Tarnished laurel and the team crest, mounted where the plaque would go on
-  // a trophy nobody wanted to win.
-  const wreath = new THREE.Mesh(new THREE.TorusGeometry(0.128, 0.014, 8, 36), shared.tarnish);
-  wreath.position.set(0, 0.175, 0.168);
-  const crest = crestDisc(item, { radius: 0.112, thickness: 0.04 });
-  crest.position.set(0, 0.175, 0.178);
+  // Cistern behind, joined to the bowl by the neck.
+  const tankZ = THRONE.bowlZ - 0.335 * 1.0 - 0.1;
+  const neck = new THREE.Mesh(parts.neck, china);
+  neck.position.set(0, 0.22, tankZ + 0.1);
+  const tank = shadowed(new THREE.Mesh(parts.tank, china));
+  tank.position.set(0, 0.70, tankZ);
+  const tankTrim = new THREE.Mesh(parts.tankTrim, gold);
+  tankTrim.position.set(0, 0.962, tankZ);
+  const tankLid = shadowed(new THREE.Mesh(parts.tankLid, china));
+  tankLid.position.set(0, 0.992, tankZ);
 
-  group.add(bowl, seat, shelf, tank, tankLid, lid, handle, wreath, crest);
-  group.scale.setScalar(1.16);
+  // Flush lever on the front corner, clear of the raised lid.
+  const lever = new THREE.Group();
+  const boss = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.014, 20), gold);
+  boss.rotation.x = Math.PI / 2;
+  const arm = new THREE.Mesh(roundedBox(0.075, 0.018, 0.018, 0.008), gold);
+  arm.position.set(0.038, 0, 0.012);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.014, 14, 10), gold);
+  knob.position.set(0.078, 0, 0.012);
+  lever.add(boss, arm, knob);
+  lever.position.set(-0.235, 0.89, tankZ + 0.115);
+
+  // The lid, up against the cistern: porcelain on a gold back, so a gold
+  // edge rings it, with the crest of the season's last-place team.
+  const lid = new THREE.Group();
+  const lidBack = new THREE.Mesh(parts.lidBack, gold);
+  const lidFace = shadowed(new THREE.Mesh(parts.lid, china));
+  lidFace.position.z = 0.022;
+  const crest = crestDisc(item, { radius: 0.135, thickness: 0.04, metal: gold });
+  crest.position.set(0, 0.03, 0.06);
+  lid.add(lidBack, lidFace, crest);
+  lid.position.set(0, THRONE.rim + 0.035 + 0.3, tankZ + 0.15);
+  lid.rotation.x = -0.1;
+
+  // Gold caps over the floor bolts.
+  const caps = [-1, 1].map((side) => {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.024, 16, 10, 0, TAU, 0, Math.PI / 2), gold);
+    cap.position.set(side * 0.15, 0, THRONE.bowlZ + 0.1);
+    return cap;
+  });
+
+  throne.add(bowl, water, seat, neck, tank, tankTrim, tankLid, lever, lid, ...caps);
+
+  /* ----------------------------------------------------- the roll, on hand */
+  const holder = new THREE.Group();
+  const post = new THREE.Mesh(parts.post, gold);
+  post.position.y = 0.06;
+  const spindle = new THREE.Mesh(parts.spindle, gold);
+  spindle.rotation.z = Math.PI / 2;
+  spindle.position.set(0, 0.12, 0);
+  const roll = shadowed(new THREE.Mesh(parts.roll, shared.tissue));
+  roll.rotation.z = Math.PI / 2;
+  roll.position.y = 0.12;
+  roll.material.side = THREE.DoubleSide;
+  const ends = [-1, 1].map((side) => {
+    const end = new THREE.Mesh(parts.rollEnd, shared.tissue);
+    end.rotation.y = side * Math.PI / 2;
+    end.position.set(side * 0.055, 0.12, 0);
+    return end;
+  });
+  holder.add(post, spindle, roll, ...ends);
+  holder.position.set(0.27, THRONE.blockTop, 0.17);
+  holder.rotation.y = -0.35;
+
+  group.add(throne, holder);
+  group.scale.setScalar(1.12);
+
+  // The lid and the plate are meant to be read, so it holds still like the
+  // league trophy does.
+  group.userData.faceForward = true;
   group.userData.spin = [];
   group.userData.glints = [
-    new THREE.Vector3(0.2, 0.5, 0.16),
-    new THREE.Vector3(0, 0.83, -0.3)
+    new THREE.Vector3(0.22, THRONE.blockTop + THRONE.rim + 0.03, THRONE.bowlZ + 0.2),
+    new THREE.Vector3(-0.2, THRONE.blockTop + 0.89, -0.25),
+    new THREE.Vector3(0.18, THRONE.blockTop + 1.0, -0.2)
   ];
   return group;
 }

@@ -1,4 +1,4 @@
-# League History for Sleeper and ESPN
+# LeagueLore: league history for Sleeper and ESPN
 
 Every season a Sleeper or ESPN fantasy football league has played, on one site:
 week-by-week results and box scores, standings as they stood each week, the

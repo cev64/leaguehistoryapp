@@ -684,7 +684,7 @@
 
     if (verdict.kind === "signed-out") {
       title = `Sign in to open ${name}`;
-      copy = `League History is free with an account: one league of your choice, every season it has played. ${proLine}`;
+      copy = `LeagueLore is free with an account: one league of your choice, every season it has played. ${proLine}`;
       actions = `<button class="acct-btn acct-btn-primary" data-act="signup">Create free account</button>
         <button class="acct-btn" data-act="signin">Sign in</button>`;
     } else if (verdict.kind === "free-first") {
@@ -1411,8 +1411,8 @@
           catch (err) { link.select(); toast("Select the link and copy it."); }
         } else if (act === "share") {
           try {
-            await navigator.share({ title: `Join ${pass.league_name || "our league"} on League History`,
-              text: `I got us the ${LEAGUE.name}: Pro on League History for everyone in ${pass.league_name || "the league"}. Join here:`, url: link.value });
+            await navigator.share({ title: `Join ${pass.league_name || "our league"} on LeagueLore`,
+              text: `I got us the ${LEAGUE.name}: Pro on LeagueLore for everyone in ${pass.league_name || "the league"}. Join here:`, url: link.value });
           } catch (err) { /* closed */ }
         } else if (act === "relink") {
           const sure = await confirmBox({ title: "Make a new link?", body: "The current link stops working. People who already joined keep their seats.", yes: "New link" });
@@ -1520,7 +1520,7 @@
       done = true;
     } else {
       title = `Join ${league}`;
-      copy = `<strong>${owner}</strong> invited you to ${league} on League History, and your seat comes with <strong>Pro, on them</strong>: every season of your league, the league AI, unlimited leagues and no ads.`;
+      copy = `<strong>${owner}</strong> invited you to ${league} on LeagueLore, and your seat comes with <strong>Pro, on them</strong>: every season of your league, the league AI, unlimited leagues and no ads.`;
       actions = state.user
         ? `<button type="button" class="acct-btn acct-btn-primary" data-inv="join">Join ${league}</button>`
         : `<button type="button" class="acct-btn acct-btn-primary" data-inv="signup">Create free account</button>

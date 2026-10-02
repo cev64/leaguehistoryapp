@@ -1,4 +1,4 @@
-/* Service worker for League History.
+/* Service worker for LeagueLore.
    Strategy:
      - navigations (the pages): network first, cached copy as fallback
      - same-origin assets: cache first, refreshed in the background
@@ -8,7 +8,7 @@
        copies in IndexedDB
    Bump CACHE_VERSION whenever the precache list or these rules change. */
 
-const CACHE_VERSION = 'v93';
+const CACHE_VERSION = 'v94';
 const SHELL_CACHE = `league-history-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `league-history-fonts-${CACHE_VERSION}`;
 

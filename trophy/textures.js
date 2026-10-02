@@ -731,7 +731,7 @@ export function floorInlayTexture({ name, accent }) {
   ctx.font = `600 ${size * 0.032}px ${DISPLAY_FONT}`;
   ctx.letterSpacing = "16px";
   ctx.fillStyle = accent;
-  ctx.fillText("· LEAGUE HISTORY ·", half, half + size * 0.09);
+  ctx.fillText("· LEAGUELORE ·", half, half + size * 0.09);
   ctx.restore();
 
   return finish(element);
