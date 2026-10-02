@@ -19,7 +19,7 @@ ads](#accounts-plans-and-ads)), the relay that opens private ESPN leagues
 
 | Page | Address |
 | --- | --- |
-| Sign in | `index.html` — a Sleeper username lists its leagues; a league ID opens one directly; the ESPN tab takes an ESPN league ID or link |
+| Front page | `index.html` — what the site is (see [The front page](#the-front-page)), then the league finder at `#find`: a Sleeper username lists its leagues; a league ID opens one directly; the ESPN tab takes an ESPN league ID or link |
 | A season | `season.html?league=<id>&season=<year>` |
 | Record book | `alltime.html?league=<id>` (add `#owner=<user id>` to open a manager) |
 | Trophy room | `trophy.html?league=<id>` |
@@ -31,6 +31,45 @@ seasons are found by following Sleeper's `previous_league_id` chain; an ESPN
 league keeps one ID for life and lists its earlier years itself. Either way
 one link covers the whole history, and any of these addresses can be shared
 with the rest of the league.
+
+## The front page
+
+`index.html` is the landing page and the way in, in one: a hero with the
+pitch and two ways forward (open your league, or explore the demo), the
+headline features with screenshots of the demo league, the demo league's
+storylines, how it works, the league finder (`#find`, the same cards and
+script as before) and a few questions and answers. A signed-in member's
+leagues show in the hero as one-tap links. `landing.css` styles it; the
+screenshots are WebP files in `img/landing/` (`og.jpg` is the picture a
+shared link shows). A link to `index.html?espn=…` or `?invite=…` lands on
+the finder.
+
+The screenshots come from the demo league, so retake them if the demo or
+the pages change much.
+
+## The demo league
+
+`?league=demo` on any league page opens **Sunday Scaries**, a made-up
+ten-team dynasty league: five seasons (2022 to 2025 finished, 2026 paused
+after week 8) with a startup draft, rookie drafts, FAAB waivers, trades,
+traded picks, playoffs and a toilet bowl. Anyone can open it, signed in or
+not; it is never synced to an account.
+
+`demo.js` simulates the league in the browser from a fixed seed, so it
+comes out the same every time, and answers in Sleeper's own shapes:
+`sleeper.js` asks for `/league/demo-2024/matchups/7` exactly as it would
+ask Sleeper, and the demo answers instead of the network. So every page,
+box score, player card, front-office table and the trophy room reads the
+demo through the same code as a real league. It is fetched only when a
+page opens the demo, and is never kept in the browser's league store.
+
+The managers, teams and scores are invented; the players are real (their
+names come from `data/players.json` by Sleeper id) with made-up points.
+Each player's points a game for each season are in `demo.js`'s pool; the
+seed (`SEED`) was picked for its storylines (worst to first, a 1.01 trade,
+a team that never beats its rival), which the front page quotes. Changing
+the seed, the pool or the simulation changes every result, so check the
+front page's demo stories and screenshots after.
 
 ## How it works
 

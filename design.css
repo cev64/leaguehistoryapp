@@ -1465,3 +1465,34 @@ body:not(#_) .footer::before {
 }
 body:not(#_) .footer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 body:not(#_) .footer .footer-switch { display: table; margin: 0 auto 8px; font-weight: 700; color: var(--ink-2); }
+
+/* The demo league's pages (sleeper.js): a line under the header saying
+   it's made up, with the way to open a real league. In the page's own
+   column beside the desktop sidebar, across the top on a phone. */
+body:not(#_) .demo-strip {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  width: min(1220px, calc(100% - 32px)); margin: 14px auto 0; padding: 10px 14px;
+  border-radius: 14px; background: linear-gradient(90deg, #0d2238, #163a5f); color: #dbe5ee;
+  font-size: 13.5px; line-height: 1.4; box-shadow: 0 8px 20px rgba(7, 24, 39, .14);
+}
+body:not(#_) .demo-strip b { color: #fff; }
+body:not(#_) .demo-strip-tag {
+  padding: 3px 8px; border-radius: 999px; background: #f6b73c; color: #071827;
+  font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase;
+}
+body:not(#_) .demo-strip-text { flex: 1 1 200px; min-width: 0; }
+body:not(#_) .demo-strip a {
+  padding: 7px 12px; border-radius: 10px; background: #fff; color: #071827;
+  font-weight: 800; font-size: 13px; text-decoration: none; white-space: nowrap;
+}
+body:not(#_) .demo-strip a:hover { background: #ffe3a6; }
+body:not(#_) .demo-strip-short { display: none; }
+@media (min-width: 1200px) {
+  body:not(#_) .demo-strip { width: min(1220px, calc(100% - 48px)); margin-top: 18px; }
+}
+@media (max-width: 520px) {
+  body:not(#_) .demo-strip { flex-wrap: nowrap; margin-top: 10px; padding: 8px 8px 8px 10px; gap: 8px; font-size: 12.5px; }
+  body:not(#_) .demo-strip-more { display: none; }
+  body:not(#_) .demo-strip-short { display: inline; }
+  body:not(#_) .demo-strip a { padding: 6px 10px; font-size: 12.5px; }
+}
