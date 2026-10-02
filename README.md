@@ -556,6 +556,16 @@ Going live:
 8. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
    config.
 
+**Sign-up and password emails.** `supabase/email-templates/` holds the
+branded confirmation and password-reset emails: paste each into Supabase ▸
+Authentication ▸ Emails (the subject line is in a comment at the top of
+each file). Supabase's built-in mail only reaches members of the project's
+team, two emails an hour, so real members need custom SMTP: Supabase ▸
+Authentication ▸ Emails ▸ SMTP Settings, with a sender such as Resend
+(`smtp.resend.com`, port 465, user `resend`, an API key as the password)
+and a sender on the site's own domain, verified with the DNS records the
+sender gives you.
+
 The gate is a paywall in the browser: Sleeper's data is public, so it keeps
 honest visitors honest rather than locking anything away.
 
