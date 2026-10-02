@@ -19,7 +19,8 @@ alter table public.chat_usage enable row level security;
 revoke all on public.chat_usage from anon, authenticated;
 
 -- One more question for a member today; returns today's count, this one
--- included. Old days are tidied away as it goes.
+-- included. A row per member per day they ask anything: small enough to
+-- keep, and a record of how much the chat is used.
 create or replace function public.count_chat_question(p_user_id uuid)
 returns int
 language plpgsql
@@ -34,7 +35,6 @@ begin
   values (p_user_id, today, 1)
   on conflict (user_id, day) do update set questions = u.questions + 1
   returning questions into n;
-  delete from public.chat_usage where user_id = p_user_id and day < today - 7;
   return n;
 end;
 $$;

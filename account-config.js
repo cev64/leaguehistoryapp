@@ -12,8 +12,8 @@ window.ACCOUNT_CONFIG = {
   // Supabase ▸ Project Settings ▸ API. The anon (publishable) key is meant
   // to be public: row-level security in supabase/migrations decides what it
   // can read and write.
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_URL: "https://vnmzjfnfqqxedbmirakb.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZubXpqZm5mcXF4ZWRibWlyYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDIxOTYsImV4cCI6MjEwNjUxODE5Nn0.YQUMzJU2aNfg0_T_2FsVNPRDmOERsT-DPsrlcd5smv8",
 
   // The relay that opens PRIVATE ESPN leagues (supabase/functions/espn-proxy).
   // Left empty, it is <SUPABASE_URL>/functions/v1/espn-proxy once
