@@ -316,7 +316,10 @@ stored on the server but the day's question count.
 Settings, as function secrets: `ANTHROPIC_API_KEY` (required),
 `ALLOWED_ORIGINS`, `AI_MODEL` (default `claude-sonnet-5-5`;
 `claude-opus-5-5` is stronger and about twice the price), `AI_EFFORT` (`low`
-to `max`, default `medium`), `AI_DAILY_QUESTIONS` (default 60). In
+to `max`, default `medium`), `AI_DAILY_QUESTIONS` (default 60), and
+`ANTHROPIC_WORKSPACE_ID` when the API key isn't scoped to a workspace
+(Anthropic answers such a key with "must include the anthropic-workspace-id
+header"; Console ▸ Settings ▸ Workspaces has the id). In
 `account-config.js`, `AI_CHAT_URL` points the site at the function if it
 isn't at `<SUPABASE_URL>/functions/v1/league-chat`.
 

@@ -31,7 +31,9 @@
 //   supabase secrets set ANTHROPIC_API_KEY=sk-ant-…
 //   supabase secrets set ALLOWED_ORIGINS=https://your-site.example
 // Optional: AI_MODEL (default claude-sonnet-5-5), AI_EFFORT (default medium),
-// AI_DAILY_QUESTIONS (default 60).
+// AI_DAILY_QUESTIONS (default 60), and ANTHROPIC_WORKSPACE_ID for an API key
+// that isn't scoped to a workspace (Anthropic Console ▸ Settings ▸
+// Workspaces has the id; a key made inside a workspace doesn't need it).
 //
 // On your own computer, with the site served locally:
 //   ANTHROPIC_API_KEY=sk-ant-… CHAT_OPEN=1 deno run --allow-net --allow-env \
@@ -64,7 +66,13 @@ const MAX_TOOL_ROUNDS = 8;
 // Models that take adaptive thinking, effort and the refusal fallback.
 const CURRENT = /^claude-(opus-5|opus-5-5|sonnet-5-5|fable-5-1)$/;
 
-const client = new Anthropic({ apiKey: env("ANTHROPIC_API_KEY") || undefined });
+const WORKSPACE = env("ANTHROPIC_WORKSPACE_ID");
+
+const client = new Anthropic({
+  apiKey: env("ANTHROPIC_API_KEY") || undefined,
+  // An organization-wide key says which workspace each request bills to.
+  defaultHeaders: WORKSPACE ? { "anthropic-workspace-id": WORKSPACE } : undefined,
+});
 
 /* ------------------------------------------------------------ the prompt */
 
@@ -385,9 +393,16 @@ async function handle(req: Request): Promise<Response> {
         console.error("league-chat:", err instanceof Anthropic.APIError ? `${err.status} ${err.message}` : err);
         const busy = err instanceof Anthropic.RateLimitError ||
           (err instanceof Anthropic.APIError && (err.status ?? 0) >= 500);
+        // A key that's wrong, revoked or missing its workspace fails every
+        // question the same way: say so, rather than inviting a retry.
+        const setup = err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError ||
+          (err instanceof Anthropic.BadRequestError && /api key|workspace/i.test(err.message));
         send({
           t: "error",
-          message: busy ? "The AI is busy right now. Try again in a minute." : "The AI couldn't answer that. Try again.",
+          setup,
+          message: setup
+            ? "The league AI isn't set up right yet: its API key was turned down. (Site owner: the league-chat function's logs say why.)"
+            : busy ? "The AI is busy right now. Try again in a minute." : "The AI couldn't answer that. Try again.",
         });
       } finally {
         if (!abort.signal.aborted) controller.close();

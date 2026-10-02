@@ -664,7 +664,7 @@
         if (!line) continue;
         let event;
         try { event = JSON.parse(line.slice(6)); } catch (err) { continue; }
-        if (event.t === "error") throw new ChatError(event.message || "The league AI couldn't answer that.", "upstream");
+        if (event.t === "error") throw new ChatError(event.message || "The league AI couldn't answer that.", event.setup ? "not_set_up_upstream" : "upstream");
         if (event.t === "done") done = event;
         else onEvent(event);
       }
@@ -1108,7 +1108,7 @@
               ? "Preview mode: the league AI isn't connected yet. Set AI_CHAT_URL in account-config.js (or connect Supabase) and deploy supabase/functions/league-chat."
               : "The league AI isn't switched on for this site yet.")
             : err.message || "Something went wrong. Try again.";
-          shown.push({ role: "assistant", text: message, error: true, retry: !["not_set_up", "pro_required", "daily_limit"].includes(err.code) });
+          shown.push({ role: "assistant", text: message, error: true, retry: !["not_set_up", "not_set_up_upstream", "pro_required", "daily_limit"].includes(err.code) });
         }
         save();
         draw();
