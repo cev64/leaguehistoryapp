@@ -62,11 +62,23 @@
   .topbar-inner:has(.acct-button) .topbar-trophy { font-size: 0; gap: 0; padding: 6px 8px; }
   .topbar-inner:has(.acct-button) .topbar-trophy span { font-size: 14px; }
 }
-/* In the desktop sidebar: beside the Trophy Room button, under the menu. */
+/* In the desktop sidebar: the account button first, at the top left, so
+   the league's name and the site's have the rest of the row to themselves;
+   the Trophy Room button and the season menu share the row under them. */
 @media (min-width: 1200px) {
   .topbar .acct-button { grid-column: 2; grid-row: 2; justify-self: end; }
   .topbar-inner:has(.acct-button) .topbar-trophy { grid-column: 1; }
   .topbar-inner:not(:has(.topbar-trophy)) .acct-button { grid-row: 1; }
+
+  .topbar-inner:has(.topbar-trophy) { grid-template-columns: auto minmax(0, .7fr) minmax(0, 1fr); }
+  .topbar-inner:has(.topbar-trophy) .acct-button { grid-column: 1; grid-row: 1; justify-self: start; align-self: center; }
+  .topbar-inner:has(.topbar-trophy) .brand { grid-column: 2 / -1; grid-row: 1; min-width: 0; }
+  .topbar-inner:has(.topbar-trophy) .topbar-trophy { grid-column: 1 / 3; grid-row: 2; }
+  .topbar-inner:has(.topbar-trophy) .year-control { grid-column: 3; grid-row: 2; width: 100%; min-width: 0; }
+  .topbar-inner:has(.topbar-trophy) .year-control select { width: 100%; }
+  /* Icon only up there, signed in or out, so it never crowds the name. */
+  .topbar-inner:has(.topbar-trophy) .acct-button-label { display: none; }
+  .topbar-inner:has(.topbar-trophy) .acct-button:has(.acct-button-label) { width: 40px; height: 40px; padding: 0; justify-content: center; border-radius: 50%; }
 }
 
 /* ---------------------------------------------------------------

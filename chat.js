@@ -150,13 +150,15 @@
       [[g.aOwner, g.aScore, g.bScore], [g.bOwner, g.bScore, g.aScore]].forEach(([oid, mine, theirs]) => {
         const r = c(oid);
         if (!g.bracket) r.gp++;
-        if (g.bracket === "W") { if (mine > theirs) r.pw++; else if (mine < theirs) r.pl++; }
+        // playoff wins: the winners bracket on the road to the title only,
+        // never a placement game (3rd, 5th...) or the consolation bracket
+        if (g.titlePath) { if (mine > theirs) r.pw++; else if (mine < theirs) r.pl++; }
         if (!r.high || mine > r.high.pts) r.high = { pts: mine, year: g.year, week: g.week };
         if (mine > 0 && (!r.low || mine < r.low.pts)) r.low = { pts: mine, year: g.year, week: g.week };
       });
     });
     L.push("", `## All-time, by manager (${seasons.map((s) => s.year).join(", ")}${live ? `; ${live.year} so far` : ""})`,
-      "Regular-season records and points are the official standings (weekly median games included where played). Playoff record counts winners-bracket games only.",
+      "Regular-season records and points are the official standings (weekly median games included where played). Playoff record (and every playoff win or loss) counts only the main bracket on the road to the title: quarterfinals, semifinals and the championship. Placement games (3rd place, 5th place) and consolation games are never playoff wins.",
       "manager | seasons | regular season W-L-T (win%) | PF | PA | PF/game | titles | runner-up | last place | playoff trips | playoff W-L | finishes | highest / lowest game");
     Object.entries(career).sort((a, b) => b[1].titles.length - a[1].titles.length || (b[1].w / Math.max(1, b[1].w + b[1].l)) - (a[1].w / Math.max(1, a[1].w + a[1].l)))
       .forEach(([oid, r]) => {
@@ -180,12 +182,12 @@
       const r = (h2h[`${x}|${y}`] = h2h[`${x}|${y}`] || { x, y, xw: 0, yw: 0, t: 0, xpf: 0, ypf: 0, pxw: 0, pyw: 0, last: null });
       const xs = g.aOwner === x ? g.aScore : g.bScore, ys = g.aOwner === x ? g.bScore : g.aScore;
       r.xpf += xs; r.ypf += ys;
-      if (xs > ys) { r.xw++; if (g.bracket === "W") r.pxw++; } else if (ys > xs) { r.yw++; if (g.bracket === "W") r.pyw++; } else r.t++;
+      if (xs > ys) { r.xw++; if (g.titlePath) r.pxw++; } else if (ys > xs) { r.yw++; if (g.titlePath) r.pyw++; } else r.t++;
       r.last = `${g.year} wk ${g.week}: ${name(g.aOwner)} ${f2(g.aScore)}–${f2(g.bScore)} ${name(g.bOwner)}`;
     });
     L.push("", "## Head-to-head, every meeting (regular season and every postseason game)");
     Object.values(h2h).sort((p, q) => (q.xw + q.yw + q.t) - (p.xw + p.yw + p.t)).forEach((r) => {
-      const playoff = r.pxw + r.pyw ? ` (winners-bracket games ${r.pxw}-${r.pyw})` : "";
+      const playoff = r.pxw + r.pyw ? ` (playoff games ${r.pxw}-${r.pyw})` : "";
       L.push(`- ${name(r.x)} ${r.xw}-${r.yw}${r.t ? `-${r.t}` : ""} ${name(r.y)}${playoff}; points ${f2(r.xpf)}–${f2(r.ypf)}; last: ${r.last}`);
     });
 
@@ -221,9 +223,9 @@
     L.push("Most points against per game in a season (unluckiest schedules):", ...teamSeasons.slice().sort((p, q) => q.t.pa / q.gp - p.t.pa / p.gp).slice(0, 5).map((x, i) => `${i + 1}. ${tsLine(x)} (${f2(x.t.pa / x.gp)} against/game)`));
 
     // Streaks run across seasons, game by game, regular season and
-    // winners-bracket games; a tie ends both kinds.
+    // playoff games on the road to the title; a tie ends both kinds.
     const streak = {};
-    games.filter((g) => !g.bracket || g.bracket === "W").forEach((g) => {
+    games.filter((g) => !g.bracket || g.titlePath).forEach((g) => {
       [[g.aOwner, g.aScore - g.bScore], [g.bOwner, g.bScore - g.aScore]].forEach(([oid, d]) => {
         const r = (streak[oid] = streak[oid] || { cur: 0, bestW: null, bestL: null, start: null });
         const kind = d > 0 ? 1 : d < 0 ? -1 : 0;
@@ -268,7 +270,7 @@
       if (post.length) {
         L.push("Postseason:");
         post.sort((x, y) => x.week - y.week || (x.bracket === "W" ? -1 : 1)).forEach((g) => {
-          L.push(`Wk ${g.week} ${g.bracket === "W" || /^losers/i.test(g.label) ? "" : "losers bracket, "}${g.label}: ${tm(g.a)} ${f2(g.aScore)}–${f2(g.bScore)} ${tm(g.b)} → ${tm(g.winner)} ${g.bracket === "L" && s.settings.playoffType === 0 ? "moves on (toilet bowl: the loser is spared)" : "wins"}`);
+          L.push(`Wk ${g.week} ${g.bracket === "W" || /^losers/i.test(g.label) ? "" : "losers bracket, "}${g.label}: ${tm(g.a)} ${f2(g.aScore)}–${f2(g.bScore)} ${tm(g.b)} → ${tm(g.winner)} ${g.bracket === "L" && s.settings.playoffType === 0 ? "moves on (toilet bowl: the loser is spared)" : "wins"}${g.bracket === "W" && !g.titlePath ? " (placement game: not a playoff win)" : ""}`);
         });
       }
       if (!s.finished) {
