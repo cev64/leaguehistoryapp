@@ -213,14 +213,6 @@ html:has(body.lp) { scroll-behavior: smooth; scroll-padding-top: 76px; }
   .lp-proof { grid-auto-flow: row; }
 }
 
-/* ---- the band under the hero ---- */
-.lp-band { background: #fff; border-bottom: 1px solid var(--lp-line); }
-.lp-band-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; padding: 26px 0; }
-.lp-band-grid div { display: grid; gap: 2px; }
-.lp-band-grid strong { font-family: "Barlow Condensed", sans-serif; font-size: 30px; font-weight: 700; line-height: 1; color: var(--lp-navy); }
-.lp-band-grid span { color: var(--lp-muted); font-size: 13.5px; line-height: 1.4; }
-@media (min-width: 760px) { .lp-band-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-
 /* ---- sections ---- */
 .lp-section { padding: 64px 0; }
 .lp-head { max-width: 720px; margin: 0 auto 40px; text-align: center; }
