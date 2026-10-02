@@ -110,8 +110,9 @@
   /* ------------------------------------------------------------ sign-in */
 
   /* A private league's keys: the visitor's espn_s2 and SWID cookies, typed
-     on the front page and kept in this browser only. Pasted values are
-     tidied (a pasted "espn_s2=" or quotes come off; SWID wears its
+     on the front page and kept in this browser only, a set per ESPN
+     account (a member can be in leagues on more than one). Pasted values
+     are tidied (a pasted "espn_s2=" or quotes come off; SWID wears its
      braces). */
   const AUTH_KEY = "lh-espn-auth";
   function tidyAuth(s2, swid) {
@@ -123,24 +124,35 @@
     if (!/^\{[0-9A-F-]{30,40}\}$/.test(b) || a.length < 40 || /\s/.test(a)) return null;
     return { s2: a, swid: b };
   }
-  function savedAuth() {
+  // Every set in this browser (one saved before several were allowed is a
+  // list of one).
+  function savedAuths() {
     try {
-      const a = JSON.parse(localStorage.getItem(AUTH_KEY));
-      return a && a.s2 && a.swid ? a : null;
+      const v = JSON.parse(localStorage.getItem(AUTH_KEY));
+      return (Array.isArray(v) ? v : v ? [v] : []).filter((a) => a && a.s2 && a.swid);
     } catch (err) {
-      return null;
+      return [];
     }
   }
+  // Any set at all, for "are there keys here?"
+  const savedAuth = () => savedAuths()[0] || null;
+  function writeAuths(list) {
+    try {
+      if (list.length) localStorage.setItem(AUTH_KEY, JSON.stringify(list));
+      else localStorage.removeItem(AUTH_KEY);
+    } catch (err) { /* private mode: nothing kept */ }
+    access.clear();
+  }
+  // New keys for an ESPN account already here replace its old ones.
   function saveAuth(s2, swid) {
     const a = tidyAuth(s2, swid);
     if (!a) return null;
-    try { localStorage.setItem(AUTH_KEY, JSON.stringify(a)); } catch (err) { /* private mode: for this visit only */ }
-    access.clear();
+    writeAuths([...savedAuths().filter((x) => x.swid !== a.swid), a]);
     return a;
   }
-  function clearAuth() {
-    try { localStorage.removeItem(AUTH_KEY); } catch (err) { /* ignore */ }
-    access.clear();
+  // One account's keys, or (no SWID) all of them.
+  function clearAuth(swid) {
+    writeAuths(swid ? savedAuths().filter((x) => x.swid !== swid) : []);
   }
 
   /* ------------------------------------------------------------ requests */
@@ -155,25 +167,49 @@
       localStorage.setItem(HINT_KEY, JSON.stringify(all));
     } catch (err) { /* ignore */ }
   }
+  // Which ESPN account's keys opened league n last time, tried first next.
+  const KEYSET_KEY = "lh-espn-keyset";
+  function keysetOf(n) { try { return (JSON.parse(localStorage.getItem(KEYSET_KEY)) || {})[n] || null; } catch (err) { return null; } }
+  function rememberKeyset(n, swid) {
+    if (n == null || !swid || keysetOf(n) === swid) return;
+    try {
+      const all = JSON.parse(localStorage.getItem(KEYSET_KEY)) || {};
+      all[n] = swid;
+      localStorage.setItem(KEYSET_KEY, JSON.stringify(all));
+    } catch (err) { /* ignore */ }
+  }
 
-  function request(url, filter, mode, token) {
+  async function request(url, filter, mode, token, n) {
     const headers = {};
     if (filter) headers["X-Fantasy-Filter"] = JSON.stringify(filter);
-    if (mode === "proxy" || mode === "account") {
-      if (mode === "proxy") {
-        const auth = savedAuth();
-        headers["x-espn-s2"] = auth.s2;
-        headers["x-espn-swid"] = auth.swid;
-      } else {
-        // The relay finds this member's saved keys from their session.
-        headers["x-lh-account"] = "1";
-      }
-      if (CFG.SUPABASE_ANON_KEY) headers.apikey = CFG.SUPABASE_ANON_KEY;
-      const bearer = mode === "account" ? token : CFG.SUPABASE_ANON_KEY;
-      if (bearer) headers.Authorization = `Bearer ${bearer}`;
-      return fetchJSON(`${PROXY}?url=${encodeURIComponent(url)}`, 3, { headers, credentials: "omit" }, "ESPN");
+    if (mode !== "proxy" && mode !== "account") return fetchJSON(url, 3, { headers, credentials: "omit" }, "ESPN");
+    if (CFG.SUPABASE_ANON_KEY) headers.apikey = CFG.SUPABASE_ANON_KEY;
+    const relayed = `${PROXY}?url=${encodeURIComponent(url)}`;
+    if (mode === "account") {
+      // The relay tries each set saved to the account, this league's first.
+      headers["x-lh-account"] = "1";
+      const first = keysetOf(n);
+      if (first) headers["x-lh-swid"] = first;
+      if (token) headers.Authorization = `Bearer ${token}`;
+      return fetchJSON(relayed, 3, { headers, credentials: "omit" }, "ESPN");
     }
-    return fetchJSON(url, 3, { headers, credentials: "omit" }, "ESPN");
+    // Each set in this browser in turn until ESPN takes one, the one that
+    // opened this league before first.
+    if (CFG.SUPABASE_ANON_KEY) headers.Authorization = `Bearer ${CFG.SUPABASE_ANON_KEY}`;
+    const first = keysetOf(n);
+    const sets = savedAuths().sort((a, b) => Number(b.swid === first) - Number(a.swid === first));
+    let last = null;
+    for (const set of sets) {
+      try {
+        const value = await fetchJSON(relayed, 3, { headers: { ...headers, "x-espn-s2": set.s2, "x-espn-swid": set.swid }, credentials: "omit" }, "ESPN");
+        rememberKeyset(n, set.swid);
+        return value;
+      } catch (err) {
+        if (err.status !== 401 && err.status !== 403) throw err;
+        last = err;
+      }
+    }
+    throw last || Object.assign(new Error("ESPN answered 401"), { status: 401 });
   }
 
   function privateError(n) {
@@ -181,11 +217,16 @@
     const err = new Error(tried
       ? "ESPN didn't accept the keys saved in this browser for this league. ESPN changes them when you sign out or after a while: copy espn_s2 and SWID again and enter them on the front page."
       : PROXY
-        ? "This ESPN league is private. Enter your ESPN keys (espn_s2 and SWID) on the front page to open it."
+        // A phone or tablet can't copy the keys out of ESPN: that's a job
+        // for a computer, once, and the account carries them over.
+        ? (matchMedia("(hover: none) and (pointer: coarse)").matches
+          ? "This ESPN league is private. Connect your ESPN account from a computer, once (front page ▸ ESPN ▸ Private league?, signed in to this account), and it opens here too."
+          : "This ESPN league is private. Enter your ESPN keys (espn_s2 and SWID) on the front page to open it.")
         : "This ESPN league is private, and this site isn't set up to open private ESPN leagues yet.");
     err.privateLeague = true;
     err.link = `index.html?espn=${encodeURIComponent(n)}`;
-    err.linkText = PROXY ? "Enter your ESPN keys" : "Back to the front page";
+    err.linkText = !PROXY ? "Back to the front page"
+      : matchMedia("(hover: none) and (pointer: coarse)").matches ? "How to connect ESPN" : "Enter your ESPN keys";
     return err;
   }
 
@@ -213,44 +254,64 @@
     return answer;
   }
   /* The member's own ESPN football leagues, newest season first, from the
-     teams on their ESPN profile (the relay's ?action=leagues): with the
-     keys in this browser, or else the ones saved to their account. Null
-     when there are no keys to ask with. */
+     teams on their ESPN profiles (the relay's ?action=leagues): every set
+     of keys in this browser, and every set saved to their account,
+     together. Each league says which ESPN account (swid) it came from, and
+     is remembered as that account's, so it opens with the right keys
+     first. Null when there are no keys to ask with; ESPN accounts whose
+     keys were turned away are in the list's `refused`. */
   async function myLeagues() {
     if (!PROXY) return null;
-    const auth = savedAuth();
-    const token = auth ? null : await memberToken();
-    if (!auth && !token) return null;
-    const headers = {};
-    if (CFG.SUPABASE_ANON_KEY) headers.apikey = CFG.SUPABASE_ANON_KEY;
-    if (auth) {
-      headers["x-espn-s2"] = auth.s2;
-      headers["x-espn-swid"] = auth.swid;
-      if (CFG.SUPABASE_ANON_KEY) headers.Authorization = `Bearer ${CFG.SUPABASE_ANON_KEY}`;
-    } else {
-      headers["x-lh-account"] = "1";
-      headers.Authorization = `Bearer ${token}`;
-    }
-    const res = await fetch(`${PROXY}?action=leagues`, { headers, credentials: "omit" });
-    const answer = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    const local = savedAuths();
+    const token = await memberToken();
+    if (!local.length && !token) return null;
+    const ask = async (headers, fromAccount) => {
+      if (CFG.SUPABASE_ANON_KEY) headers.apikey = CFG.SUPABASE_ANON_KEY;
+      const res = await fetch(`${PROXY}?action=leagues`, { headers, credentials: "omit" });
+      const answer = await res.json().catch(() => ({}));
       // No keys on the account is no list, not a failure.
-      if (!auth && res.status === 401 && /no ESPN keys/.test(answer.error || "")) return null;
-      throw new Error(answer.error || `The relay answered ${res.status}`);
-    }
-    return Array.isArray(answer.leagues) ? answer.leagues : [];
+      if (fromAccount && res.status === 401 && /no ESPN keys/.test(answer.error || "")) return null;
+      if (!res.ok) throw new Error(answer.error || `The relay answered ${res.status}`);
+      return answer;
+    };
+    const asks = local.map((set) => ask({
+      "x-espn-s2": set.s2, "x-espn-swid": set.swid,
+      ...(CFG.SUPABASE_ANON_KEY ? { Authorization: `Bearer ${CFG.SUPABASE_ANON_KEY}` } : {}),
+    }, false).catch((err) => ({ failed: err, swid: set.swid })));
+    if (token) asks.push(ask({ "x-lh-account": "1", Authorization: `Bearer ${token}` }, true).catch((err) => ({ failed: err })));
+    const answers = (await Promise.all(asks)).filter(Boolean);
+    if (!answers.length) return null;
+    const good = answers.filter((a) => !a.failed);
+    if (!good.length) throw answers[0].failed;
+    const byId = new Map();
+    good.forEach((a) => (a.leagues || []).forEach((l) => {
+      const had = byId.get(l.id);
+      if (!had || l.season > had.season) byId.set(l.id, l);
+    }));
+    const list = [...byId.values()].sort((a, b) => b.season - a.season || String(a.name).localeCompare(String(b.name)));
+    list.forEach((l) => rememberKeyset(l.id, l.swid));
+    list.refused = [...new Set([
+      ...good.flatMap((a) => a.refused || []),
+      ...answers.filter((a) => a.failed && a.swid).map((a) => a.swid),
+    ])];
+    return list;
   }
 
   const accountKeys = {
     available: accountsOn,
     signedIn: () => Boolean(accountsOn() && window.Account.user),
+    // { saved, accounts: [{ swid, saved_at }] }: the ESPN accounts with keys
+    // saved, never the keys themselves.
     status: () => accountCall("status"),
-    // Saves this browser's keys to the account.
-    save: () => {
-      const auth = savedAuth();
+    // Saves a set of keys in this browser (the one for `swid`, or the
+    // newest) to the account, alongside any already there.
+    save: (swid) => {
+      const all = savedAuths();
+      const auth = swid ? all.find((a) => a.swid === swid) : all[all.length - 1];
       return auth ? accountCall("save", { s2: auth.s2, swid: auth.swid }) : Promise.reject(new Error("No keys in this browser."));
     },
-    forget: () => accountCall("forget").finally(() => access.clear()),
+    // One ESPN account's keys off the account, or (no SWID) all of them.
+    forget: (swid) => accountCall(swid ? `forget&swid=${encodeURIComponent(swid)}` : "forget").finally(() => access.clear()),
   };
 
   /* A request about league `n`, in whichever way that league answers. The
@@ -262,7 +323,7 @@
     const token = await memberToken();
     if (settled) {
       try {
-        return await request(url, filter, settled, token);
+        return await request(url, filter, settled, token, n);
       } catch (err) {
         if (err.status === 401 || err.status === 403) throw privateError(n);
         throw err;
@@ -275,7 +336,7 @@
     if (prefer && modes.includes(prefer)) modes.sort((a, b) => (b === prefer) - (a === prefer));
     for (const mode of modes) {
       try {
-        const value = await request(url, filter, mode, token);
+        const value = await request(url, filter, mode, token, n);
         access.set(n, mode);
         if (mode !== prefer) hint(n, mode);
         return value;
@@ -1036,7 +1097,7 @@
   }
   window.ESPN = {
     parseLeague, isEspnId, leagueId: (n) => `${PREFIX}${n}`,
-    savedAuth, saveAuth, clearAuth, tidyAuth,
+    savedAuth, savedAuths, saveAuth, clearAuth, tidyAuth,
     proxyAvailable: Boolean(PROXY), accountKeys, myLeagues,
   };
 })();

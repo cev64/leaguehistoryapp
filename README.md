@@ -113,7 +113,15 @@ all a visitor needs.
 A private league opens one way: with the visitor's **ESPN keys**, the
 `espn_s2` and `SWID` cookies ESPN keeps once they're signed in. The ESPN
 tab's "Private league?" panel says where to find them (the browser's
-developer tools, on a computer) and has a box for each.
+developer tools, on a computer) and has a box for each. On a phone or
+tablet, which has no developer tools, the panel says to connect from a
+computer once, signed in, after which the account carries the keys over.
+
+**Several ESPN accounts.** A member who plays on more than one ESPN account
+adds a set of keys for each ("+ Add another ESPN account"), up to ten. The
+panel lists them by their leagues; the front page lists every account's
+leagues together; and a league opens with whichever set ESPN accepts, the
+one that opened it before (or listed it) tried first.
 
 - **Signed in, the keys are saved to the visitor's account** as well
   (unless they untick "Also save them to my account"), so every device they
@@ -125,7 +133,8 @@ developer tools, on a computer) and has a box for each.
   a browser.
 - **Signed out (or in preview mode)**, they stay in that browser's
   localStorage only.
-- **Forget them** removes them from the browser and the account.
+- **Forget** on an account's row removes that ESPN account's keys from the
+  browser and the account.
 
 **Without Supabase**, typed keys work too, kept in each visitor's browser:
 the relay is a plain Deno program that runs anywhere, and with no Supabase

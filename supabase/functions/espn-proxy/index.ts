@@ -14,11 +14,16 @@
 //     included, opens their private leagues. A request marked
 //     x-lh-account: 1 and carrying their session uses them.
 //
+// A member can save keys for several ESPN accounts (one set per SWID, up
+// to MAX_SETS). A league read with the account's keys tries each set until
+// ESPN accepts one, the set named in x-lh-swid first.
+//
 // Saved keys are encrypted (AES-GCM, with ESPN_KEYS_SECRET, bound to the
 // member's user id) before they reach the database, and only this function
 // can read the table (supabase/migrations/20261002000000_espn_keys.sql).
-// They never go back to a browser: ?action=status only says whether they
-// are saved. ?action=forget deletes them.
+// They never go back to a browser: ?action=status says which ESPN accounts
+// (SWIDs) have keys saved. ?action=forget deletes them, or with &swid= one
+// account's.
 //
 // ?action=leagues lists the member's ESPN fantasy football leagues (with
 // either kind of keys), from the teams ESPN keeps on their profile, so the
@@ -71,13 +76,14 @@ const ANON_KEY = env("SUPABASE_ANON_KEY");
 const SERVICE_KEY = env("SUPABASE_SERVICE_ROLE_KEY");
 const SECRET = env("ESPN_KEYS_SECRET");
 const ACCOUNTS = Boolean(SUPABASE_URL && ANON_KEY && SERVICE_KEY && SECRET);
+const MAX_SETS = 10;
 
 function cors(origin: string | null): Record<string, string> {
   const allow = !ALLOWED.length ? "*" : origin && ALLOWED.includes(origin) ? origin : ALLOWED[0];
   return {
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "x-espn-s2, x-espn-swid, x-fantasy-filter, x-lh-account, authorization, apikey, content-type",
+    "Access-Control-Allow-Headers": "x-espn-s2, x-espn-swid, x-fantasy-filter, x-lh-account, x-lh-swid, authorization, apikey, content-type",
     "Access-Control-Max-Age": "600",
     "Vary": "Origin",
   };
@@ -158,26 +164,53 @@ function cryptoKey() {
   return keyPromise;
 }
 // Sealed to one member: the user id is the additional data, so a row moved
-// to another member's id won't open.
-async function seal(keys: Keys, userId: string) {
+// to another member's id won't open. A row holds every set of keys the
+// member has saved, one per ESPN account.
+type Saved = Keys & { saved_at: string };
+async function seal(sets: Saved[], userId: string) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const data = new TextEncoder().encode(JSON.stringify(keys));
+  const data = new TextEncoder().encode(JSON.stringify({ sets }));
   const box = new Uint8Array(await crypto.subtle.encrypt(
     { name: "AES-GCM", iv, additionalData: new TextEncoder().encode(userId) }, await cryptoKey(), data));
   return `v1.${b64(iv)}.${b64(box)}`;
 }
-async function unseal(sealed: string, userId: string): Promise<Keys | null> {
+// Every set in a row; a row saved before several were allowed is one set.
+async function unseal(sealed: string, userId: string, savedAt = ""): Promise<Saved[]> {
   try {
     const [v, iv, box] = sealed.split(".");
-    if (v !== "v1") return null;
+    if (v !== "v1") return [];
     const data = await crypto.subtle.decrypt(
       { name: "AES-GCM", iv: unb64(iv), additionalData: new TextEncoder().encode(userId) }, await cryptoKey(), unb64(box));
-    const keys = JSON.parse(new TextDecoder().decode(data));
-    return tidy(keys.s2, keys.swid);
+    const body = JSON.parse(new TextDecoder().decode(data));
+    const raw: { s2?: unknown; swid?: unknown; saved_at?: unknown }[] = Array.isArray(body?.sets) ? body.sets : [body];
+    return raw.map((k) => {
+      const keys = tidy(k.s2, k.swid);
+      return keys ? { ...keys, saved_at: typeof k.saved_at === "string" ? k.saved_at : savedAt } : null;
+    }).filter((k): k is Saved => k !== null);
   } catch {
-    return null;
+    return [];
   }
 }
+async function savedSets(userId: string): Promise<Saved[]> {
+  const row = await savedRow(userId);
+  return row ? await unseal(row.sealed, userId, row.saved_at) : [];
+}
+async function writeSets(userId: string, sets: Saved[]) {
+  const res = sets.length
+    ? await table("?on_conflict=user_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ user_id: userId, sealed: await seal(sets, userId), saved_at: new Date().toISOString() }),
+    })
+    : await table(`?user_id=eq.${userId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`database answered ${res.status}`);
+}
+// What a browser is told about saved keys: which ESPN accounts, never the keys.
+const accounts = (sets: Saved[]) => ({
+  saved: sets.length > 0,
+  saved_at: sets.reduce((t, k) => (k.saved_at > t ? k.saved_at : t), "") || null,
+  accounts: sets.map((k) => ({ swid: k.swid, saved_at: k.saved_at || null })),
+});
 
 async function savedRow(userId: string): Promise<{ sealed: string; saved_at: string } | null> {
   const res = await table(`?user_id=eq.${userId}&select=sealed,saved_at`);
@@ -191,29 +224,26 @@ async function account(req: Request, action: string, origin: string | null) {
   const userId = await member(req);
   if (!userId) return fail(401, "sign in first", origin);
   try {
-    if (action === "status") {
-      const row = await savedRow(userId);
-      return reply(200, { saved: Boolean(row), saved_at: row?.saved_at ?? null }, origin);
-    }
+    const sets = await savedSets(userId);
+    if (action === "status") return reply(200, accounts(sets), origin);
     if (req.method !== "POST") return fail(405, "POST only", origin);
     if (action === "save") {
       let body: Record<string, unknown> = {};
       try { body = await req.json(); } catch { /* checked below */ }
       const keys = tidy(body.s2, body.swid);
       if (!keys) return fail(400, "espn_s2 and SWID are both needed", origin);
-      const saved_at = new Date().toISOString();
-      const res = await table("?on_conflict=user_id", {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify({ user_id: userId, sealed: await seal(keys, userId), saved_at }),
-      });
-      if (!res.ok) throw new Error(`database answered ${res.status}`);
-      return reply(200, { saved: true, saved_at }, origin);
+      // One set per ESPN account: new keys for a saved account replace its old ones.
+      const others = sets.filter((k) => k.swid !== keys.swid);
+      if (others.length >= MAX_SETS) return fail(400, `keys for up to ${MAX_SETS} ESPN accounts can be saved`, origin);
+      const next = [...others, { ...keys, saved_at: new Date().toISOString() }];
+      await writeSets(userId, next);
+      return reply(200, accounts(next), origin);
     }
     if (action === "forget") {
-      const res = await table(`?user_id=eq.${userId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`database answered ${res.status}`);
-      return reply(200, { saved: false, saved_at: null }, origin);
+      const swid = new URL(req.url).searchParams.get("swid");
+      const next = swid ? sets.filter((k) => k.swid !== String(swid).trim().toUpperCase()) : [];
+      await writeSets(userId, next);
+      return reply(200, accounts(next), origin);
     }
     return fail(400, "unknown action", origin);
   } catch {
@@ -223,22 +253,25 @@ async function account(req: Request, action: string, origin: string | null) {
 
 /* ------------------------------------------------------------ the keys */
 
-// The keys a request is made with: the ones it carries, or (marked
-// x-lh-account: 1) the signed-in member's saved ones. A Response is the
-// reason there are none.
-async function keysFor(req: Request, origin: string | null): Promise<Keys | Response> {
+// The keys a request may be made with: the set it carries, or (marked
+// x-lh-account: 1) every set the signed-in member has saved, the one named
+// in x-lh-swid first. A Response is the reason there are none.
+async function keysFor(req: Request, origin: string | null): Promise<Keys[] | Response> {
   if (req.headers.get("x-lh-account") === "1") {
     if (!ACCOUNTS) return fail(501, "saving ESPN keys to accounts isn't set up", origin);
     const userId = await member(req);
     if (!userId) return fail(401, "sign in first", origin);
-    let row = null;
-    try { row = await savedRow(userId); } catch { return fail(502, "the account store didn't answer", origin); }
-    const keys = row ? await unseal(row.sealed, userId) : null;
-    return keys ?? fail(401, "no ESPN keys saved to this account", origin);
+    let sets: Saved[] = [];
+    try { sets = await savedSets(userId); } catch { return fail(502, "the account store didn't answer", origin); }
+    if (!sets.length) return fail(401, "no ESPN keys saved to this account", origin);
+    const first = (req.headers.get("x-lh-swid") ?? "").trim().toUpperCase();
+    return sets.slice().sort((a, b) => Number(b.swid === first) - Number(a.swid === first));
   }
-  return tidy(req.headers.get("x-espn-s2"), req.headers.get("x-espn-swid")) ??
-    fail(400, "espn_s2 and SWID are both needed", origin);
+  const keys = tidy(req.headers.get("x-espn-s2"), req.headers.get("x-espn-swid"));
+  return keys ? [keys] : fail(400, "espn_s2 and SWID are both needed", origin);
 }
+// ESPN turning a set of keys away: a refusal, or a redirect to its home page.
+const refused = (status: number) => status === 401 || status === 403 || (status >= 300 && status < 400);
 
 const cookieHeaders = (keys: Keys) => ({
   "Cookie": `espn_s2=${keys.s2}; SWID=${keys.swid}`,
@@ -248,7 +281,7 @@ const cookieHeaders = (keys: Keys) => ({
 
 /* ------------------------------------------------------------ their leagues */
 
-type League = { id: number; name: string; season: number; team: string | null; size: number | null; logo: string | null };
+type League = { id: number; name: string; season: number; team: string | null; size: number | null; logo: string | null; swid?: string };
 
 // The football leagues among the fantasy teams on an ESPN profile, newest
 // season of each league. ESPN keeps each team as a "preference" whose entry
@@ -282,25 +315,40 @@ function footballLeagues(profile: any): League[] {
   return [...out.values()].sort((a, b) => b.season - a.season || a.name.localeCompare(b.name));
 }
 
-async function leagues(req: Request, origin: string | null) {
-  if (req.method !== "GET") return fail(405, "GET only", origin);
-  const keys = await keysFor(req, origin);
-  if (keys instanceof Response) return keys;
+// One ESPN account's leagues, each marked with the account (SWID) whose
+// keys open it; a string is why there are none.
+async function leaguesOf(keys: Keys): Promise<League[] | string> {
   const url = `https://fan.api.espn.com/apis/v2/fans/${encodeURIComponent(keys.swid)}` +
     "?displayHiddenPrefs=true&context=fantasy&useCookieAuth=true&source=fantasyapp-ios&featureFlags=challengeEntries";
   let res: Response;
   try {
     res = await fetch(url, { headers: cookieHeaders(keys), redirect: "manual", signal: AbortSignal.timeout(20000) });
   } catch {
-    return fail(502, "ESPN didn't answer", origin);
+    return "ESPN didn't answer";
   }
-  if (res.status === 401 || res.status === 403 || res.status === 404 || (res.status >= 300 && res.status < 400)) {
-    return fail(401, "ESPN refused these keys", origin);
+  if (refused(res.status) || res.status === 404) return "ESPN refused these keys";
+  if (!res.ok) return `ESPN answered ${res.status}`;
+  try {
+    return footballLeagues(await res.json()).map((l) => ({ ...l, swid: keys.swid }));
+  } catch {
+    return "ESPN's answer wasn't readable";
   }
-  if (!res.ok) return fail(502, `ESPN answered ${res.status}`, origin);
-  let profile: unknown;
-  try { profile = await res.json(); } catch { return fail(502, "ESPN's answer wasn't readable", origin); }
-  return new Response(JSON.stringify({ leagues: footballLeagues(profile) }), {
+}
+
+// Every saved ESPN account's leagues together; a league two accounts are in
+// is listed once. Accounts ESPN turned away are named in `refused`.
+async function leagues(req: Request, origin: string | null) {
+  if (req.method !== "GET") return fail(405, "GET only", origin);
+  const sets = await keysFor(req, origin);
+  if (sets instanceof Response) return sets;
+  const results = await Promise.all(sets.map(leaguesOf));
+  const ok = results.filter((r): r is League[] => Array.isArray(r));
+  if (!ok.length) return fail(results.some((r) => r === "ESPN refused these keys") ? 401 : 502, String(results[0]), origin);
+  const byId = new Map<number, League>();
+  ok.flat().forEach((l) => { const had = byId.get(l.id); if (!had || l.season > had.season) byId.set(l.id, l); });
+  const list = [...byId.values()].sort((a, b) => b.season - a.season || a.name.localeCompare(b.name));
+  const turnedAway = sets.filter((_, i) => !Array.isArray(results[i])).map((k) => k.swid);
+  return new Response(JSON.stringify({ leagues: list, refused: turnedAway }), {
     status: 200,
     headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "private, no-store" },
   });
@@ -323,26 +371,32 @@ async function handle(req: Request): Promise<Response> {
   if (!url) return fail(400, "not an ESPN fantasy football league address", origin);
 
   // The keys: sent with the request, or the signed-in member's saved ones.
-  const keys = await keysFor(req, origin);
-  if (keys instanceof Response) return keys;
+  const sets = await keysFor(req, origin);
+  if (sets instanceof Response) return sets;
 
-  const headers: Record<string, string> = cookieHeaders(keys);
   const filter = req.headers.get("x-fantasy-filter");
   if (filter) {
     if (filter.length > 4000) return fail(400, "filter too long", origin);
     try { JSON.parse(filter); } catch { return fail(400, "filter is not JSON", origin); }
-    headers["X-Fantasy-Filter"] = filter;
   }
 
-  let res: Response;
-  try {
-    res = await fetch(url.href, { headers, redirect: "manual", signal: AbortSignal.timeout(20000) });
-  } catch {
-    return fail(502, "ESPN didn't answer", origin);
+  // Each set in turn until ESPN accepts one: a member's league belongs to
+  // whichever of their ESPN accounts is in it.
+  let res: Response | null = null;
+  for (const keys of sets) {
+    const headers: Record<string, string> = cookieHeaders(keys);
+    if (filter) headers["X-Fantasy-Filter"] = filter;
+    try {
+      res = await fetch(url.href, { headers, redirect: "manual", signal: AbortSignal.timeout(20000) });
+    } catch {
+      return fail(502, "ESPN didn't answer", origin);
+    }
+    if (!refused(res.status)) break;
+    await res.body?.cancel();
   }
   // ESPN redirects a request it won't serve to its home page: treat it as
   // the refusal it is.
-  if (res.status >= 300 && res.status < 400) return fail(401, "ESPN refused these keys", origin);
+  if (!res || refused(res.status)) return fail(401, "ESPN refused these keys", origin);
   return new Response(res.body, {
     status: res.status,
     headers: {
