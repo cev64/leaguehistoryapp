@@ -1774,6 +1774,23 @@
     .espn-private-toggle .ept-copy span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.35; }
     .espn-private-toggle .ept-go { color: var(--muted); font-size: 18px; transition: transform .25s; }
     .espn-private-toggle[aria-expanded="true"] .ept-go { transform: rotate(90deg); }
+    .espn-accounts { display: grid; gap: 8px; }
+    .espn-account-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+    .espn-account {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px;
+      padding: 9px 10px 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+    }
+    .espn-account strong { display: block; color: var(--ink); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .espn-account span { display: block; color: var(--muted); font-size: 11.5px; }
+    .espn-account .is-refused { color: var(--red); font-weight: 700; }
+    .espn-account-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+    .espn-account-actions button, .espn-add {
+      height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
+      background: #fff; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .espn-account-actions [data-to-account] { color: var(--blue); border-color: rgba(23, 105, 224, .35); }
+    .espn-add { justify-self: start; color: var(--blue); border-style: dashed; border-color: rgba(23, 105, 224, .45); }
+    .espn-add[hidden] { display: none; }
     .espn-desktop { display: grid; gap: 8px; color: var(--ink); }
     .espn-desktop ol { color: var(--muted); }
     .espn-desktop .espn-desktop-why { color: var(--muted); }
@@ -1977,10 +1994,12 @@
                 <span>Also save them to my account, so my private leagues open on my phone too. Untick to keep them in this browser only.</span>
               </label>
             </div>
-            <div class="espn-saved" id="espnSaved" hidden>
-              <span id="espnSavedText">✓ ESPN keys saved</span>
-              <button type="button" id="espnToAccount" hidden>Save to my account</button>
-              <button type="button" id="espnForget">Forget them</button>
+            <!-- Every ESPN account with keys saved: a member can be in
+                 leagues on more than one. -->
+            <div class="espn-accounts" id="espnSaved" hidden>
+              <span class="espn-saved" id="espnSavedText">✓ ESPN connected</span>
+              <ul class="espn-account-list" id="espnAccountList"></ul>
+              <button type="button" class="espn-add" id="espnAddAnother">+ Add another ESPN account</button>
             </div>
             <p id="espnSavedHint" hidden></p>
             <p class="espn-fine" id="espnFine"></p>
@@ -2212,53 +2231,86 @@
         const toggle = $("espnPrivateToggle");
         toggle.classList.toggle("is-connected", connected);
         toggle.setAttribute("aria-expanded", String(!espnPrivate.hidden));
-        $("espnPrivateTitle").textContent = connected ? "ESPN connected" : "Private league?";
+        const count = Math.max(connectedAccounts.length, ESPN.savedAuths().length);
+        $("espnPrivateTitle").textContent = !connected ? "Private league?" : count > 1 ? `${count} ESPN accounts connected` : "ESPN connected";
         $("espnPrivateSub").textContent = connected
-          ? `Your ESPN keys are saved ${onAccountKnown ? "to your account" : "in this browser"}, so your private leagues open and are listed below. Manage them here.`
+          ? `Your ESPN keys are saved ${onAccountKnown ? "to your account" : "in this browser"}, so your private leagues open and are listed below. Manage them, or add another ESPN account, here.`
           : TOUCH.matches
             ? "Connect your ESPN account from a computer, once; then your private leagues open here too."
             : "Connect your ESPN account to open it, and to list all your ESPN leagues here.";
       }
       let drawing = 0;
+      // The ESPN accounts with keys, as last drawn: [{ swid, local, account }].
+      let connectedAccounts = [];
+      // From the last list of ESPN leagues: each account's leagues by name,
+      // and the accounts whose keys ESPN turned away.
+      let leagueNamesBySwid = {};
+      let refusedSwids = [];
+      let adding = false;
       async function drawPrivate() {
         const relay = ESPN.proxyAvailable;
         const turn = ++drawing;
-        const local = relay && Boolean(ESPN.savedAuth());
-        let onAccount = false;
+        const localSets = relay ? ESPN.savedAuths() : [];
+        let accountSets = [];
         if (relay && keys.signedIn()) {
-          try { onAccount = (await keys.status()).saved; } catch (err) { onAccount = false; }
+          try { accountSets = (await keys.status()).accounts || []; } catch (err) { accountSets = []; }
           if (turn !== drawing) return; // a newer drawing has started
         }
-        onAccountKnown = onAccount;
+        onAccountKnown = accountSets.length > 0;
+        const swids = [...new Set([...localSets.map((a) => a.swid), ...accountSets.map((a) => a.swid)])];
+        connectedAccounts = swids.map((swid) => ({
+          swid, local: localSets.some((a) => a.swid === swid), account: accountSets.some((a) => a.swid === swid),
+        }));
         drawToggle();
-        const saved = local || onAccount;
+        const saved = swids.length > 0;
         const desktopOnly = relay && !saved && TOUCH.matches && !keysAnyway;
         $("espnDesktop").hidden = !desktopOnly;
         $("espnDesktopSignIn").innerHTML = keys.signedIn()
           ? `On a computer, open this site and sign in as <strong>${esc(window.Account.user.email || "you")}</strong>.`
           : 'On a computer, open this site and sign in. <a href="#" id="espnSignIn">Sign in here too</a>, with the same account, so the keys carry over to this phone.';
-        $("espnKeys").hidden = !relay || saved || desktopOnly;
+        $("espnKeys").hidden = !relay || desktopOnly || (saved && !adding);
         // Where typed keys go: this browser, and the account if the member
         // is signed in and leaves the box ticked.
         $("espnToAccountChoice").hidden = !(relay && keys.signedIn());
         $("espnSaved").hidden = !saved;
         $("espnNoRelay").hidden = relay;
-        $("espnSavedText").textContent = onAccount
-          ? "✓ ESPN keys saved to your account"
-          : "✓ ESPN keys saved in this browser";
-        $("espnToAccount").hidden = !(local && !onAccount && keys.signedIn());
+        $("espnSavedText").textContent = `✓ ${swids.length === 1 ? "ESPN connected" : `${swids.length} ESPN accounts connected`}`;
+        $("espnAddAnother").hidden = !saved || adding;
+        drawAccountRows();
+        const someLocalOnly = connectedAccounts.some((a) => !a.account);
         const hint = $("espnSavedHint");
         hint.hidden = !saved || !keys.available();
-        hint.innerHTML = onAccount
+        hint.innerHTML = !someLocalOnly
           ? "Your private ESPN leagues open on any device you sign in on, your phone included."
           : keys.signedIn()
-            ? "Save them to your account to open your private leagues on your phone too, just by signing in there."
+            ? "Save keys to your account to open those private leagues on your phone too, just by signing in there."
             : `<a href="#" id="espnSignIn">Sign in</a> to save them to your account, so your private leagues open on your phone too.`;
         const fine = $("espnFine");
         fine.hidden = !relay || desktopOnly;
         fine.innerHTML = keys.available()
-          ? "These two keys work like your ESPN password, so keep them to yourself. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay in this browser. Either way they're only used to read your league, through this site's relay to ESPN. <em>Forget them</em> removes them everywhere, and signing out of ESPN ends them."
-          : "These two keys work like your ESPN password, so keep them to yourself. They stay in this browser, and are only used to read your league, through this site's relay to ESPN. <em>Forget them</em> removes them, and signing out of ESPN ends them.";
+          ? "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay in this browser. Either way they're only used to read your leagues, through this site's relay to ESPN. <em>Forget</em> removes an account's keys everywhere, and signing out of ESPN ends them."
+          : "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. They stay in this browser, and are only used to read your leagues, through this site's relay to ESPN. <em>Forget</em> removes them, and signing out of ESPN ends them.";
+      }
+      // One row per connected ESPN account, named by its leagues once ESPN
+      // has listed them.
+      function drawAccountRows() {
+        const many = connectedAccounts.length > 1;
+        $("espnAccountList").innerHTML = connectedAccounts.map((a, i) => {
+          const names = leagueNamesBySwid[a.swid] || [];
+          const title = names.length
+            ? `${names.slice(0, 2).join(", ")}${names.length > 2 ? ` +${names.length - 2} more` : ""}`
+            : many ? `ESPN account ${i + 1}` : "Your ESPN account";
+          const where = a.local && a.account ? "in this browser and on your account" : a.account ? "on your account" : "in this browser";
+          const refused = refusedSwids.includes(a.swid);
+          return `<li class="espn-account">
+            <div><strong>${esc(title)}</strong>
+              <span>${refused ? '<b class="is-refused">ESPN turned these keys away: copy them again.</b> ' : ""}Keys saved ${where} · ESPN id …${esc(a.swid.slice(-6, -1))}</span></div>
+            <div class="espn-account-actions">
+              ${a.local && !a.account && keys.signedIn() ? `<button type="button" data-to-account="${esc(a.swid)}">Save to my account</button>` : ""}
+              <button type="button" data-forget-keys="${esc(a.swid)}">Forget</button>
+            </div>
+          </li>`;
+        }).join("");
       }
       if (window.Account && window.Account.on) window.Account.on(() => { if (!espnPrivate.hidden) drawPrivate(); loadEspnLeagues(); });
 
@@ -2287,6 +2339,10 @@
         if (turn !== espnAsked) return;
         if (list === null) { showListing("espn", null); return; }
         if (!local) { onAccountKnown = true; drawToggle(); }
+        leagueNamesBySwid = {};
+        list.forEach((l) => { if (l.swid) (leagueNamesBySwid[l.swid] = leagueNamesBySwid[l.swid] || []).push(l.name); });
+        refusedSwids = list.refused || [];
+        if (!espnPrivate.hidden) drawAccountRows();
         showListing("espn", {
           count: list.length,
           rows: list.map((l) => `
@@ -2307,16 +2363,38 @@
         window.Account.openSignIn();
       });
       // Saved in this browser, and to the account when signed in.
-      async function toAccount() {
+      async function toAccount(swid) {
         if (!keys.signedIn()) return;
-        try { await keys.save(); }
+        try { await keys.save(swid); }
         catch (err) { say(`Your keys are saved in this browser, but your account couldn't save them: ${err.message}`, { error: true }); }
       }
-      $("espnToAccount").addEventListener("click", async () => {
-        $("espnToAccount").disabled = true;
-        await toAccount();
-        $("espnToAccount").disabled = false;
+      // An account's row: save its keys to the account, or forget them
+      // (here and on the account).
+      $("espnAccountList").addEventListener("click", async (event) => {
+        const save = event.target.closest("[data-to-account]");
+        const forget = event.target.closest("[data-forget-keys]");
+        if (!save && !forget) return;
+        event.target.closest("button").disabled = true;
+        if (save) {
+          await toAccount(save.dataset.toAccount);
+        } else {
+          const swid = forget.dataset.forgetKeys;
+          const row = connectedAccounts.find((a) => a.swid === swid);
+          ESPN.clearAuth(swid);
+          if (row && row.account && keys.signedIn()) {
+            try { await keys.forget(swid); }
+            catch (err) { say(`Removed from this browser, but your account couldn't forget them: ${err.message}`, { error: true }); }
+          }
+          if (!connectedAccounts.some((a) => a.swid !== swid)) say(espnDefault, { html: true });
+          loadEspnLeagues({ force: true });
+        }
         drawPrivate();
+      });
+      $("espnAddAnother").addEventListener("click", () => {
+        adding = true;
+        keysAnyway = true;
+        drawPrivate();
+        $("espnS2").focus();
       });
       function openPrivate(open = true) {
         espnPrivate.hidden = !open;
@@ -2342,25 +2420,16 @@
           say("Those don't look like ESPN's keys: espn_s2 is a long string of letters and numbers, and SWID looks like {1A2B3C4D-…}.", { error: true });
           return;
         }
+        const added = ESPN.tidyAuth(s2.value, swid.value);
         s2.value = "";
         swid.value = "";
-        if ($("espnToAccountBox").checked) await toAccount();
+        adding = false;
+        if ($("espnToAccountBox").checked) await toAccount(added && added.swid);
         await drawPrivate();
         loadEspnLeagues({ force: true });
         if (espnInput.value.trim()) { espnForm.requestSubmit(); return; }
         say("✓ Keys saved. Your ESPN leagues are listed below; or enter a league's ID or link above.");
         espnInput.focus();
-      });
-      $("espnForget").addEventListener("click", async () => {
-        ESPN.clearAuth();
-        onAccountKnown = false;
-        if (keys.signedIn()) {
-          try { await keys.forget(); }
-          catch (err) { say(`Removed from this browser, but your account couldn't forget them: ${err.message}`, { error: true }); return drawPrivate(); }
-        }
-        say(espnDefault, { html: true });
-        drawPrivate();
-        loadEspnLeagues({ force: true });
       });
 
       espnForm.addEventListener("submit", (event) => {
