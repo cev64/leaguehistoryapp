@@ -433,7 +433,7 @@ function stepRail(from, direction) {
 
 // A pillar is most of a plinth already, and a plaque has to land at reading
 // height; the plinth under each exhibit is cut to suit what stands on it.
-const PLINTH_HEIGHT = { cup: 0.72, pillar: 0.86, plaque: 0.92, toilet: 0.84 };
+const PLINTH_HEIGHT = { cup: 0.72, pillar: 0.86, plaque: 0.92, toilet: 0.74 };
 
 function buildPedestalFor(item) {
   return buildPedestal(item, { height: PLINTH_HEIGHT[item.kind] ?? LAYOUT.pedestalHeight });

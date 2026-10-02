@@ -925,7 +925,7 @@
         </div>
         <div class="lhc-lock-card">
           <span class="lhc-lock-icon">${ICON.lock}</span>
-          <span class="lhc-lock-kicker">League History Pro</span>
+          <span class="lhc-lock-kicker">LeagueLore Pro</span>
           <h3>Your league's own AI historian</h3>
           <p>Ask anything about ${esc(model.name)} and get the answer in seconds, straight from every season you've played.</p>
           <ul>

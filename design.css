@@ -66,6 +66,8 @@ button, select, input, textarea { font-family: inherit; }
 .card-head h3, .bracket-head h3 { font-size: 22px; }
 .brand-title { font-size: 23px; letter-spacing: .04em; }
 .brand-kicker { font-weight: 700; letter-spacing: .16em; }
+/* LeagueLore: the second word in gold, so it reads as two even in capitals */
+.brand-lore { color: var(--gold, #f6b73c); }
 @media (max-width: 700px) {
   .page-title h2 { font-size: 27px; }
   .card-head h3, .bracket-head h3 { font-size: 20px; }

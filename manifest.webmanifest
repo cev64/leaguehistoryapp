@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "League History for Sleeper",
-  "short_name": "League History",
+  "name": "LeagueLore for Sleeper and ESPN",
+  "short_name": "LeagueLore",
   "description": "Every season of your Sleeper fantasy football league: results, standings, box scores, brackets, the all-time record book and a 3D trophy room.",
   "start_url": "./",
   "scope": "./",
