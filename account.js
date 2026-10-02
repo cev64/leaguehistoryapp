@@ -7,7 +7,9 @@
    against a stand-in kept in this browser, so the whole flow can be tried
    before anything is set up.
 
-   The plans:
+   The plans, while PRICING is on in account-config.js (it is off for now:
+   every signed-in member gets everything Pro gives, no plans or prices are
+   shown, and the ads are off too, with ADS.enabled):
      Free   one league, with ads; the league can be swapped once a month
      Pro    $10 a month: unlimited leagues, the league AI chat (chat.js), no ads
      League Pass  $20 per member a year: one member buys Pro for their
@@ -45,6 +47,12 @@
   const PASS_URL = CFG.LEAGUE_PASS_URL ||
     (CFG.SUPABASE_URL ? `${String(CFG.SUPABASE_URL).replace(/\/+$/, "")}/functions/v1/league-pass` : "");
   const money = (n) => `$${Number(n).toLocaleString("en-US")}`;
+  // PRICING off: no plans on the site. Every signed-in member gets what Pro
+  // gives, and nothing offers an upgrade (the database's
+  // app_settings.free_for_everyone does the same on the server).
+  const PRICING = CFG.PRICING === true;
+  // Ads off: every slot stays in the pages, hidden, until ADS.enabled.
+  const ADS_ON = Boolean(CFG.ADS && CFG.ADS.enabled);
   const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
 
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
@@ -63,7 +71,7 @@
      replaces it a moment later. */
   const CACHE_KEY = "lh-account";
   const hint = store.get(CACHE_KEY);
-  document.documentElement.classList.toggle("lh-no-ads", Boolean(hint && hint.plan === "pro"));
+  document.documentElement.classList.toggle("lh-no-ads", !ADS_ON || Boolean(hint && hint.plan === "pro"));
   // AdSense allows no custom sticky ads on phones and none wider than 300px
   // on desktop, so pages that would otherwise pin one (the trophy hall's ad
   // bar) leave it out under AdSense.
@@ -330,7 +338,7 @@
           save(db);
           return had;
         }
-        if (planOf(db, u) !== "pro" && u.leagues.length >= PLANS.free.leagues) throw new Error("free_limit");
+        if (PRICING && planOf(db, u) !== "pro" && u.leagues.length >= PLANS.free.leagues) throw new Error("free_limit");
         const row = { league_id: league.id, league_ids: ids, name: league.name, avatar: league.avatar, synced_at: Date.now() };
         u.leagues.push(row);
         save(db);
@@ -343,7 +351,7 @@
         const row = (u.leagues || []).find((l) => l.league_id === leagueId || l.league_ids.includes(leagueId));
         if (!row) return;
         const unlocks = new Date(row.synced_at).getTime() + SWAP_DAYS * DAY;
-        if (planOf(db, u) !== "pro" && unlocks > Date.now()) throw new Error(`swap_locked:${new Date(unlocks).toISOString()}`);
+        if (PRICING && planOf(db, u) !== "pro" && unlocks > Date.now()) throw new Error(`swap_locked:${new Date(unlocks).toISOString()}`);
         u.leagues = u.leagues.filter((l) => l !== row);
         save(db);
       },
@@ -473,7 +481,7 @@
   const listeners = new Set();
 
   const plan = () => (state.profile && state.profile.plan === "pro" ? "pro" : "free");
-  const isPro = () => plan() === "pro";
+  const isPro = () => (PRICING ? plan() === "pro" : Boolean(state.user));
   const syncedAt = (row) => new Date(row.synced_at).getTime();
   const unlocksAt = (row) => syncedAt(row) + SWAP_DAYS * DAY;
   const canSwap = (row) => isPro() || unlocksAt(row) <= Date.now();
@@ -507,7 +515,7 @@
   function emit() {
     if (state.user) store.set(CACHE_KEY, { plan: plan(), email: state.user.email });
     else store.del(CACHE_KEY);
-    document.documentElement.classList.toggle("lh-no-ads", Boolean(state.user) && isPro());
+    document.documentElement.classList.toggle("lh-no-ads", !ADS_ON || (Boolean(state.user) && isPro()));
     document.documentElement.classList.toggle("lh-signed-in", Boolean(state.user));
     drawButtons();
     drawPanel();
@@ -588,6 +596,11 @@
      find the account; in preview, the account panel's plan switch. */
   function upgrade() {
     closeMenu();
+    // No plans for now: the only step up is an account.
+    if (!PRICING) {
+      if (!state.user) openAuth("signup", { reason: "It's free: create an account and everything opens, the league AI included." });
+      return;
+    }
     if (!state.user) { openAuth("signup", { reason: "Create a free account first, then upgrade to Pro." }); return; }
     if (isPro()) { manage(); return; }
     if (MODE === "preview") {
@@ -684,7 +697,9 @@
 
     if (verdict.kind === "signed-out") {
       title = `Sign in to open ${name}`;
-      copy = `Pigskin Pantheon is free with an account: one league of your choice, every season it has played. ${proLine}`;
+      copy = PRICING
+        ? `Pigskin Pantheon is free with an account: one league of your choice, every season it has played. ${proLine}`
+        : "Pigskin Pantheon is free with an account: every season your league has played, the trophy room and the league AI.";
       actions = `<button class="acct-btn acct-btn-primary" data-act="signup">Create free account</button>
         <button class="acct-btn" data-act="signin">Sign in</button>`;
     } else if (verdict.kind === "free-first") {
@@ -852,7 +867,7 @@
     if (!menuEl || !state.user) return;
     const pro = isPro();
     const leagues = state.leagues;
-    const limit = pro ? "Unlimited leagues" : `${Math.min(leagues.length, PLANS.free.leagues)} of ${PLANS.free.leagues} league`;
+    const limit = !PRICING ? "Your leagues" : pro ? "Unlimited leagues" : `${Math.min(leagues.length, PLANS.free.leagues)} of ${PLANS.free.leagues} league`;
     menuEl.innerHTML = `
       <div class="acct-menu-head">
         <span class="acct-avatar${pro ? " is-pro" : ""}">${esc(initials())}</span>
@@ -860,7 +875,7 @@
           <strong>${esc(displayName())}</strong>
           <span>${esc(state.user.email || "")}</span>
         </div>
-        <span class="acct-plan-badge${pro ? " is-pro" : ""}">${esc(PLANS[plan()].name)}</span>
+        ${PRICING ? `<span class="acct-plan-badge${pro ? " is-pro" : ""}">${esc(PLANS[plan()].name)}</span>` : ""}
       </div>
       <div class="acct-menu-leagues">
         <div class="acct-menu-label">${esc(limit)}</div>
@@ -872,7 +887,8 @@
       <div class="acct-menu-sep"></div>
       <button role="menuitem" class="acct-menu-item" data-act="panel">Account &amp; leagues</button>
       ${ownedPasses().length ? `<button role="menuitem" class="acct-menu-item" data-act="passes">${esc(LEAGUE.name)} · invite link</button>` : ""}
-      ${pro
+      ${!PRICING ? ""
+        : pro
         ? (seatOn() ? "" : '<button role="menuitem" class="acct-menu-item" data-act="manage">Manage subscription</button>')
         : `<button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="upgrade"><span>Go Pro</span><span>${esc(PLANS.pro.price)} · AI chat · no ads</span></button>
            <button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="pass"><span>Whole league</span><span>${money(LEAGUE.perMember)}/member a year</span></button>`}
@@ -967,7 +983,9 @@
         </form>`;
     } else if (view === "signup") {
       body = `<h2 id="acctModalTitle">Create your account</h2>
-        <p class="acct-reason">${esc(reason || `Free: one league with ads. Pro (${PLANS.pro.price}): unlimited leagues, the league AI, no ads. Or ${money(LEAGUE.perMember)} per member a year for your whole league.`)}</p>
+        <p class="acct-reason">${esc(reason || (PRICING
+          ? `Free: one league with ads. Pro (${PLANS.pro.price}): unlimited leagues, the league AI, no ads. Or ${money(LEAGUE.perMember)} per member a year for your whole league.`
+          : "It's free: every league you add, every season it played, and the league AI."))}</p>
         ${google}
         <form class="acct-form" novalidate>
           ${field("name", "Name", "text", 'autocomplete="nickname" maxlength="60" placeholder="What the league calls you"')}
@@ -1134,9 +1152,11 @@
         ${MODE === "preview" ? '<p class="acct-preview-note">Preview mode: this account lives in this browser. Connect Supabase in account-config.js to go live.</p>' : ""}
 
         <section data-section="leagues">
-          <h3>Your leagues <span>${pro ? "Unlimited" : `${Math.min(state.leagues.length, PLANS.free.leagues)} of ${PLANS.free.leagues}`}</span></h3>
+          <h3>Your leagues <span>${!PRICING ? "" : pro ? "Unlimited" : `${Math.min(state.leagues.length, PLANS.free.leagues)} of ${PLANS.free.leagues}`}</span></h3>
           ${state.leagues.length ? `<ul class="acct-leagues">${leagueRows}</ul>` : '<p class="acct-muted">No leagues yet. Open one from the front page and add it to your account.</p>'}
-          <p class="acct-muted">${pro
+          <p class="acct-muted">${!PRICING
+            ? "Add as many leagues as you like, and remove them any time."
+            : pro
             ? "Pro opens every league you add, with no limits on adding or removing them."
             : `Free accounts hold one league and can swap it once every ${SWAP_DAYS} days. A league's renewal each season stays the same league.`}</p>
           <a class="acct-btn acct-btn-small" href="index.html">Find a league</a>
@@ -1144,7 +1164,7 @@
 
         ${passSection()}
 
-        <section data-section="plan">
+        ${PRICING ? `<section data-section="plan">
           <h3>Plan</h3>
           <div class="acct-plans">
             <div class="acct-plan${pro ? "" : " is-current"}">
@@ -1175,7 +1195,7 @@
               <button type="button" class="acct-btn acct-btn-small acct-btn-quiet" data-act="preview-plan">Switch to ${pro ? "Free" : "Pro"}</button>
               <button type="button" class="acct-btn acct-btn-small acct-btn-quiet" data-act="preview-unlock">Skip the ${SWAP_DAYS}-day lock</button>
             </div>` : ""}
-        </section>
+        </section>` : ""}
 
         <section data-section="profile">
           <h3>Profile</h3>
@@ -1603,7 +1623,8 @@
     if (input && !input.value && state.profile && state.profile.sleeper_username) input.value = state.profile.sleeper_username;
     const open = openLeagues();
     const meta = card.querySelector("[data-synced-meta]");
-    if (meta) meta.textContent = isPro() ? "Pro · unlimited" : `${Math.min(state.leagues.length, PLANS.free.leagues)} of ${PLANS.free.leagues} · Free`;
+    if (meta) meta.textContent = !PRICING ? `${state.leagues.length} league${state.leagues.length === 1 ? "" : "s"}`
+      : isPro() ? "Pro · unlimited" : `${Math.min(state.leagues.length, PLANS.free.leagues)} of ${PLANS.free.leagues} · Free`;
     card.hidden = false;
     if (!state.leagues.length) {
       list.innerHTML = `<div class="signin-empty">Find your league below and open it to add it to your account.</div>`;
@@ -1634,7 +1655,7 @@
      labelled placeholder at its exact size. */
   let adsenseLoaded = false;
   function fillAds() {
-    const on = !(state.user && isPro());
+    const on = ADS_ON && !(state.user && isPro());
     if (!on || (GATED_PAGE && !admitted)) return;
     const ads = CFG.ADS || {};
     document.querySelectorAll(".ad-slot:not([data-filled])").forEach((slot) => {
@@ -1786,7 +1807,7 @@
      in the first frame the new content is, never pushed in after it. */
   const blocksOf = (el) => [...el.children].filter((c) => !c.classList.contains("ad-wrap") && !/^(SCRIPT|STYLE|TEMPLATE)$/.test(c.tagName));
   function placeFeeds() {
-    if (state.user && isPro()) return;
+    if (!ADS_ON || (state.user && isPro())) return;
     document.querySelectorAll("[data-ad-feed]").forEach((panel) => {
       if (panel.querySelector(".ad-feed")) return;
       let host = panel;
@@ -1867,6 +1888,7 @@
     get leagues() { return state.leagues.slice(); },
     get plan() { return plan(); },
     get isPro() { return isPro(); },
+    pricing: PRICING,
     admit,
     on(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     accessToken: () => (state.user && backend.accessToken ? backend.accessToken() : Promise.resolve(null)),

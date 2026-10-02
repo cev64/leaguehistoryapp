@@ -3,8 +3,9 @@
    A button in the corner of every league page opens a chat. Members ask
    anything about the league (champions, rivalries, records, trades, drafts,
    a player's history with them, this season) and the League Historian
-   answers from the league's own data. It is part of Pro: on the free plan
-   the same button opens a look at it and the way to upgrade.
+   answers from the league's own data. It needs an account (and Pro, once
+   plans are on: PRICING in account-config.js); without one the same button
+   opens a look at it and the way in.
 
    How it gets its answers:
      - the league as text (`digestOf`): every season's format, standings,
@@ -16,7 +17,7 @@
        drafts and lineup efficiency. The AI asks for one, this file works it
        out from the data the page already has, and sends it back.
    Both go to the league-chat function (supabase/functions/league-chat),
-   which holds the API key, checks the member is on Pro, and streams the
+   which holds the Gemini API key, checks the member may use it, and streams the
    answer back. Nothing about the league is stored anywhere but this
    browser: the conversation is kept in sessionStorage so it follows the
    member from page to page, and is gone when the tab is.
@@ -34,6 +35,7 @@
   const ENDPOINT = CFG.AI_CHAT_URL ||
     (CFG.SUPABASE_URL ? `${String(CFG.SUPABASE_URL).replace(/\/+$/, "")}/functions/v1/league-chat` : "");
   const PRO_PRICE = (CFG.PLANS && CFG.PLANS.pro && CFG.PLANS.pro.price) || "$10/month";
+  const PRICING = CFG.PRICING === true;
   const PASS_PRICE = `$${(CFG.PLANS && CFG.PLANS.league && CFG.PLANS.league.perMember) || 20}`;
   const REDUCE = matchMedia("(prefers-reduced-motion: reduce)");
   const PHONE = matchMedia("(max-width: 640px)");
@@ -812,8 +814,8 @@
       fab.innerHTML = `<span class="lhc-fab-ring" aria-hidden="true"></span>
         <span class="lhc-fab-icon">${ICON.spark}</span>
         <span class="lhc-fab-label">Ask the League</span>
-        ${pro() ? "" : '<span class="lhc-pro-tag">PRO</span>'}`;
-      fab.setAttribute("aria-label", pro() ? "Ask the League: chat with the league's AI" : "Ask the League: the league's AI, part of Pro");
+        ${pro() || !PRICING ? "" : '<span class="lhc-pro-tag">PRO</span>'}`;
+      fab.setAttribute("aria-label", pro() ? "Ask the League: chat with the league's AI" : PRICING ? "Ask the League: the league's AI, part of Pro" : "Ask the League: the league's AI, free with an account");
     };
     drawFab();
     document.body.appendChild(fab);
@@ -927,18 +929,19 @@
         </div>
         <div class="lhc-lock-card">
           <span class="lhc-lock-icon">${ICON.lock}</span>
-          <span class="lhc-lock-kicker">Pigskin Pantheon Pro</span>
+          <span class="lhc-lock-kicker">${PRICING ? "Pigskin Pantheon Pro" : "Free with an account"}</span>
           <h3>Your league's own AI historian</h3>
           <p>Ask anything about ${esc(model.name)} and get the answer in seconds, straight from every season you've played.</p>
           <ul>
             <li style="--i:0">${ICON.check}Records, rivalries and head-to-head</li>
             <li style="--i:1">${ICON.check}Every trade, draft and waiver pickup</li>
             <li style="--i:2">${ICON.check}Box scores and player histories</li>
-            <li style="--i:3">${ICON.check}Plus unlimited leagues and no ads</li>
+            <li style="--i:3">${ICON.check}${PRICING ? "Plus unlimited leagues and no ads" : "Every league you add, all free"}</li>
           </ul>
-          <button type="button" class="lhc-upgrade" data-act="upgrade"><span>Go Pro · ${esc(PRO_PRICE)}</span></button>
+          ${PRICING ? `<button type="button" class="lhc-upgrade" data-act="upgrade"><span>Go Pro · ${esc(PRO_PRICE)}</span></button>
           <button type="button" class="lhc-pass" data-act="pass">Or get it for your whole league: only ${esc(PASS_PRICE)} per member a year</button>
-          <span class="lhc-lock-fine">Cancel any time.</span>
+          <span class="lhc-lock-fine">Cancel any time.</span>`
+          : '<button type="button" class="lhc-upgrade" data-act="upgrade"><span>Create free account</span></button>'}
         </div>
       </div>`;
     }
@@ -948,7 +951,8 @@
       if (!pro()) {
         log.innerHTML = paywall();
         log.querySelector('[data-act="upgrade"]').addEventListener("click", () => window.Account && window.Account.upgrade());
-        log.querySelector('[data-act="pass"]').addEventListener("click", () => window.Account && window.Account.openLeaguePass && window.Account.openLeaguePass());
+        const pass = log.querySelector('[data-act="pass"]');
+        if (pass) pass.addEventListener("click", () => window.Account && window.Account.openLeaguePass && window.Account.openLeaguePass());
         form.hidden = true;
         panel.querySelector(".lhc-fine").hidden = true;
         panel.querySelector('[data-act="fresh"]').hidden = true;

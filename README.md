@@ -267,9 +267,15 @@ Every league page (season, record book, front office, trophy room) has an
 **Ask the League** button in its corner. It opens a chat with the League
 Historian, an AI that answers questions about that league: champions,
 rivalries, records, streaks, trades, drafts, waiver pickups, lineup
-mistakes, a player's history with the league, this season so far. It is
-part of **Pro**; on the free plan the same button opens a preview of it with
-the way to upgrade.
+mistakes, a player's history with the league, this season so far. It's free
+for every signed-in member for now; once plans are back on (`PRICING`, see
+[Accounts](#accounts-plans-and-ads)) it is part of **Pro**, and on the free
+plan the same button opens a preview of it with the way to upgrade.
+
+It answers short (a punchy line, then the two or three league numbers that
+prove it) and talks some smack when the numbers hand it to it: playoff
+chokes, lopsided head-to-heads, trades that aged badly. The roasting stays
+on fantasy results.
 
 `chat.js` / `chat.css` are the button, the window and the browser's half;
 `supabase/functions/league-chat` is the server's half.
@@ -297,58 +303,66 @@ How it knows the league, without a database of its own:
 
 Each question goes to the function with the league text and the
 conversation so far. The function adds the instructions, the tools and the
-Anthropic API key, asks Claude (`claude-sonnet-5-5`, adaptive thinking,
-medium effort) and streams the answer back as it is written. When Claude
-asks for a tool, the stream ends with the request, `chat.js` runs it and
-sends the result back, up to eight look-ups per question. The league text
-and the conversation are prompt-cached, so a follow-up question rereads them
-at a tenth of the price. A question Claude's safety checks decline is
-retried on Anthropic's recommended fallback model in the same request.
+API key, asks Google's Gemini (`gemini-3.8-flash`, low thinking) and
+streams the answer back as it is written. When the model asks for a tool,
+the stream ends with the request, `chat.js` runs it and sends the result
+back, up to eight look-ups per question. The league text goes first and is
+the same on every turn, so Gemini's implicit cache can reuse it.
 
-What protects the bill and the paywall:
+**It runs on Gemini's free tier.** A key from Google AI Studio on a Google
+Cloud project with no billing account is free; the catch is limits per
+project, shared by every member (requests a minute, tokens a minute,
+requests a day; AI Studio ▸ Usage shows yours), and that Google may use
+free-tier prompts to improve its products. Each question is one request,
+plus one per round of look-ups. Past a limit, members are told to try again
+in a minute, or tomorrow when the day's allowance is gone. Turning billing
+on moves the project to the paid tier (higher limits, prompts not used for
+training, and a bill).
 
-- **Pro only, checked on the server.** With Supabase, the function reads the
-  member's plan from `profiles` with their session; a free account gets
-  `402 pro_required` whatever the browser says.
+What protects the quota:
+
+- **Signed-in members only, checked on the server.** With Supabase, the
+  function checks the member's session and asks `has_pro()`, which is true
+  for everyone while `app_settings.free_for_everyone` is on, and only for
+  Pro members once it's off (`402 pro_required` then, whatever the browser
+  says).
 - **A daily allowance.** `AI_DAILY_QUESTIONS` new questions per member per
-  day (60 unless set), counted in `chat_usage` by `count_chat_question()`
+  day (25 unless set), counted in `chat_usage` by `count_chat_question()`
   (`supabase/migrations/20261003000000_league_chat.sql`), which only the
   function can call. Tool look-ups don't count as questions; eight per
   question is the ceiling.
 - **Bounded requests.** Questions up to 2,000 characters, conversations up
   to 80 turns (the window asks for a new chat before then), a size limit on
   the league text, and `ALLOWED_ORIGINS` limiting it to the site.
-- **Stopping stops the cost.** The stop button, or closing the tab, cancels
-  the request to Claude.
+- **Stopping stops the work.** The stop button, or closing the tab, cancels
+  the request to Gemini.
 
 The conversation stays in the browser tab (sessionStorage), so it follows
 the member from page to page and is gone when the tab is closed. Nothing is
 stored on the server but the day's question count.
 
-Settings, as function secrets: `ANTHROPIC_API_KEY` (required),
-`ALLOWED_ORIGINS`, `AI_MODEL` (default `claude-sonnet-5-5`;
-`claude-opus-5-5` is stronger and about twice the price), `AI_EFFORT` (`low`
-to `max`, default `medium`), `AI_DAILY_QUESTIONS` (default 60), and
-`ANTHROPIC_WORKSPACE_ID` when the API key isn't scoped to a workspace
-(Anthropic answers such a key with "must include the anthropic-workspace-id
-header"; Console ▸ Settings ▸ Workspaces has the id). In
+Settings, as function secrets: `GEMINI_API_KEY` (required, from
+aistudio.google.com ▸ Get API key), `ALLOWED_ORIGINS`, `AI_MODEL` (default
+`gemini-3.8-flash`; any Gemini model id), `AI_THINKING` (`low`, `medium` or
+`high`, default `low`; more thinking is slower and uses more of the
+tokens-a-minute limit) and `AI_DAILY_QUESTIONS` (default 25). In
 `account-config.js`, `AI_CHAT_URL` points the site at the function if it
 isn't at `<SUPABASE_URL>/functions/v1/league-chat`.
 
-**Trying it without Supabase.** In preview mode the button and window work,
-and "Switch to Pro" on the account panel unlocks the chat; until the
+**Trying it without Supabase.** In preview mode the button and window work
+(with `PRICING` on, "Switch to Pro" on the account panel unlocks the chat); until the
 function is reachable, the window says it isn't connected. To see real
 answers on your computer:
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-… CHAT_OPEN=1 deno run --allow-net --allow-env \
+GEMINI_API_KEY=AIza… CHAT_OPEN=1 deno run --allow-net --allow-env \
   supabase/functions/league-chat/index.ts
 ```
 
 and set `AI_CHAT_URL: "http://localhost:8000"` in `account-config.js`.
-`CHAT_OPEN=1` skips the Pro check (there are no accounts to check) and
+`CHAT_OPEN=1` skips the account check (there are no accounts to check) and
 keeps only a per-address daily allowance in memory, so anyone who can reach
-it is spending your API key: use it locally, never on a public address.
+it is using your API key: use it locally, never on a public address.
 
 ## Hosting
 
@@ -361,13 +375,36 @@ python -m http.server 8765
 
 and open <http://localhost:8765>.
 
+**Custom domain (GitHub Pages).** Point the domain's DNS at GitHub first
+(four `A` records for `@`: 185.199.108.153, 185.199.109.153,
+185.199.110.153, 185.199.111.153, and a `CNAME` for `www` to
+`<user>.github.io`), then set the domain under Settings ▸ Pages, which adds
+a `CNAME` file to the branch, and tick Enforce HTTPS once the certificate
+is issued. Then add the new address to Supabase ▸ Authentication ▸ URL
+configuration (site URL and redirect URLs) and to the functions'
+`ALLOWED_ORIGINS`, or sign-in emails and the chat and ESPN relay stop
+working there. Every link the site builds is relative to its own address,
+so nothing else changes.
+
 The site is also an installable app (`manifest.webmanifest`, `sw.js`). Bump
 `CACHE_VERSION` in `sw.js` whenever a file in its precache list changes, or
 returning visitors keep the old copy.
 
 ## Accounts, plans and ads
 
-Visitors sign in to open a league. Three plans:
+Visitors sign in to open a league.
+
+**For now it's all free.** With `PRICING: false` in `account-config.js` and
+`free_for_everyone` on in the database's `app_settings` table
+(`supabase/migrations/20261005000000_free_for_everyone.sql`), every signed-in
+member gets what Pro gives: unlimited leagues, no swap lock, the league AI.
+No plan, price or upgrade button shows anywhere. With `ADS.enabled: false`
+every ad slot stays in the pages but is hidden for everyone. Stripe, League
+Pass and `profiles.plan` are untouched, so turning plans back on is the two
+switches (both together: the site's to show the plans, the database's to
+enforce them) and ads is `ADS.enabled: true`.
+
+The plans, once `PRICING` is on:
 
 | Plan | Price | Leagues | Ask the League (AI) | Ads |
 | --- | --- | --- | --- | --- |
@@ -412,7 +449,8 @@ own domain.
 - `supabase/migrations/` — the `profiles`, `synced_leagues` and
   `league_changes` tables with row-level security, and `sync_league()` /
   `unsync_league()`, which enforce the free plan's one league and 30-day
-  swap on the server.
+  swap on the server; `has_pro()` and `app_settings` decide who counts as
+  Pro (everyone, for now).
 - `supabase/functions/stripe-webhook/` — keeps Pro subscriptions and
   League Passes in step with Stripe's events, then works out the plans.
   Nothing else can write a plan.
@@ -422,7 +460,7 @@ own domain.
   and the encrypted store for ESPN keys saved to accounts (see
   [ESPN leagues](#espn-leagues)).
 - `supabase/functions/league-chat/` — the AI behind Ask the League: checks
-  the member is on Pro, asks Claude, streams the answer (see
+  the member may use it, asks Gemini, streams the answer (see
   [Ask the League](#ask-the-league-the-ai-chat)).
 
 Until `SUPABASE_URL` and `SUPABASE_ANON_KEY` are filled in, accounts run in
@@ -463,12 +501,12 @@ Going live:
    Run the other two migrations too: `20261001000000_espn_leagues.sql` lets
    an ESPN league (`espn-<id>`) be synced to an account, and
    `20261002000000_espn_keys.sql` adds the encrypted key store.
-7. For Ask the League, run `20261003000000_league_chat.sql`, deploy the
-   function (`supabase functions deploy league-chat --no-verify-jwt`) and
-   set its secrets: `supabase secrets set ANTHROPIC_API_KEY=sk-ant-…` (from
-   console.anthropic.com) and `ALLOWED_ORIGINS` as for the relay. Optional:
-   `AI_DAILY_QUESTIONS`, `AI_MODEL`, `AI_EFFORT`. Set a monthly spend limit
-   on the Anthropic account too.
+7. For Ask the League, run `20261003000000_league_chat.sql` and
+   `20261005000000_free_for_everyone.sql`, deploy the function
+   (`supabase functions deploy league-chat --no-verify-jwt`) and set its
+   secrets: `supabase secrets set GEMINI_API_KEY=AIza…` (from
+   aistudio.google.com) and `ALLOWED_ORIGINS` as for the relay. Optional:
+   `AI_DAILY_QUESTIONS`, `AI_MODEL`, `AI_THINKING`.
 8. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
    config.
 
@@ -504,7 +542,7 @@ in its corner on large screens.
 With `ADS.provider` unset the slots show labelled placeholders; set it to
 `"adsense"` with a publisher id and a unit id per slot name (the `data-ad`
 attribute) to serve ads, using fixed-size display units, not responsive
-ones. Pro members see none.
+ones. Pro members see none, and nobody does while `ADS.enabled` is false.
 
 ## Tools
 
