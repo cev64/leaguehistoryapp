@@ -386,7 +386,12 @@ aistudio.google.com ▸ Get API key), `ALLOWED_ORIGINS`, `AI_MODEL` (default
 `gemini-3.5-flash`, used when the main model is overloaded or out of its
 daily allowance; `none` to turn it off), `AI_THINKING` (`low`, `medium` or
 `high`, default `low`; more thinking is slower and uses more of the
-tokens-a-minute limit) and `AI_DAILY_QUESTIONS` (default 25). In
+tokens-a-minute limit), `AI_DAILY_QUESTIONS` (default 25), and the backup:
+`ANTHROPIC_API_KEY` (from platform.claude.com) lets Claude Haiku 4.5 answer
+whenever Gemini can't (the free tier's daily allowance used up, or Google
+overloaded), and `CLAUDE_FALLBACK_MODEL` picks another Claude model (`none`
+turns the backup off). The backup is billed per question, within the same
+daily allowance; without its key the chat behaves as before. In
 `account-config.js`, `AI_CHAT_URL` points the site at the function if it
 isn't at `<SUPABASE_URL>/functions/v1/league-chat`.
 
@@ -554,7 +559,8 @@ Going live:
    (`supabase functions deploy league-chat --no-verify-jwt`) and set its
    secrets: `supabase secrets set GEMINI_API_KEY=AIza…` (from
    aistudio.google.com) and `ALLOWED_ORIGINS` as for the relay. Optional:
-   `AI_DAILY_QUESTIONS`, `AI_MODEL`, `AI_THINKING`.
+   `AI_DAILY_QUESTIONS`, `AI_MODEL`, `AI_THINKING`, and `ANTHROPIC_API_KEY`
+   for the Claude Haiku 4.5 backup.
 8. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
    config.
 
