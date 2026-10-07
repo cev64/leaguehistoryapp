@@ -67,9 +67,9 @@ extension Color {
     }
 
     init(light: UInt32, dark: UInt32) {
-        self.init(UIColor { traits in
-            UIColor(Color(hex: traits.userInterfaceStyle == .dark ? dark : light))
-        })
+        // Both made once: the provider runs each time the colour is drawn.
+        let l = UIColor(hex: light), d = UIColor(hex: dark)
+        self.init(UIColor { $0.userInterfaceStyle == .dark ? d : l })
     }
 
     /// A CSS colour as the engine writes them: "#304f91" or "hsl(120 42% 38%)".
@@ -142,5 +142,14 @@ enum Fmt {
 
     static func plural(_ n: Int, _ one: String, _ many: String? = nil) -> String {
         "\(n) \(n == 1 ? one : (many ?? one + "s"))"
+    }
+}
+
+extension UIColor {
+    convenience init(hex: UInt32) {
+        self.init(red: CGFloat((hex >> 16) & 0xFF) / 255,
+                  green: CGFloat((hex >> 8) & 0xFF) / 255,
+                  blue: CGFloat(hex & 0xFF) / 255,
+                  alpha: 1)
     }
 }

@@ -464,7 +464,7 @@ private struct FinalStandingsCard: View {
                 .font(.system(size: 12.5, weight: .semibold))
                 .lineLimit(1)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .accessibilityLabel("Sort final standings")
             Button {
                 withAnimation(.smooth(duration: 0.3)) { ascending.toggle() }
@@ -473,7 +473,7 @@ private struct FinalStandingsCard: View {
                     .font(.system(size: 12, weight: .bold))
                     .contentTransition(.symbolEffect(.replace))
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .buttonBorderShape(.circle)
             .accessibilityLabel(ascending ? "Sort ascending" : "Sort descending")
         }

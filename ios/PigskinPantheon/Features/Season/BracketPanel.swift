@@ -843,7 +843,12 @@ private struct BKCardView: View {
         .background(Theme.card)
         .clipShape(RoundedRectangle(cornerRadius: BKMetrics.radius, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: BKMetrics.radius, style: .continuous).strokeBorder(border, lineWidth: 1))
-        .shadow(color: Color(hex: 0x101828, alpha: 0.05), radius: 1.5, y: 1)
+        .background {
+            // the shape's shadow, not the card's (see Card)
+            RoundedRectangle(cornerRadius: BKMetrics.radius, style: .continuous)
+                .fill(Theme.card)
+                .shadow(color: Color(hex: 0x101828, alpha: 0.05), radius: 1.5, y: 1)
+        }
         .accessibilityElement(children: .contain)
     }
 

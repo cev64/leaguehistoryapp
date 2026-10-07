@@ -195,7 +195,7 @@ private struct LiveHero: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .glassEffect(.regular.tint(.white.opacity(0.08)), in: Capsule())
+            .frosted(Capsule(), opacity: 0.12)
             Text("\(String(season.year)) Season").displayStyle(38).foregroundStyle(.white)
             Text(line).font(.subheadline).foregroundStyle(.white.opacity(0.78))
         }
@@ -252,7 +252,7 @@ struct OutcomeCard: View {
                     }
                     .foregroundStyle(.white)
                     .padding(12)
-                    .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .frosted(RoundedRectangle(cornerRadius: 12, style: .continuous), opacity: 0.10)
                 }
             }
             .padding(16)

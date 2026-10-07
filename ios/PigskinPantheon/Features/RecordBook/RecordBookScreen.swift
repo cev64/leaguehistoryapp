@@ -74,7 +74,7 @@ private struct RecordBookHero: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .glassEffect(.regular.tint(.white.opacity(0.08)), in: Capsule())
+            .frosted(Capsule(), opacity: 0.12)
             Text("All-Time").displayStyle(40).foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

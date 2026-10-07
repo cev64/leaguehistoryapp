@@ -25,7 +25,7 @@ struct RecapPanel: View {
                         Text("\(info.source) didn't answer. Try again in a moment.")
                     } actions: {
                         Button("Try again") { Task { await load() } }
-                            .buttonStyle(.glass)
+                            .buttonStyle(.bordered)
                     }
                     .padding(.vertical, 8)
                 }
@@ -145,7 +145,7 @@ private struct RecapLead: View {
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(Theme.navy)
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
             .tint(.white)
             .disabled(preparing)
             .padding(.top, 16)

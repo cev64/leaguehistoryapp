@@ -219,7 +219,7 @@ private struct WeekNotes: View {
                     Label("Read the week \(week) recap", systemImage: "text.bubble")
                         .font(.subheadline.weight(.semibold))
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.bordered)
             }
             .padding([.horizontal, .bottom], 12)
         }

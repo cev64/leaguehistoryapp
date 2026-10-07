@@ -421,7 +421,7 @@ private struct OfficeTrades: View {
                     .font(.system(size: 13, weight: .bold))
                     .frame(maxWidth: .infinity, minHeight: 28)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .sensoryFeedback(.impact(weight: .light), trigger: store.shown)
             .padding(.horizontal, 12)
             .padding(.top, 8)

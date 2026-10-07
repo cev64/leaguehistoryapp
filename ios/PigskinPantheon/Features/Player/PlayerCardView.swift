@@ -32,7 +32,7 @@ struct PlayerCardView: View {
                 PageScroll {
                     EmptyCard(title: "Couldn't load", detail: "Player history could not be loaded.", symbol: "exclamationmark.triangle")
                     Button("Try again") { Task { await load() } }
-                        .buttonStyle(.glassProminent)
+                        .buttonStyle(.borderedProminent)
                         .frame(maxWidth: .infinity)
                 }
                 .navigationTitle("Player")
@@ -270,7 +270,7 @@ private struct PCHeroTag: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
-            .glassEffect(.regular.tint(.white.opacity(0.12)), in: Capsule())
+            .frosted(Capsule(), opacity: 0.16)
     }
 }
 
@@ -654,10 +654,12 @@ private struct PCMedal: View {
         .foregroundStyle(ink)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(LinearGradient(colors: [a, b], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(LinearGradient(colors: [a, b], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .shadow(color: .black.opacity(0.08), radius: 1, y: 1)
+        }
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white.opacity(0.5), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.08), radius: 1, y: 1)
         .accessibilityElement(children: .combine)
     }
 }

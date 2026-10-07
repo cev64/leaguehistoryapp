@@ -100,9 +100,15 @@ struct Card<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) { content }
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+            // The shadow is the card shape's alone: on the whole card it
+            // would render every card's contents again, off screen, each
+            // frame of a scroll.
+            .background {
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .fill(Theme.card)
+                    .shadow(color: Color(hex: 0x101828, alpha: 0.05), radius: 1, y: 1)
+            }
             .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous).strokeBorder(Theme.line))
-            .shadow(color: Color(hex: 0x101828, alpha: 0.05), radius: 1, y: 1)
     }
 }
 
@@ -343,5 +349,16 @@ enum Haptics {
     /// Something opened or landed.
     static func tap(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
         UIImpactFeedbackGenerator(style: style).impactOccurred()
+    }
+}
+
+extension View {
+    /// A pane of white over a dark hero (a stat tile, a badge): the look of
+    /// tinted glass without glass, which belongs to the bars over the page.
+    /// Glass in the page re-samples what's behind it on every frame of a
+    /// scroll; a fill is drawn once.
+    func frosted<S: InsettableShape>(_ shape: S, opacity: Double = 0.1) -> some View {
+        background(.white.opacity(opacity), in: shape)
+            .overlay(shape.strokeBorder(.white.opacity(0.14), lineWidth: 0.75))
     }
 }
