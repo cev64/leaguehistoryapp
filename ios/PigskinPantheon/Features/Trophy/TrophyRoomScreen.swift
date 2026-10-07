@@ -323,7 +323,17 @@ private struct TrophySceneView: UIViewRepresentable {
         }
 
         func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
-            g is UIPinchGestureRecognizer || other is UIPinchGestureRecognizer
+            // Only the room's own pinch runs alongside its drag.
+            other.view === g.view && (g is UIPinchGestureRecognizer || other is UIPinchGestureRecognizer)
+        }
+
+        /// A touch on the room is the room's. iOS 26 swipes back from
+        /// anywhere on a page (and a sheet drags from anywhere on it): those
+        /// wait for the room's gestures to fail, so turning a trophy never
+        /// pops the locker. The edge swipe is left alone, its strip kept
+        /// clear above.
+        func gestureRecognizer(_ g: UIGestureRecognizer, shouldBeRequiredToFailBy other: UIGestureRecognizer) -> Bool {
+            other.view !== g.view && !(other is UIScreenEdgePanGestureRecognizer)
         }
     }
 }

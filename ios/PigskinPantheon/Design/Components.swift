@@ -1,3 +1,4 @@
+import Observation
 import SwiftUI
 
 // MARK: Team badge
@@ -39,6 +40,10 @@ struct TeamBadge: View {
     /// Pictures that load over the network; drawn data URLs (the demo's)
     /// are drawn natively instead.
     private var remoteLogo: URL? {
+        #if DEBUG
+        // SIMCTL_CHILD_PP_LOGO=<url> gives every team that logo (an ESPN SVG, say).
+        if let test = ProcessInfo.processInfo.environment["PP_LOGO"] { return URL(string: test) }
+        #endif
         guard let logo, logo.hasPrefix("http"), let url = URL(string: logo) else { return nil }
         return url
     }
@@ -60,7 +65,7 @@ struct TeamBadge: View {
                 .lineLimit(1)
                 .padding(size * 0.12)
             if let url = remoteLogo {
-                AsyncImage(url: url) { phase in
+                RemoteImage(url: url) { phase in
                     if let image = phase.image {
                         image.resizable().scaledToFill()
                     }
@@ -297,25 +302,46 @@ struct PageScroll<Content: View>: View {
 
 /// Whether a bar should be minimised, the way the tab bar minimises
 /// (`.tabBarMinimizeBehavior(.onScrollDown)`): down the page it tucks
-/// away, a scroll back up (or reaching the top) brings it back.
-struct ScrollMinimizer {
+/// away, a scroll back up (or reaching the top) brings it back. It hears
+/// every frame of a scroll, so only `minimized` is observed: the page is
+/// drawn again when the bar changes, not each time the offset does.
+@MainActor
+@Observable
+final class ScrollMinimizer {
     private(set) var minimized = false
-    private var last: CGFloat = 0
-    private var travel: CGFloat = 0
+    @ObservationIgnored private var last: CGFloat = 0
+    @ObservationIgnored private var travel: CGFloat = 0
 
     /// Brought back by hand (the tucked-away bar was tapped).
-    mutating func expand() {
-        minimized = false
+    func expand() {
         travel = 0
+        set(false)
     }
 
-    mutating func update(_ y: CGFloat) {
+    func update(_ y: CGFloat) {
         let delta = y - last
         last = y
-        if y < 24 { minimized = false; travel = 0; return }
+        if y < 24 { travel = 0; set(false); return }
         // keep counting while the direction holds, start over when it turns
         travel = (travel >= 0) == (delta >= 0) ? travel + delta : delta
-        if travel > 14 { minimized = true }
-        if travel < -14 { minimized = false }
+        if travel > 14 { set(true) }
+        if travel < -14 { set(false) }
+    }
+
+    private func set(_ value: Bool) {
+        guard value != minimized else { return }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { minimized = value }
+    }
+}
+
+/// The taps the app gives back, for the places a modifier can't reach
+/// (UIKit gestures, the trophy room's scene). Views use `.sensoryFeedback`.
+@MainActor
+enum Haptics {
+    /// A detent: a stop passed, a choice changed.
+    static func select() { UISelectionFeedbackGenerator().selectionChanged() }
+    /// Something opened or landed.
+    static func tap(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
+        UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 }

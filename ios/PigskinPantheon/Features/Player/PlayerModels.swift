@@ -213,7 +213,7 @@ struct PCPhoto: View {
     var body: some View {
         Group {
             if let photo, let url = URL(string: photo) {
-                AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.3))) { phase in
+                RemoteImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFill()

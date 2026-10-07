@@ -32,6 +32,9 @@ struct WeekRail: View {
     @State private var swiping = false
     @State private var length: CGFloat = 0
     @State private var position = ScrollPosition()
+    /// Shown once its week is on the centre line: before it knows its own
+    /// width the wheel can't place it, and would be seen jumping there.
+    @State private var placed = false
 
     // The site's sizes: .sn-wkbar.lens (open) and .stuck (pinned).
     private var slot: CGFloat { axis == .vertical ? 52 : inAccessory ? 48 : 58 }
@@ -84,9 +87,14 @@ struct WeekRail: View {
             // the wheel changed width (collapsing, rotating): keep the chosen
             // week on the centre line once the new spacers are laid out
             .onChange(of: length) { _, _ in
-                DispatchQueue.main.async { centre(selected) }
+                DispatchQueue.main.async {
+                    var still = Transaction()
+                    still.disablesAnimations = true
+                    withTransaction(still) { centre(selected) }
+                    placed = true
+                }
             }
-            .onAppear { centre(selected) }
+            .onAppear { if length > 0 { centre(selected); placed = true } }
         }
         .onGeometryChange(for: CGFloat.self) { horizontal ? $0.size.width : $0.size.height } action: { length = $0 }
         // the edges fade where more weeks wait off the wheel
@@ -98,6 +106,7 @@ struct WeekRail: View {
                 .init(color: .clear, location: 1),
             ], startPoint: horizontal ? .leading : .top, endPoint: horizontal ? .trailing : .bottom)
         }
+        .opacity(placed ? 1 : 0)
         .frame(maxWidth: horizontal ? 760 : nil, maxHeight: horizontal ? nil : .infinity)
         .glassEffect(inAccessory ? .identity : .regular.interactive(), in: Capsule())
         .animation(.spring(response: 0.55, dampingFraction: 0.78), value: compact)

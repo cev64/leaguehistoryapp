@@ -41,15 +41,7 @@ private struct OfficeContent: View {
     @State private var scroll = ScrollMinimizer()
 
     var body: some View {
-        PageScroll(onScroll: { y in
-            var next = scroll
-            next.update(y)
-            if next.minimized != scroll.minimized {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { scroll = next }
-            } else {
-                scroll = next
-            }
-        }) {
+        PageScroll(onScroll: scroll.update) {
             DemoBanner()
             if sizeClass == .regular {
                 OfficeIntro()

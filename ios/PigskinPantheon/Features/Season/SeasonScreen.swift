@@ -59,15 +59,7 @@ private struct SeasonContent: View {
     }
 
     var body: some View {
-        PageScroll(onScroll: { y in
-            var next = scroll
-            next.update(y)
-            if next.minimized != scroll.minimized {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { scroll = next }
-            } else {
-                scroll = next
-            }
-        }) {
+        PageScroll(onScroll: scroll.update) {
             DemoBanner()
             if let info = store.info, let season = session.summary?.season(store.year) {
                 // The season's header belongs to its overview (week 0): a
@@ -109,6 +101,7 @@ private struct SeasonContent: View {
                             .font(.body.weight(.semibold))
                     }
                     .accessibilityLabel("Choose season")
+                    .sensoryFeedback(.selection, trigger: session.year)
                 }
             }
         }
@@ -120,6 +113,7 @@ private struct SeasonContent: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .sensoryFeedback(.selection, trigger: store.view)
                 .padding(.horizontal, Theme.gutter)
                 .padding(.vertical, 6)
                 .frame(maxWidth: 640)

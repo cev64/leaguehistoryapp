@@ -35,6 +35,14 @@ struct LeagueRootView: View {
             }
         }
         .environment(session)
+        // the league is read and open; or it couldn't be
+        .sensoryFeedback(trigger: session.phase) { _, phase in
+            switch phase {
+            case .ready: return .success
+            case .failed: return .error
+            case .loading: return nil
+            }
+        }
         .sheet(item: $session.sheet) { sheet in
             switch sheet {
             case .chat:
@@ -87,6 +95,8 @@ private struct LeagueTabs: View {
             if let sheet = DebugLaunch.sheet { session.sheet = sheet }
         }
         .onChange(of: sizeClass) { _, new in adapt(to: new) }
+        // a tick for each tab, rail item or sidebar row chosen
+        .sensoryFeedback(.selection, trigger: tab)
         .onChange(of: tab) { _, new in
             if case .year(let y) = new { session.year = y }
         }
@@ -325,7 +335,7 @@ private struct LeagueSidebarHeader: View {
 struct BrandWordmark: View {
     var size: CGFloat = 20
     var body: some View {
-        (Text("Pigskin ").foregroundStyle(.primary) + Text("Pantheon").foregroundStyle(Theme.gold))
+        Text("\(Text("Pigskin ").foregroundStyle(.primary))\(Text("Pantheon").foregroundStyle(Theme.gold))")
             .displayStyle(size)
             .lineLimit(1)
     }
@@ -339,7 +349,7 @@ struct LeagueAvatar: View {
     var body: some View {
         Group {
             if let avatar = summary.avatar, avatar.hasPrefix("http"), let url = URL(string: avatar) {
-                AsyncImage(url: url) { phase in
+                RemoteImage(url: url) { phase in
                     if let image = phase.image { image.resizable().scaledToFill() } else { crest }
                 }
             } else if summary.demo {
@@ -457,7 +467,7 @@ struct DemoBanner: View {
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
                     .background(Theme.gold, in: Capsule())
-                (Text("You're exploring ") + Text("Sunday Scaries").bold() + Text(", a made-up league."))
+                Text("You're exploring \(Text("Sunday Scaries").bold()), a made-up league.")
                     .font(.footnote)
                     .foregroundStyle(.white.opacity(0.92))
                     .fixedSize(horizontal: false, vertical: true)

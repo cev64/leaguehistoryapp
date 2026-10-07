@@ -751,7 +751,7 @@ private struct PCGameLogCard: View {
                      "Outlined: on the bench or IR, so the points did not count.")
             helpLine(PCPtsChip(kind: .off, text: "—", color: nil, fill: 0, small: true),
                      "Not on a roster that week, or his team had no game (a bye or knocked out).")
-            helpLine((Text("15") + Text("P").font(.system(size: 7, weight: .heavy)).baselineOffset(4))
+            helpLine(Text("15\(Text("P").font(.system(size: 7, weight: .heavy)).baselineOffset(4))")
                         .font(.system(size: 10, weight: .heavy))
                         .foregroundStyle(Color(hex: 0xB8733F))
                         .frame(minWidth: 44, alignment: .leading),
@@ -846,7 +846,7 @@ private struct PCLogRowView: View {
         let yr = all ? "’\(String(row.season).suffix(2)) · " : ""
         var text = Text(yr + String(row.week))
         if row.playoff {
-            text = text + Text("P").font(.system(size: 8, weight: .heavy)).foregroundStyle(Color(hex: 0xB8733F)).baselineOffset(4)
+            text = Text("\(text)\(Text("P").font(.system(size: 8, weight: .heavy)).foregroundStyle(Color(hex: 0xB8733F)).baselineOffset(4))")
         }
         return text
             .font(.system(size: 11.5, weight: .heavy))

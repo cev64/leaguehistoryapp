@@ -204,25 +204,28 @@ extension LeagueEngine: WKNavigationDelegate, WKScriptMessageHandler {
     }
 
     nonisolated func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        // WebKit hands messages over on the main thread.
+        MainActor.assumeIsolated { receive(message) }
+    }
+
+    private func receive(_ message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         let payload = body["body"] as? [String: Any]
-        Task { @MainActor in
-            switch type {
-            case "ready":
-                self.finishStart(.success(()))
-            case "progress":
-                let done = (payload?["done"] as? NSNumber)?.intValue ?? 0
-                let total = (payload?["total"] as? NSNumber)?.intValue ?? 0
-                self.onProgress?(done, total)
-            case "players":
-                self.deliverBundledPlayers()
-            case "log":
-                #if DEBUG
-                print("[engine \(self.leagueId ?? "finder")] \(payload?["level"] ?? ""): \(payload?["text"] ?? "")")
-                #endif
-            default:
-                break
-            }
+        switch type {
+        case "ready":
+            self.finishStart(.success(()))
+        case "progress":
+            let done = (payload?["done"] as? NSNumber)?.intValue ?? 0
+            let total = (payload?["total"] as? NSNumber)?.intValue ?? 0
+            self.onProgress?(done, total)
+        case "players":
+            self.deliverBundledPlayers()
+        case "log":
+            #if DEBUG
+            print("[engine \(self.leagueId ?? "finder")] \(payload?["level"] ?? ""): \(payload?["text"] ?? "")")
+            #endif
+        default:
+            break
         }
     }
 

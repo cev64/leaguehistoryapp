@@ -283,7 +283,7 @@ private struct HomeHero: View {
             .padding(.vertical, 7)
             .glassEffect(.regular, in: Capsule())
 
-            (Text("Your league has stories. ") + Text("Give them a home.").foregroundStyle(Theme.gold))
+            Text("Your league has stories. \(Text("Give them a home.").foregroundStyle(Theme.gold))")
                 .font(.display(wide ? 54 : 42, weight: .heavy))
                 .textCase(.uppercase)
                 .lineSpacing(-4)
@@ -615,7 +615,7 @@ private struct FinalSection: View {
         VStack(spacing: 22) {
             VStack(spacing: 16) {
                 Image("Crest").resizable().scaledToFit().frame(width: 56, height: 56)
-                (Text("Every season. Every grudge. ") + Text("One hall of fame.").foregroundStyle(Theme.gold))
+                Text("Every season. Every grudge. \(Text("One hall of fame.").foregroundStyle(Theme.gold))")
                     .font(.display(30, weight: .heavy))
                     .textCase(.uppercase)
                     .multilineTextAlignment(.center)

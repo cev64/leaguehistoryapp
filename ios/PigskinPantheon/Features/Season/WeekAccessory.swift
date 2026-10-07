@@ -94,11 +94,12 @@ struct WheelBar: ViewModifier {
             .onChange(of: weeks) { _, _ in publish() }
             .onChange(of: sideRail) { _, _ in publish() }
             .onDisappear {
-                // a page pushed on top, or another tab: this page's wheel
-                // leaves the bar (unless a newer page has already put its own)
+                // A pushed page's wheel leaves the bar with it (unless a newer
+                // page has already put its own). A tab's own page keeps its
+                // place: covered, it's hidden by `atRoot`, and uncovered it's
+                // there at once, with no gap for the bar to close and reopen.
                 guard let tab, let shared else { return }
                 if shared.pushed[tab]?.owner == owner { shared.pushed[tab] = nil }
-                if shared.roots[tab]?.owner == owner { shared.roots[tab] = nil }
             }
     }
 

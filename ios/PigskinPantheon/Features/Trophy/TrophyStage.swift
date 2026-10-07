@@ -588,7 +588,9 @@ final class TrophyStage {
 
     func goTo(_ index: Int, exitFocus leave: Bool = false) {
         if leave, mode == .focus { exitFocus() }
-        railTarget = Float(max(0, min(exhibits.count - 1, index)))
+        let target = Float(max(0, min(exhibits.count - 1, index)))
+        if target != railTarget { Haptics.select() }
+        railTarget = target
         velocity = 0
         if mode == .focus {
             focusIndex = Int(railTarget)
@@ -607,6 +609,7 @@ final class TrophyStage {
         if mode == .focus {
             let next = max(0, min(exhibits.count - 1, focusIndex + direction))
             guard next != focusIndex else { return }
+            Haptics.select()
             focusIndex = next
             rail = Float(next)
             railTarget = rail
@@ -632,6 +635,7 @@ final class TrophyStage {
         guard mode != .intro, !exhibits.isEmpty else { return }
         let i = max(0, min(exhibits.count - 1, index))
         if exhibits[i].item.opensLocker, let ownerId = exhibits[i].item.ownerId { openLocker(ownerId); return }
+        Haptics.tap(.medium)
         mode = .focus
         focusIndex = i
         rail = Float(i)
@@ -662,6 +666,7 @@ final class TrophyStage {
     /// A manager's shield is a door: their locker is pushed on the stack.
     func openLocker(_ ownerId: String) {
         guard hall?.lockers[ownerId] != nil, lockerDepth == nil, !inLocker else { return }
+        Haptics.tap(.medium)
         showHint = false
         lockerDepth = path.count + 1
         push(TrophyRoute.locker(ownerId: ownerId))
@@ -750,6 +755,7 @@ final class TrophyStage {
 
     func focusLockerItem(_ index: Int) {
         guard let wall = lockerWall, wall.items.indices.contains(index) else { return }
+        if mode == .lockerFocus { Haptics.select() } else { Haptics.tap(.medium) }
         mode = .lockerFocus
         lockerIndex = index
         resetFocusPose()
@@ -779,6 +785,8 @@ final class TrophyStage {
     @ObservationIgnored private var startPan = SIMD2<Float>(0, 0)
     @ObservationIgnored private var movedAlong: CGFloat = 0
     @ObservationIgnored private var zoomStart: Float = 1
+    /// The exhibit a drag in the hall last passed, for its detent.
+    @ObservationIgnored private var dragStop = 0
 
     /// Whether a gesture on `room`'s view is for the room on show.
     private func live(_ room: Room) -> Bool { mode != .intro && (room == .locker) == inLocker }
@@ -791,6 +799,7 @@ final class TrophyStage {
         startYaw = focusYaw
         startPitch = focusPitch
         startPan = lockerPan
+        dragStop = Int(rail.rounded())
         velocity = 0
         showHint = false
     }
@@ -814,6 +823,8 @@ final class TrophyStage {
             let stopsPerPixel = 4.2 / max(360, span)
             movedAlong = max(movedAlong, CGFloat(abs(along)))
             rail = min(max(startRail - along * stopsPerPixel, -0.4), Float(exhibits.count) - 0.6)
+            let stop = Int(rail.rounded())
+            if stop != dragStop, exhibits.indices.contains(stop) { dragStop = stop; Haptics.select() }
             velocity = -Float(vertical ? v.y : v.x) * stopsPerPixel
         case .intro:
             break
@@ -869,7 +880,7 @@ final class TrophyStage {
         // A manager in the hall of fame is a door, not an exhibit.
         if item.opensLocker, let ownerId = item.ownerId { openLocker(ownerId); return }
         if mode == .focus {
-            if index == focusIndex { exitFocus() } else { focusIndex = index; rail = Float(index); railTarget = rail; resetFocusPose() }
+            if index == focusIndex { exitFocus() } else { Haptics.select(); focusIndex = index; rail = Float(index); railTarget = rail; resetFocusPose() }
             return
         }
         focusExhibit(index)

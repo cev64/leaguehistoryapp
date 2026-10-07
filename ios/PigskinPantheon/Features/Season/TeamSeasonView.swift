@@ -394,8 +394,7 @@ private struct TeamStartersSection: View {
                     ClubTag(club: p.clubs.first ?? "FA").frame(width: 34, alignment: .leading)
                     name(p)
                     Spacer(minLength: 6)
-                    (Text("\(p.starts)").font(.system(size: 14, weight: .bold)).foregroundStyle(Theme.ink)
-                     + Text(" GS").font(.system(size: 9.5, weight: .bold)).foregroundStyle(Theme.ink3))
+                    Text("\(Text("\(p.starts)").font(.system(size: 14, weight: .bold)).foregroundStyle(Theme.ink))\(Text(" GS").font(.system(size: 9.5, weight: .bold)).foregroundStyle(Theme.ink3))")
                         .monospacedDigit()
                 }
                 HStack(spacing: 10) {

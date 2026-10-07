@@ -40,7 +40,7 @@ final class AccountStore {
         var id: String { league_id }
         var ids: [String] { league_ids ?? [league_id] }
         var title: String { (name?.isEmpty == false ? name : nil) ?? "League \(league_id)" }
-        var syncedDate: Date? { synced_at.flatMap(AccountStore.parseDate) }
+        var syncedDate: Date? { synced_at.flatMap { AccountStore.parseDate($0) } }
     }
 
     /// A real league someone tried to open signed out: it opens once they
@@ -389,7 +389,7 @@ final class AccountStore {
         toast = Toast(message: message)
     }
 
-    static func parseDate(_ text: String) -> Date? {
+    nonisolated static func parseDate(_ text: String) -> Date? {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let d = f.date(from: text) { return d }

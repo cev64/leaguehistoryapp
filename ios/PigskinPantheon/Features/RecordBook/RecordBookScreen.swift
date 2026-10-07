@@ -372,10 +372,10 @@ private struct BookPlayerPhoto: View {
         ZStack {
             Circle().fill(Theme.surface3)
             if let photo = hit.photo, let url = URL(string: photo) {
-                AsyncImage(url: url) { phase in
+                RemoteImage(url: url) { phase in
                     if let image = phase.image {
                         image.resizable().scaledToFill()
-                    } else if phase.error != nil {
+                    } else if phase.failed {
                         ClubChip(club: hit.club)
                     } else {
                         Color.clear
