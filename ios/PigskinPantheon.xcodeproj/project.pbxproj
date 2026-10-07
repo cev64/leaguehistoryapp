@@ -1,0 +1,304 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA0000000000000000000101 /* sleeper.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000201 /* sleeper.js */; };
+		AA0000000000000000000102 /* espn.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000202 /* espn.js */; };
+		AA0000000000000000000103 /* demo.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000203 /* demo.js */; };
+		AA0000000000000000000104 /* insights.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000204 /* insights.js */; };
+		AA0000000000000000000105 /* chat.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000205 /* chat.js */; };
+		AA0000000000000000000106 /* account-config.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000206 /* account-config.js */; };
+		AA0000000000000000000107 /* players.json in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000207 /* players.json */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AA0000000000000000000001 /* PigskinPantheon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PigskinPantheon.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000201 /* sleeper.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = sleeper.js; path = ../sleeper.js; sourceTree = SOURCE_ROOT; };
+		AA0000000000000000000202 /* espn.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = espn.js; path = ../espn.js; sourceTree = SOURCE_ROOT; };
+		AA0000000000000000000203 /* demo.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = demo.js; path = ../demo.js; sourceTree = SOURCE_ROOT; };
+		AA0000000000000000000204 /* insights.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = insights.js; path = ../insights.js; sourceTree = SOURCE_ROOT; };
+		AA0000000000000000000205 /* chat.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = chat.js; path = ../chat.js; sourceTree = SOURCE_ROOT; };
+		AA0000000000000000000206 /* account-config.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "account-config.js"; path = "../account-config.js"; sourceTree = SOURCE_ROOT; };
+		AA0000000000000000000207 /* players.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = players.json; path = ../data/players.json; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		AA0000000000000000000301 /* PigskinPantheon */ = {isa = PBXFileSystemSynchronizedRootGroup; path = PigskinPantheon; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AA0000000000000000000401 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA0000000000000000000501 = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000301 /* PigskinPantheon */,
+				AA0000000000000000000502 /* Shared Web Engine */,
+				AA0000000000000000000503 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000502 /* Shared Web Engine */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000201 /* sleeper.js */,
+				AA0000000000000000000202 /* espn.js */,
+				AA0000000000000000000203 /* demo.js */,
+				AA0000000000000000000204 /* insights.js */,
+				AA0000000000000000000205 /* chat.js */,
+				AA0000000000000000000206 /* account-config.js */,
+				AA0000000000000000000207 /* players.json */,
+			);
+			name = "Shared Web Engine";
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000503 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000001 /* PigskinPantheon.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA0000000000000000000601 /* PigskinPantheon */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000901 /* Build configuration list for PBXNativeTarget "PigskinPantheon" */;
+			buildPhases = (
+				AA0000000000000000000801 /* Sources */,
+				AA0000000000000000000401 /* Frameworks */,
+				AA0000000000000000000802 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000301 /* PigskinPantheon */,
+			);
+			name = PigskinPantheon;
+			packageProductDependencies = (
+			);
+			productName = PigskinPantheon;
+			productReference = AA0000000000000000000001 /* PigskinPantheon.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA0000000000000000000701 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					AA0000000000000000000601 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = AA0000000000000000000902 /* Build configuration list for PBXProject "PigskinPantheon" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA0000000000000000000501;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = AA0000000000000000000503 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA0000000000000000000601 /* PigskinPantheon */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA0000000000000000000802 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000000000000000000101 /* sleeper.js in Resources */,
+				AA0000000000000000000102 /* espn.js in Resources */,
+				AA0000000000000000000103 /* demo.js in Resources */,
+				AA0000000000000000000104 /* insights.js in Resources */,
+				AA0000000000000000000105 /* chat.js in Resources */,
+				AA0000000000000000000106 /* account-config.js in Resources */,
+				AA0000000000000000000107 /* players.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA0000000000000000000801 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AA0000000000000000000A01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000A02 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AA0000000000000000000A03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Pantheon;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pigskinpantheon.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000A04 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Pantheon;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pigskinpantheon.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA0000000000000000000901 /* Build configuration list for PBXNativeTarget "PigskinPantheon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000A03 /* Debug */,
+				AA0000000000000000000A04 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000902 /* Build configuration list for PBXProject "PigskinPantheon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000A01 /* Debug */,
+				AA0000000000000000000A02 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AA0000000000000000000701 /* Project object */;
+}
