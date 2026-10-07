@@ -153,8 +153,19 @@ final class LeagueEngine: NSObject {
           return JSON.stringify({ error: String((e && e.message) || e || "Something went wrong.") });
         }
         """
+        #if DEBUG
+        let began = CFAbsoluteTimeGetCurrent()
+        #endif
         let result = try await webView.callAsyncJavaScript(body, arguments: arguments, contentWorld: .page)
         guard let text = result as? String, let data = text.data(using: .utf8) else { throw EngineError.empty }
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["PP_TIMING"] == "1" {
+            let line = String(format: "%6.0f ms %8d B  %@\n", (CFAbsoluteTimeGetCurrent() - began) * 1000, data.count, expression)
+            let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("timing.log")
+            if let h = try? FileHandle(forWritingTo: url) { h.seekToEndOfFile(); h.write(Data(line.utf8)); try? h.close() }
+            else { try? Data(line.utf8).write(to: url) }
+        }
+        #endif
         return data
     }
 
@@ -204,25 +215,28 @@ extension LeagueEngine: WKNavigationDelegate, WKScriptMessageHandler {
     }
 
     nonisolated func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        // WebKit hands messages over on the main thread.
+        MainActor.assumeIsolated { receive(message) }
+    }
+
+    private func receive(_ message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         let payload = body["body"] as? [String: Any]
-        Task { @MainActor in
-            switch type {
-            case "ready":
-                self.finishStart(.success(()))
-            case "progress":
-                let done = (payload?["done"] as? NSNumber)?.intValue ?? 0
-                let total = (payload?["total"] as? NSNumber)?.intValue ?? 0
-                self.onProgress?(done, total)
-            case "players":
-                self.deliverBundledPlayers()
-            case "log":
-                #if DEBUG
-                print("[engine \(self.leagueId ?? "finder")] \(payload?["level"] ?? ""): \(payload?["text"] ?? "")")
-                #endif
-            default:
-                break
-            }
+        switch type {
+        case "ready":
+            self.finishStart(.success(()))
+        case "progress":
+            let done = (payload?["done"] as? NSNumber)?.intValue ?? 0
+            let total = (payload?["total"] as? NSNumber)?.intValue ?? 0
+            self.onProgress?(done, total)
+        case "players":
+            self.deliverBundledPlayers()
+        case "log":
+            #if DEBUG
+            print("[engine \(self.leagueId ?? "finder")] \(payload?["level"] ?? ""): \(payload?["text"] ?? "")")
+            #endif
+        default:
+            break
         }
     }
 

@@ -32,7 +32,7 @@ struct PlayerCardView: View {
                 PageScroll {
                     EmptyCard(title: "Couldn't load", detail: "Player history could not be loaded.", symbol: "exclamationmark.triangle")
                     Button("Try again") { Task { await load() } }
-                        .buttonStyle(.glassProminent)
+                        .buttonStyle(.borderedProminent)
                         .frame(maxWidth: .infinity)
                 }
                 .navigationTitle("Player")
@@ -270,7 +270,7 @@ private struct PCHeroTag: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
-            .glassEffect(.regular.tint(.white.opacity(0.12)), in: Capsule())
+            .frosted(Capsule(), opacity: 0.16)
     }
 }
 
@@ -654,10 +654,12 @@ private struct PCMedal: View {
         .foregroundStyle(ink)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(LinearGradient(colors: [a, b], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(LinearGradient(colors: [a, b], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .shadow(color: .black.opacity(0.08), radius: 1, y: 1)
+        }
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white.opacity(0.5), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.08), radius: 1, y: 1)
         .accessibilityElement(children: .combine)
     }
 }
@@ -751,7 +753,7 @@ private struct PCGameLogCard: View {
                      "Outlined: on the bench or IR, so the points did not count.")
             helpLine(PCPtsChip(kind: .off, text: "—", color: nil, fill: 0, small: true),
                      "Not on a roster that week, or his team had no game (a bye or knocked out).")
-            helpLine((Text("15") + Text("P").font(.system(size: 7, weight: .heavy)).baselineOffset(4))
+            helpLine(Text("15\(Text("P").font(.system(size: 7, weight: .heavy)).baselineOffset(4))")
                         .font(.system(size: 10, weight: .heavy))
                         .foregroundStyle(Color(hex: 0xB8733F))
                         .frame(minWidth: 44, alignment: .leading),
@@ -846,7 +848,7 @@ private struct PCLogRowView: View {
         let yr = all ? "’\(String(row.season).suffix(2)) · " : ""
         var text = Text(yr + String(row.week))
         if row.playoff {
-            text = text + Text("P").font(.system(size: 8, weight: .heavy)).foregroundStyle(Color(hex: 0xB8733F)).baselineOffset(4)
+            text = Text("\(text)\(Text("P").font(.system(size: 8, weight: .heavy)).foregroundStyle(Color(hex: 0xB8733F)).baselineOffset(4))")
         }
         return text
             .font(.system(size: 11.5, weight: .heavy))

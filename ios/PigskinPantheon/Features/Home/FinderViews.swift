@@ -555,8 +555,7 @@ private struct PrivatePanel: View {
                         .foregroundStyle(Theme.ink)
                     Group {
                         if finder.refusedSwids.contains(row.swid) {
-                            Text("ESPN turned these keys away: copy them again. ").bold().foregroundStyle(Theme.red)
-                                + Text(finder.detail(for: row))
+                            Text("\(Text("ESPN turned these keys away: copy them again. ").bold().foregroundStyle(Theme.red))\(finder.detail(for: row))")
                         } else {
                             Text(finder.detail(for: row))
                         }

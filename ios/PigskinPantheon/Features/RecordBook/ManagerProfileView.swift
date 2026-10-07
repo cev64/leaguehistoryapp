@@ -121,7 +121,7 @@ private struct BookProfileHero: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
-                        .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .frosted(RoundedRectangle(cornerRadius: 12, style: .continuous), opacity: 0.10)
                     }
                 }
             }

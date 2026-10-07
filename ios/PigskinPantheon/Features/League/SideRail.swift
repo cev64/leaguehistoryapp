@@ -61,7 +61,6 @@ struct SideRail: View {
                     ForEach(items) { item in
                         let selected = isSelected(item.tab)
                         Button {
-                            UISelectionFeedbackGenerator().selectionChanged()
                             tab = item.tab
                         } label: {
                             Image(systemName: item.symbol)

@@ -59,15 +59,7 @@ private struct SeasonContent: View {
     }
 
     var body: some View {
-        PageScroll(onScroll: { y in
-            var next = scroll
-            next.update(y)
-            if next.minimized != scroll.minimized {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { scroll = next }
-            } else {
-                scroll = next
-            }
-        }) {
+        PageScroll(onScroll: scroll.update) {
             DemoBanner()
             if let info = store.info, let season = session.summary?.season(store.year) {
                 // The season's header belongs to its overview (week 0): a
@@ -109,6 +101,7 @@ private struct SeasonContent: View {
                             .font(.body.weight(.semibold))
                     }
                     .accessibilityLabel("Choose season")
+                    .sensoryFeedback(.selection, trigger: session.year)
                 }
             }
         }
@@ -120,6 +113,7 @@ private struct SeasonContent: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .sensoryFeedback(.selection, trigger: store.view)
                 .padding(.horizontal, Theme.gutter)
                 .padding(.vertical, 6)
                 .frame(maxWidth: 640)
@@ -201,7 +195,7 @@ private struct LiveHero: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .glassEffect(.regular.tint(.white.opacity(0.08)), in: Capsule())
+            .frosted(Capsule(), opacity: 0.12)
             Text("\(String(season.year)) Season").displayStyle(38).foregroundStyle(.white)
             Text(line).font(.subheadline).foregroundStyle(.white.opacity(0.78))
         }
@@ -258,7 +252,7 @@ struct OutcomeCard: View {
                     }
                     .foregroundStyle(.white)
                     .padding(12)
-                    .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .frosted(RoundedRectangle(cornerRadius: 12, style: .continuous), opacity: 0.10)
                 }
             }
             .padding(16)

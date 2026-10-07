@@ -25,7 +25,7 @@ struct RecapPanel: View {
                         Text("\(info.source) didn't answer. Try again in a moment.")
                     } actions: {
                         Button("Try again") { Task { await load() } }
-                            .buttonStyle(.glass)
+                            .buttonStyle(.bordered)
                     }
                     .padding(.vertical, 8)
                 }
@@ -145,7 +145,7 @@ private struct RecapLead: View {
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(Theme.navy)
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
             .tint(.white)
             .disabled(preparing)
             .padding(.top, 16)
@@ -208,8 +208,7 @@ private struct RecapGame: View {
             }
             line(game.a, game.as, won: game.aWon)
             line(game.b, game.bs, won: game.bWon)
-            (Text("\(game.line).").foregroundStyle(Theme.ink).fontWeight(.semibold)
-             + Text(game.notes.isEmpty ? "" : " \(game.notes.joined(separator: ". ")).").foregroundStyle(Theme.muted).fontWeight(.medium))
+            Text("\(Text("\(game.line).").foregroundStyle(Theme.ink).fontWeight(.semibold))\(Text(game.notes.isEmpty ? "" : " \(game.notes.joined(separator: ". ")).").foregroundStyle(Theme.muted).fontWeight(.medium))")
                 .font(.system(size: 13.5))
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 4)
@@ -441,7 +440,7 @@ private struct RecapOfficeCard: View {
 
     private func lineText(_ line: WeekRecap.OfficeItem.Line) -> Text {
         if let id = line.teamId {
-            return Text(season.team(id)?.name ?? id).fontWeight(.bold).foregroundStyle(Theme.ink) + Text(" \(line.text)")
+            return Text("\(Text(season.team(id)?.name ?? id).fontWeight(.bold).foregroundStyle(Theme.ink)) \(line.text)")
         }
         return Text(line.text)
     }
@@ -657,8 +656,7 @@ struct RecapPlayerChip: View {
 
     var body: some View {
         NavigationLink(value: LeagueRoute.player(id: player.id)) {
-            (Text(player.name).fontWeight(.bold).foregroundStyle(Theme.ink)
-             + Text(player.pos.isEmpty ? "" : " \(player.pos)").font(.system(size: 10.5, weight: .bold)).foregroundStyle(Theme.muted))
+            Text("\(Text(player.name).fontWeight(.bold).foregroundStyle(Theme.ink))\(Text(player.pos.isEmpty ? "" : " \(player.pos)").font(.system(size: 10.5, weight: .bold)).foregroundStyle(Theme.muted))")
                 .lineLimit(1)
                 .contentShape(Rectangle())
         }

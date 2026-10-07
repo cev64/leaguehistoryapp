@@ -93,7 +93,12 @@ private struct BoxScoreCard: View {
         .background(Theme.card)
         .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous).strokeBorder(Theme.line))
-        .shadow(color: Color(hex: 0x101828, alpha: 0.05), radius: 1, y: 1)
+        .background {
+            // the shape's shadow, not the card's (see Card)
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Theme.card)
+                .shadow(color: Color(hex: 0x101828, alpha: 0.05), radius: 1, y: 1)
+        }
     }
 
     private var scoreboard: some View {

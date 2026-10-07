@@ -363,7 +363,7 @@ struct LeagueMark: View {
                 .font(.system(size: size * 0.42, weight: .heavy))
                 .foregroundStyle(.white)
             if let avatar, avatar.hasPrefix("http"), let url = URL(string: avatar) {
-                AsyncImage(url: url) { phase in
+                RemoteImage(url: url) { phase in
                     if let image = phase.image { image.resizable().scaledToFill() }
                 }
             }

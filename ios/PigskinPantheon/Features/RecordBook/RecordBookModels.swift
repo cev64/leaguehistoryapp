@@ -314,7 +314,7 @@ struct BookSortControl: View {
                 .padding(.horizontal, 2)
                 .fixedSize()
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .controlSize(.small)
             .fixedSize()
             .accessibilityLabel("Sort by")
@@ -326,7 +326,7 @@ struct BookSortControl: View {
                     .font(.system(size: 11, weight: .bold))
                     .contentTransition(.symbolEffect(.replace))
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .controlSize(.small)
             .accessibilityLabel(state.ascending ? "Sort ascending" : "Sort descending")
         }

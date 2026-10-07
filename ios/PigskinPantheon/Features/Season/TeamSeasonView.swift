@@ -173,7 +173,7 @@ private struct TeamHero: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
-                        .glassEffect(.regular.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .frosted(RoundedRectangle(cornerRadius: 12, style: .continuous), opacity: 0.10)
                     }
                 }
             }
@@ -181,7 +181,7 @@ private struct TeamHero: View {
                 Label("\(team.owner)'s career", systemImage: "person.crop.circle")
                     .font(.subheadline.weight(.semibold))
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .tint(.white)
         }
         .padding(18)
@@ -394,8 +394,7 @@ private struct TeamStartersSection: View {
                     ClubTag(club: p.clubs.first ?? "FA").frame(width: 34, alignment: .leading)
                     name(p)
                     Spacer(minLength: 6)
-                    (Text("\(p.starts)").font(.system(size: 14, weight: .bold)).foregroundStyle(Theme.ink)
-                     + Text(" GS").font(.system(size: 9.5, weight: .bold)).foregroundStyle(Theme.ink3))
+                    Text("\(Text("\(p.starts)").font(.system(size: 14, weight: .bold)).foregroundStyle(Theme.ink))\(Text(" GS").font(.system(size: 9.5, weight: .bold)).foregroundStyle(Theme.ink3))")
                         .monospacedDigit()
                 }
                 HStack(spacing: 10) {

@@ -118,7 +118,7 @@ func officeText(_ segs: [OfficeSeg], base: Color = Theme.muted, em: Color = Them
         if s.em { piece = piece.fontWeight(.bold).foregroundStyle(em) }
         else if s.muted { piece = piece.foregroundStyle(Theme.muted).fontWeight(.medium) }
         else { piece = piece.foregroundStyle(base) }
-        return text + piece
+        return Text("\(text)\(piece)")
     }
 }
 
@@ -257,9 +257,10 @@ private struct OfficeRowView: View {
     }
 
     private func statText(_ stat: OfficeStat) -> some View {
-        var t = Text("\(stat.label) ").foregroundStyle(Theme.muted)
-            + Text(stat.value).fontWeight(.heavy).foregroundStyle(officeTone(stat.tone) ?? Theme.ink2)
-        if let tail = stat.tail { t = t + Text(" \(tail)").foregroundStyle(Theme.muted) }
+        let label = Text("\(stat.label) ").foregroundStyle(Theme.muted)
+        let value = Text(stat.value).fontWeight(.heavy).foregroundStyle(officeTone(stat.tone) ?? Theme.ink2)
+        var t = Text("\(label)\(value)")
+        if let tail = stat.tail { t = Text("\(t)\(Text(" \(tail)").foregroundStyle(Theme.muted))") }
         return t.font(.system(size: 11.5)).monospacedDigit().lineLimit(1)
     }
 }
@@ -420,7 +421,7 @@ private struct OfficeTrades: View {
                     .font(.system(size: 13, weight: .bold))
                     .frame(maxWidth: .infinity, minHeight: 28)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .sensoryFeedback(.impact(weight: .light), trigger: store.shown)
             .padding(.horizontal, 12)
             .padding(.top, 8)

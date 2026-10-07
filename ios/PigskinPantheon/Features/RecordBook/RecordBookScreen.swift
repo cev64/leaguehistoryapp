@@ -74,7 +74,7 @@ private struct RecordBookHero: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .glassEffect(.regular.tint(.white.opacity(0.08)), in: Capsule())
+            .frosted(Capsule(), opacity: 0.12)
             Text("All-Time").displayStyle(40).foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -372,10 +372,10 @@ private struct BookPlayerPhoto: View {
         ZStack {
             Circle().fill(Theme.surface3)
             if let photo = hit.photo, let url = URL(string: photo) {
-                AsyncImage(url: url) { phase in
+                RemoteImage(url: url) { phase in
                     if let image = phase.image {
                         image.resizable().scaledToFill()
-                    } else if phase.error != nil {
+                    } else if phase.failed {
                         ClubChip(club: hit.club)
                     } else {
                         Color.clear
