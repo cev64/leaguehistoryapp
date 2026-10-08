@@ -39,6 +39,9 @@ JavaScript and draws what it answers natively.
   Keychain). The engine is handed the session through a stand-in for
   `account.js`'s `window.Account`, so `espn.js` can open private ESPN leagues
   with keys saved to the account and the league AI knows who's asking.
+  Unlike the site, the app doesn't ask for an account to open a league
+  (App Review 5.1.1(v)): signed out, any league opens without being
+  synced; an account syncs it, saves ESPN keys and unlocks Ask the League.
 
 `tools/bridgetest.js` runs the engine and every bridge in Node, for trying a
 bridge function without the app:
@@ -67,7 +70,7 @@ bridge function without the app:
 ## Opening a screen directly
 
 For screenshots and checks, launch settings open the app on a screen
-(`App/DebugLaunch.swift`):
+(`App/DebugLaunch.swift`, Debug builds only):
 
     SIMCTL_CHILD_PP_LEAGUE=demo SIMCTL_CHILD_PP_TAB=records \
       xcrun simctl launch booted com.pigskinpantheon.app
@@ -83,3 +86,9 @@ side rail).
 `tools/make-app-icon.swift` builds it from `icons/crest-master.png`:
 
     swiftc -o /tmp/make-app-icon ios/tools/make-app-icon.swift && /tmp/make-app-icon
+
+## Submitting to the App Store
+
+`APP_STORE.md` has what the app does for App Review, the steps outside
+Xcode (legal pages live, the support address, the delete-account
+migration), the App Store Connect answers and notes for the reviewer.

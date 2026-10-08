@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Get help with Pigskin Pantheon: contact support, open a league, reset your password, delete your account and use private ESPN leagues." />
+  <title>Support · Pigskin Pantheon</title>
+  <link rel="canonical" href="https://pigskinpantheon.com/support.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Pigskin Pantheon" />
+  <meta property="og:title" content="Support · Pigskin Pantheon" />
+  <meta property="og:description" content="Get help with Pigskin Pantheon: contact support, open a league, reset your password, delete your account and use private ESPN leagues." />
+  <meta property="og:url" content="https://pigskinpantheon.com/support.html" />
+  <meta property="og:image" content="https://pigskinpantheon.com/img/landing/og.jpg" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#071827" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pantheon" />
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <script src="pwa.js" defer></script>
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="landing.css" />
+  <style>
+    /* Long-form text for the legal and support pages. */
+    body.lp:not(#_) {
+      --lg-page: #eef2f6;
+      --lg-card: #ffffff;
+      --lg-ink: #0b1726;
+      --lg-muted: #586679;
+      --lg-line: #dce3eb;
+      --lg-link: #1769e0;
+      --lg-soft: #f5f7fa;
+      background: var(--lg-page);
+      color: var(--lg-ink);
+    }
+    @media (prefers-color-scheme: dark) {
+      body.lp:not(#_) {
+        --lg-page: #08121d;
+        --lg-card: #0f1e2f;
+        --lg-ink: #e6edf5;
+        --lg-muted: #9db0c3;
+        --lg-line: #223750;
+        --lg-link: #7fb2ff;
+        --lg-soft: #132740;
+      }
+    }
+    .lg-main { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
+    .lg { background: var(--lg-card); border: 1px solid var(--lg-line); border-radius: 20px; padding: 28px 22px 32px; font-size: 16.5px; line-height: 1.7; color: var(--lg-ink); }
+    @media (min-width: 640px) { .lg { padding: 44px 48px 52px; } }
+    .lg h1 { margin: 0 0 6px; font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: clamp(34px, 7vw, 46px); line-height: 1.05; letter-spacing: .02em; text-transform: uppercase; color: var(--lg-ink); }
+    .lg .lg-meta { margin: 0 0 22px; color: var(--lg-muted); font-size: 14.5px; }
+    .lg h2 { margin: 34px 0 8px; font-size: 21px; line-height: 1.3; font-weight: 700; color: var(--lg-ink); }
+    .lg h3 { margin: 22px 0 4px; font-size: 17px; font-weight: 700; color: var(--lg-ink); }
+    .lg p { margin: 0 0 14px; }
+    .lg ul, .lg ol { margin: 0 0 14px; padding-left: 22px; }
+    .lg li { margin: 0 0 7px; }
+    .lg a { color: var(--lg-link); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+    .lg a:focus-visible, .lg summary:focus-visible { outline: 3px solid var(--lp-gold); outline-offset: 2px; border-radius: 4px; }
+    .lg .lg-box { margin: 0 0 20px; padding: 16px 18px; background: var(--lg-soft); border: 1px solid var(--lg-line); border-radius: 14px; }
+    .lg .lg-box p:last-child, .lg .lg-box ul:last-child { margin-bottom: 0; }
+    .lg .lg-box h2 { margin-top: 0; font-size: 18px; }
+    .lg .lg-caps { font-size: 15px; text-transform: uppercase; letter-spacing: .01em; }
+    .lg details { margin: 0 0 10px; border: 1px solid var(--lg-line); border-radius: 14px; background: var(--lg-soft); }
+    .lg summary { cursor: pointer; padding: 14px 18px; font-weight: 700; list-style: none; }
+    .lg summary::-webkit-details-marker { display: none; }
+    .lg summary::before { content: "+"; display: inline-block; width: 1.2em; font-weight: 700; color: var(--lg-muted); }
+    .lg details[open] summary::before { content: "\2212"; }
+    .lg details > div { padding: 0 18px 4px 38px; }
+    .lg .lg-toc { margin: 0 0 20px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+    .lg .lg-toc a { display: inline-block; padding: 6px 12px; border: 1px solid var(--lg-line); border-radius: 999px; background: var(--lg-soft); font-size: 14px; font-weight: 600; text-decoration: none; color: var(--lg-ink); }
+    .lg .lg-toc a:hover { border-color: var(--lg-link); }
+    .lg-mail { display: inline-flex; margin: 4px 0 14px; text-decoration: none !important; color: var(--lp-navy) !important; }
+    html:has(body.lp) { scroll-padding-top: 84px; }
+  </style>
+</head>
+<body class="lp">
+  <a class="lp-skip" href="#main">Skip to the page</a>
+
+  <header class="lp-nav" id="top">
+    <div class="lp-wrap lp-nav-inner">
+      <a class="lp-logo" href="index.html" aria-label="Pigskin Pantheon home">
+        <img src="icons/crest.png" alt="" width="40" height="40" />
+        <span>Pigskin <span class="brand-accent">Pantheon</span></span>
+      </a>
+      <nav class="lp-links" aria-label="Legal and help">
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="support.html" aria-current="page">Support</a>
+      </nav>
+      <div class="lp-nav-end">
+        <a class="lp-btn lp-btn-gold lp-btn-sm" href="index.html#find">Open <span class="lp-long">your </span>league</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="lg-main" id="main">
+    <article class="lg">
+      <h1>Support</h1>
+      <p class="lg-meta">Help for the Pigskin Pantheon website and iPhone app</p>
+
+      <div class="lg-box">
+        <h2>Contact us</h2>
+        <p>Email <strong><a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a></strong>. Include your account email (and the league name, if it is about a league), and what you saw. Screenshots help. Pigskin Pantheon is run by one person, so replies can take a few days.</p>
+        <a class="lp-btn lp-btn-gold lp-btn-sm lg-mail" href="mailto:support@pigskinpantheon.com?subject=Pigskin%20Pantheon%20support">Email support</a>
+      </div>
+
+      <h2>Frequently asked questions</h2>
+
+      <details>
+        <summary>How do I open my league?</summary>
+        <div>
+          <p>Choose your platform on the front page. In the iPhone app no account is needed; on the website, sign in or create an account first.</p>
+          <ul>
+            <li><strong>Sleeper:</strong> enter your Sleeper username to see your leagues, pick one, and it opens with every season.</li>
+            <li><strong>ESPN:</strong> use the ESPN tab and enter your league ID (or paste its link). A league set to be viewable to the public opens from the ID alone. A private league needs your ESPN keys (see below).</li>
+            <li>Want to look around first? <a href="season.html?league=demo">Open the demo league</a>; no account needed.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>How do I reset my password?</summary>
+        <div>
+          <p>On the sign-in screen choose &ldquo;Forgot password&rdquo;, enter your account email and follow the link we send. If the email does not arrive within a few minutes, check your spam folder and make sure you used the address you signed up with. Still stuck? Email us from that address.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>How do I delete my account?</summary>
+        <div>
+          <p>In the iPhone app, go to <strong>Account, then Delete Account</strong>. This removes your profile, your synced leagues, any ESPN keys saved to your account and your chat usage counts. You can also email <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> from your account's email address and ask us to delete it. See the <a href="privacy.html#retention">Privacy Policy</a> for details. Data cached on your device goes when you delete the app.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>How do I open a private ESPN league?</summary>
+        <div>
+          <p>ESPN only shares a private league with someone signed in to ESPN. Pigskin Pantheon needs the two cookies ESPN gives your browser when you sign in: <code>espn_s2</code> and <code>SWID</code>.</p>
+          <ol>
+            <li>On a computer, sign in to ESPN Fantasy in your browser.</li>
+            <li>Open the browser's developer tools and look at the site's cookies (in Chrome: Application, then Cookies; in Safari: Storage). Copy the values for <code>espn_s2</code> and <code>SWID</code>.</li>
+            <li>On the website, open the ESPN tab, find &ldquo;Private league?&rdquo; and paste each into its box. If you are signed in, keep &ldquo;Also save them to my account&rdquo; ticked.</li>
+          </ol>
+          <p>A phone has no developer tools, so do this once on a computer. With the keys saved to your account, your private leagues open in the iPhone app too. You can remove the keys at any time with Forget. Another option is to set the league to be viewable to the public in ESPN's league settings (Settings, then Basic Settings), after which the league ID is enough.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Why is some of my league's history missing?</summary>
+        <div>
+          <p>The app shows what Sleeper and ESPN provide. ESPN keeps lineups for old seasons patchily; a season whose box scores ESPN no longer serves (typically before 2018) still has every score, standing and final place but no lineups. Trades before 2019 are only those ESPN's transaction list includes. For Sleeper, a league's history follows the chain of its past seasons; if a league was recreated rather than renewed, older seasons will not link. Tell us at <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> if something looks wrong.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>How does Ask the League work, and can I trust it?</summary>
+        <div>
+          <p>It is an AI historian that answers questions about your league's history. When you ask, your question and a text summary of your league are sent to Google's Gemini (or, as a backup, Anthropic's Claude) to write the answer, and the app asks your permission before the first question. It can be wrong and it can talk trash, so treat it as entertainment and check anything important. There is a daily limit on how many new questions an account can ask. See the <a href="privacy.html#ai">Privacy Policy</a> and <a href="terms.html#ai">Terms</a>.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Is it free?</summary>
+        <div>
+          <p>Yes. Everything is currently free for signed-in members. The iPhone app has no in-app purchases and no ads.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Is Pigskin Pantheon affiliated with Sleeper, ESPN, the NFL or the NFLPA?</summary>
+        <div>
+          <p>No. It is an independent project. It is not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA. Their names and marks belong to their owners. League data comes from Sleeper's and ESPN's own services.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Something is broken. What should I send you?</summary>
+        <div>
+          <p>Email <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> with what you were doing, what happened, the league (a Sleeper username or ESPN league ID is fine, never send your password or ESPN keys), your device and the app version or browser. A screenshot is ideal.</p>
+        </div>
+      </details>
+
+      <h2>More</h2>
+      <p><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a> · <a href="index.html">Back to Pigskin Pantheon</a></p>
+    </article>
+  </main>
+
+  <footer class="footer lp-footer">
+    <div class="lp-wrap lp-footer-inner">
+      <a class="lp-logo lp-logo-sm" href="index.html"><img src="icons/crest.png" alt="" width="28" height="28" /><span>Pigskin <span class="brand-accent">Pantheon</span></span></a>
+      <p><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="support.html">Support</a></p>
+      <p>Not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -15,9 +15,6 @@
   const CFG = window.ACCOUNT_CONFIG || {};
   const ENDPOINT = CFG.AI_CHAT_URL ||
     (CFG.SUPABASE_URL ? `${String(CFG.SUPABASE_URL).replace(/\/+$/, "")}/functions/v1/league-chat` : "");
-  const PRO_PRICE = (CFG.PLANS && CFG.PLANS.pro && CFG.PLANS.pro.price) || "$10/month";
-  const PRICING = CFG.PRICING === true;
-  const PASS_PRICE = `$${(CFG.PLANS && CFG.PLANS.league && CFG.PLANS.league.perMember) || 20}`;
 
   const LC = () => {
     if (!window.LeagueChat) throw new Error("The league AI's script didn't load.");
@@ -115,16 +112,13 @@
   }
 
   /* What the chat screen draws before anything is asked, and where it sends
-     the questions. */
+     the questions. No plans or prices: the app sells nothing. */
   function intro() {
     const model = league();
     return {
       name: model.name,
       endpoint: ENDPOINT,
       anonKey: CFG.SUPABASE_ANON_KEY || null,
-      pricing: PRICING,
-      proPrice: PRO_PRICE,
-      passPrice: PASS_PRICE,
       suggestions: suggestions(model),
     };
   }

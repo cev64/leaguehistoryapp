@@ -35,6 +35,8 @@ struct LeagueRootView: View {
             }
         }
         .environment(session)
+        // "Couldn't add … to your account" shows over the league it's about
+        .accountToast()
         // the league is read and open; or it couldn't be
         .sensoryFeedback(trigger: session.phase) { _, phase in
             switch phase {

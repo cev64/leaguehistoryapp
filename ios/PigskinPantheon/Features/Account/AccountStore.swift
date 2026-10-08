@@ -200,6 +200,8 @@ final class AccountStore {
         do {
             let answer = try await GoTrue.post("token?grant_type=refresh_token", ["refresh_token": current.refreshToken])
             guard let session = Self.session(from: answer) else { return false }
+            // Signed out (or the account deleted) while this was in flight.
+            guard stored?.refreshToken == current.refreshToken else { return false }
             apply(session)
             return true
         } catch let error as AccountError {
@@ -288,6 +290,24 @@ final class AccountStore {
         leagues = []
     }
 
+    /// delete_my_account(): the account and everything on it (its synced
+    /// leagues, saved ESPN keys, profile) is gone for good. Then signed out
+    /// as `signOut` does, and this device forgets it was ever signed in.
+    func deleteAccount() async throws {
+        guard stored != nil else { throw AccountError.server(0, "not_signed_in") }
+        // Still signed in but the token couldn't be refreshed: no connection.
+        guard await freshen(), let token = accessToken else { throw AccountError.offline }
+        try await PostgREST.send("POST", "rpc/delete_my_account", [:], token: token)
+        // The sessions went with the user, so there's nothing to log out of.
+        apply(nil)
+        profile = nil
+        leagues = []
+        pending = nil
+        gateFailure = nil
+        hints = [:]
+        UserDefaults.standard.removeObject(forKey: Self.seenKey)
+    }
+
     // MARK: Profile and leagues
 
     /// The profile row and the synced leagues, fetched again.
@@ -340,8 +360,8 @@ final class AccountStore {
 
     // MARK: The gate
 
-    /// Whether a league can be opened before it loads: the demo is for
-    /// everyone; a real league is for signed-in members (REQUIRE_ACCOUNT).
+    /// Whether a league can be opened before it loads: in the app, any
+    /// league, signed in or not (`Supabase.requireAccount`).
     func mayOpen(_ id: String) -> Bool {
         LeagueEngine.isDemo(id) || !Supabase.requireAccount || isSignedIn
     }
@@ -362,10 +382,11 @@ final class AccountStore {
     /// account.js `admit(model)` once the league has loaded: already on the
     /// account (by any season's id) opens it, and a renewal's new ids are
     /// added quietly; otherwise it's added (everyone signed in may add
-    /// leagues while PRICING is off). Answers why not, if it couldn't be.
+    /// leagues while PRICING is off). Signed out, it just opens, unsynced.
+    /// Answers why not, if it couldn't be added.
     func admit(_ summary: LeagueSummary) async -> String? {
-        if summary.demo || !Supabase.requireAccount { return nil }
-        guard isSignedIn else { return "Sign in first." }
+        if summary.demo { return nil }
+        guard isSignedIn else { return Supabase.requireAccount ? "Sign in first." : nil }
         var ids: [String] = []
         for id in [summary.leagueId] + summary.seasons.map(\.leagueId) where !id.isEmpty && !ids.contains(id) { ids.append(id) }
         if leagues.isEmpty { await refresh() }
@@ -412,9 +433,9 @@ final class AccountStore {
         let rest: String = raw.firstIndex(of: ":").map { String(raw[raw.index(after: $0)...]).trimmingCharacters(in: .whitespaces) } ?? ""
         func has(_ pattern: String) -> Bool { raw.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil }
         switch code {
-        case "free_limit": return "Your free plan includes 1 league. Swap it, or go Pro for unlimited leagues."
+        case "free_limit": return "Your account can hold 1 league. Unsync it to add another."
         case "swap_locked":
-            return "Your league is locked in until \(fmtDateStatic(rest)). Free accounts can swap once every \(Supabase.swapDays) days."
+            return "Your league is locked in until \(fmtDateStatic(rest)). It can be swapped once every \(Supabase.swapDays) days."
         case "not_signed_in": return "Sign in first."
         case "bad_league": return "That isn't a Sleeper or ESPN league."
         default: break
@@ -483,8 +504,11 @@ enum Supabase {
 
     static let url = URL(string: value("SUPABASE_URL") ?? "https://vnmzjfnfqqxedbmirakb.supabase.co")!
     static let anonKey = value("SUPABASE_ANON_KEY") ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZubXpqZm5mcXF4ZWRibWlyYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NDIxOTYsImV4cCI6MjEwNjUxODE5Nn0.YQUMzJU2aNfg0_T_2FsVNPRDmOERsT-DPsrlcd5smv8"
-    /// REQUIRE_ACCOUNT: a league page is for signed-in members.
-    static let requireAccount = flag("REQUIRE_ACCOUNT") ?? true
+    /// The site's REQUIRE_ACCOUNT puts its league pages behind sign-in. The
+    /// app doesn't: a league opens signed out, unsynced, and signed in it's
+    /// added to the account as on the site (App Review 5.1.1(v): looking at
+    /// a public league isn't account based).
+    static let requireAccount = false
     /// PRICING: off, so nothing mentions plans and everyone signed in gets everything.
     static let pricing = flag("PRICING") ?? false
     static let swapDays = 30

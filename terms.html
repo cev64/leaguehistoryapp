@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="The terms for using the Pigskin Pantheon website and iPhone app, including the AI chat and Apple App Store terms." />
+  <title>Terms of Service · Pigskin Pantheon</title>
+  <link rel="canonical" href="https://pigskinpantheon.com/terms.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Pigskin Pantheon" />
+  <meta property="og:title" content="Terms of Service · Pigskin Pantheon" />
+  <meta property="og:description" content="The terms for using the Pigskin Pantheon website and iPhone app, including the AI chat and Apple App Store terms." />
+  <meta property="og:url" content="https://pigskinpantheon.com/terms.html" />
+  <meta property="og:image" content="https://pigskinpantheon.com/img/landing/og.jpg" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#071827" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pantheon" />
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <script src="pwa.js" defer></script>
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="landing.css" />
+  <style>
+    /* Long-form text for the legal and support pages. */
+    body.lp:not(#_) {
+      --lg-page: #eef2f6;
+      --lg-card: #ffffff;
+      --lg-ink: #0b1726;
+      --lg-muted: #586679;
+      --lg-line: #dce3eb;
+      --lg-link: #1769e0;
+      --lg-soft: #f5f7fa;
+      background: var(--lg-page);
+      color: var(--lg-ink);
+    }
+    @media (prefers-color-scheme: dark) {
+      body.lp:not(#_) {
+        --lg-page: #08121d;
+        --lg-card: #0f1e2f;
+        --lg-ink: #e6edf5;
+        --lg-muted: #9db0c3;
+        --lg-line: #223750;
+        --lg-link: #7fb2ff;
+        --lg-soft: #132740;
+      }
+    }
+    .lg-main { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
+    .lg { background: var(--lg-card); border: 1px solid var(--lg-line); border-radius: 20px; padding: 28px 22px 32px; font-size: 16.5px; line-height: 1.7; color: var(--lg-ink); }
+    @media (min-width: 640px) { .lg { padding: 44px 48px 52px; } }
+    .lg h1 { margin: 0 0 6px; font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: clamp(34px, 7vw, 46px); line-height: 1.05; letter-spacing: .02em; text-transform: uppercase; color: var(--lg-ink); }
+    .lg .lg-meta { margin: 0 0 22px; color: var(--lg-muted); font-size: 14.5px; }
+    .lg h2 { margin: 34px 0 8px; font-size: 21px; line-height: 1.3; font-weight: 700; color: var(--lg-ink); }
+    .lg h3 { margin: 22px 0 4px; font-size: 17px; font-weight: 700; color: var(--lg-ink); }
+    .lg p { margin: 0 0 14px; }
+    .lg ul, .lg ol { margin: 0 0 14px; padding-left: 22px; }
+    .lg li { margin: 0 0 7px; }
+    .lg a { color: var(--lg-link); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+    .lg a:focus-visible, .lg summary:focus-visible { outline: 3px solid var(--lp-gold); outline-offset: 2px; border-radius: 4px; }
+    .lg .lg-box { margin: 0 0 20px; padding: 16px 18px; background: var(--lg-soft); border: 1px solid var(--lg-line); border-radius: 14px; }
+    .lg .lg-box p:last-child, .lg .lg-box ul:last-child { margin-bottom: 0; }
+    .lg .lg-box h2 { margin-top: 0; font-size: 18px; }
+    .lg .lg-caps { font-size: 15px; text-transform: uppercase; letter-spacing: .01em; }
+    .lg details { margin: 0 0 10px; border: 1px solid var(--lg-line); border-radius: 14px; background: var(--lg-soft); }
+    .lg summary { cursor: pointer; padding: 14px 18px; font-weight: 700; list-style: none; }
+    .lg summary::-webkit-details-marker { display: none; }
+    .lg summary::before { content: "+"; display: inline-block; width: 1.2em; font-weight: 700; color: var(--lg-muted); }
+    .lg details[open] summary::before { content: "\2212"; }
+    .lg details > div { padding: 0 18px 4px 38px; }
+    .lg .lg-toc { margin: 0 0 20px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+    .lg .lg-toc a { display: inline-block; padding: 6px 12px; border: 1px solid var(--lg-line); border-radius: 999px; background: var(--lg-soft); font-size: 14px; font-weight: 600; text-decoration: none; color: var(--lg-ink); }
+    .lg .lg-toc a:hover { border-color: var(--lg-link); }
+    .lg-mail { display: inline-flex; margin: 4px 0 14px; text-decoration: none !important; color: var(--lp-navy) !important; }
+    html:has(body.lp) { scroll-padding-top: 84px; }
+  </style>
+</head>
+<body class="lp">
+  <a class="lp-skip" href="#main">Skip to the page</a>
+
+  <header class="lp-nav" id="top">
+    <div class="lp-wrap lp-nav-inner">
+      <a class="lp-logo" href="index.html" aria-label="Pigskin Pantheon home">
+        <img src="icons/crest.png" alt="" width="40" height="40" />
+        <span>Pigskin <span class="brand-accent">Pantheon</span></span>
+      </a>
+      <nav class="lp-links" aria-label="Legal and help">
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html" aria-current="page">Terms</a>
+        <a href="support.html">Support</a>
+      </nav>
+      <div class="lp-nav-end">
+        <a class="lp-btn lp-btn-gold lp-btn-sm" href="index.html#find">Open <span class="lp-long">your </span>league</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="lg-main" id="main">
+    <article class="lg">
+      <h1>Terms of Service</h1>
+      <p class="lg-meta">Effective October 8, 2026 · Applies to the Pigskin Pantheon website (pigskinpantheon.com) and the Pigskin Pantheon iPhone app</p>
+
+      <ul class="lg-toc" aria-label="Sections">
+        <li><a href="#acceptance">Acceptance</a></li>
+        <li><a href="#eligibility">Eligibility</a></li>
+        <li><a href="#account">Your account</a></li>
+        <li><a href="#use">Acceptable use</a></li>
+        <li><a href="#ai">AI chat</a></li>
+        <li><a href="#third-parties">Third-party services</a></li>
+        <li><a href="#espn">ESPN credentials</a></li>
+        <li><a href="#warranty">Warranties and liability</a></li>
+        <li><a href="#apple">Apple App Store terms</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+
+      <h2 id="acceptance">1. Acceptance of these terms</h2>
+      <p>These Terms of Service (&ldquo;Terms&rdquo;) are an agreement between you and Pigskin Pantheon (&ldquo;we&rdquo;, &ldquo;us&rdquo;), an individual developer based in the United States, for the Pigskin Pantheon website and iPhone app (together, the &ldquo;Service&rdquo;). By creating an account or using the Service you agree to these Terms and to our <a href="privacy.html">Privacy Policy</a>. If you do not agree, do not use the Service.</p>
+
+      <h2 id="eligibility">2. Eligibility</h2>
+      <p>You must be at least 13 years old to use the Service. If you are under the age of majority where you live, you may use it only with a parent or guardian's permission. You must not use the Service if you are barred from doing so by law.</p>
+
+      <h2 id="account">3. Your account</h2>
+      <p>In the iPhone app you can open any league without an account; on the website, opening a league needs one. An account is also what saves your leagues and ESPN keys and gives you Ask the League. If you make one, give accurate information, keep your password confidential and tell us at once if you think someone else has used your account. You are responsible for activity under your account. You can delete your account at any time in the app (Account, then Delete Account) or by emailing <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a>.</p>
+
+      <h2 id="use">4. Acceptable use</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>break the law, or infringe or violate anyone's rights, using the Service;</li>
+        <li>attempt to gain unauthorized access to the Service, other accounts, our servers or the services we connect to, or probe, scan or test their security;</li>
+        <li>overload, disrupt or interfere with the Service, or bypass its limits, such as the daily allowance for AI questions, by automated means, multiple accounts or otherwise;</li>
+        <li>scrape, copy or resell the Service, or use it to build a competing product, except as the law allows;</li>
+        <li>reverse engineer or tamper with the app or website, except where the law permits it despite this restriction;</li>
+        <li>enter credentials or keys for an account that is not yours, or use the Service to harass, threaten or abuse anyone; or</li>
+        <li>upload or generate content that is unlawful, hateful, harassing or sexually explicit.</li>
+      </ul>
+
+      <h2 id="ai">5. Ask the League (AI chat)</h2>
+      <ul>
+        <li>Ask the League answers are generated by artificial intelligence (currently Google's Gemini, with Anthropic's Claude as a backup). They are provided for information and entertainment. They may be incomplete, out of date, or wrong, including about scores, records and who did what. Check anything that matters against Sleeper or ESPN. Do not rely on the answers for any financial, betting, legal or other consequential decision.</li>
+        <li>The AI jokes and trash-talks about fantasy results, such as bad trades and playoff collapses. It is meant to stay on fantasy football performance and not on people's personal characteristics. If it says something inappropriate, tell us at <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a>.</li>
+        <li>You must not use the chat to generate abusive, hateful, harassing, sexual or otherwise harmful content, to target a person, or to try to get the AI to ignore its instructions.</li>
+        <li>To answer, your question and a text summary of your league are sent to third-party AI providers, as explained in the <a href="privacy.html#ai">Privacy Policy</a>. Do not put sensitive personal information in your questions.</li>
+        <li>We may limit how many questions you can ask, and may change or remove the feature at any time.</li>
+      </ul>
+
+      <h2 id="third-parties">6. Third-party services and trademarks</h2>
+      <p>Pigskin Pantheon is an independent service. It is <strong>not affiliated with, sponsored by or endorsed by Sleeper, ESPN, the National Football League (NFL) or the NFL Players Association (NFLPA)</strong>. Sleeper, ESPN, NFL, NFLPA and the names, logos and marks of NFL clubs and other companies are the property of their respective owners and appear only to identify them. We do not use their logos. Player names, positions, teams and statistics are factual information.</p>
+      <p>League data comes from Sleeper's and ESPN's own services, which we do not control. They may change, limit or stop providing data at any time, and their data may be incomplete or delayed. ESPN's fantasy API is unofficial and undocumented and can change without notice. Your use of Sleeper, ESPN and any other third-party service is governed by their terms and policies, not these Terms. The Service also relies on providers such as Supabase, Google, Anthropic, Cloudflare and GitHub, and may be affected if one of them has a problem.</p>
+
+      <h2 id="espn">7. Your ESPN credentials</h2>
+      <p>To open a private ESPN league you may enter your ESPN <code>espn_s2</code> and <code>SWID</code> cookies. You are responsible for deciding whether to enter them, for entering only keys for your own ESPN account, and for keeping them safe. They give access to your ESPN account, so do not share them. You confirm that doing this does not break ESPN's terms for your account, and you accept that ESPN could restrict or suspend an account that it believes is being used in ways it does not allow. You can remove saved keys at any time (Forget), and we handle them as described in the <a href="privacy.html#espn-keys">Privacy Policy</a>.</p>
+
+      <h2 id="ip">8. Our content and your content</h2>
+      <p>The Service, including its design, text, software and the crest and trophy-room artwork, belongs to us or our licensors and is protected by law. We give you a personal, non-exclusive, non-transferable, revocable licence to use the Service as these Terms allow. League data and names belong to their owners. You keep any rights in the questions you write; you give us permission to process them as needed to run the chat. If you send us feedback or ideas, we may use them without obligation to you.</p>
+
+      <h2 id="paid">9. Plans and payments</h2>
+      <p>The Service is currently free. If we offer paid plans on the website, the price, billing period and cancellation terms will be shown at checkout, payments will be handled by Stripe, and those terms will apply to the plan. The iPhone app has no in-app purchases.</p>
+
+      <h2 id="warranty">10. No warranties</h2>
+      <p class="lg-caps">The Service is provided &ldquo;as is&rdquo; and &ldquo;as available&rdquo;, without warranties of any kind, express or implied, including warranties of merchantability, fitness for a particular purpose, accuracy and non-infringement. We do not warrant that the Service will be uninterrupted, error-free or secure, or that any data or AI answer will be accurate or complete.</p>
+
+      <h2 id="liability">11. Limitation of liability</h2>
+      <p class="lg-caps">To the fullest extent the law allows, we are not liable for any indirect, incidental, special, consequential or punitive damages, or any loss of profits, data or goodwill, arising from or related to your use of the Service. Our total liability for any claim relating to the Service is limited to the greater of the amount you paid us in the 12 months before the claim (which is zero while the Service is free) and US $50.</p>
+      <p>Some places do not allow some of these limits, so they may not apply to you in full. Nothing in these Terms limits liability that cannot be limited by law.</p>
+
+      <h2 id="indemnity">12. Your responsibility</h2>
+      <p>To the extent the law allows, you agree to cover claims, losses and costs that come from your breach of these Terms or your misuse of the Service.</p>
+
+      <h2 id="termination">13. Termination</h2>
+      <p>You may stop using the Service and delete your account at any time. We may suspend or end your access, or change or discontinue any part of the Service, at any time, with or without notice, especially if you break these Terms or put the Service or others at risk. The sections that by their nature should continue (including disclaimers, limits of liability and governing law) survive termination.</p>
+
+      <h2 id="changes">14. Changes to these terms</h2>
+      <p>We may update these Terms. We will post the new version here with a new effective date, and if a change is significant we will tell you in the app or by email. Using the Service after a change means you accept the new Terms. If you do not agree, stop using the Service and delete your account.</p>
+
+      <h2 id="law">15. Governing law</h2>
+      <p>These Terms are governed by the laws of the United States and the state in which the operator resides, without regard to conflict-of-law rules. Any dispute that cannot be settled informally will be brought in the courts of that state, and you consent to their jurisdiction, unless the law where you live gives you the right to bring a claim elsewhere.</p>
+
+      <h2 id="apple">16. Apple App Store terms</h2>
+      <p>This section applies to the Pigskin Pantheon iPhone app obtained from Apple's App Store (the &ldquo;app&rdquo;). It is our custom end user license agreement and states the minimum terms Apple requires.</p>
+      <ol>
+        <li><strong>Acknowledgement.</strong> These Terms are between you and Pigskin Pantheon only, not with Apple Inc. (&ldquo;Apple&rdquo;). We, not Apple, are solely responsible for the app and its content.</li>
+        <li><strong>Scope of license.</strong> The licence we give you is limited to a non-transferable licence to use the app on Apple-branded products that you own or control, as the Usage Rules in Apple's App Store Terms of Service allow. Apple's Standard Licensed Application End User License Agreement (<a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener">https://www.apple.com/legal/internet-services/itunes/dev/stdeula/</a>) also applies to the app. If it conflicts with these Terms on a point it covers, the Apple agreement governs that point.</li>
+        <li><strong>Maintenance and support.</strong> We, not Apple, are responsible for any maintenance and support for the app. Apple has no obligation to provide maintenance or support. For support, see our <a href="support.html">Support</a> page or email <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a>.</li>
+        <li><strong>Warranty.</strong> We are solely responsible for any product warranties, whether express or implied by law, to the extent they are not disclaimed. If the app fails to conform to an applicable warranty, you may tell Apple, and Apple will refund the purchase price of the app to you (if any; the app is free). To the maximum extent the law allows, Apple has no other warranty obligation with respect to the app, and any other claims, losses, liabilities, damages, costs or expenses attributable to a failure to conform to a warranty are our responsibility.</li>
+        <li><strong>Product claims.</strong> We, not Apple, are responsible for addressing any claims by you or any third party relating to the app or your possession and use of it, including product liability claims, claims that the app fails to meet legal or regulatory requirements, and claims under consumer protection, privacy or similar laws.</li>
+        <li><strong>Intellectual property claims.</strong> If a third party claims that the app or your possession and use of it infringes that party's intellectual property rights, we, not Apple, are solely responsible for the investigation, defence, settlement and discharge of the claim.</li>
+        <li><strong>Legal compliance.</strong> You represent and warrant that you are not located in a country that is subject to a US Government embargo or that the US Government has designated a &ldquo;terrorist supporting&rdquo; country, and that you are not on any US Government list of prohibited or restricted parties.</li>
+        <li><strong>Developer name and address.</strong> Questions, complaints or claims about the app can be sent to Pigskin Pantheon at <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a>.</li>
+        <li><strong>Third-party terms.</strong> You must comply with applicable third-party terms of agreement when using the app, for example your wireless data service agreement, and the terms of Sleeper and ESPN for the accounts you connect.</li>
+        <li><strong>Third-party beneficiary.</strong> Apple and its subsidiaries are third-party beneficiaries of these Terms. When you accept them, Apple will have the right (and will be deemed to have accepted the right) to enforce these Terms against you as a third-party beneficiary.</li>
+      </ol>
+
+      <h2 id="contact">17. Contact</h2>
+      <p>Questions about these Terms: <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a>. See also our <a href="privacy.html">Privacy Policy</a> and <a href="support.html">Support</a> page.</p>
+    </article>
+  </main>
+
+  <footer class="footer lp-footer">
+    <div class="lp-wrap lp-footer-inner">
+      <a class="lp-logo lp-logo-sm" href="index.html"><img src="icons/crest.png" alt="" width="28" height="28" /><span>Pigskin <span class="brand-accent">Pantheon</span></span></a>
+      <p><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="support.html">Support</a></p>
+      <p>Not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA.</p>
+    </div>
+  </footer>
+</body>
+</html>

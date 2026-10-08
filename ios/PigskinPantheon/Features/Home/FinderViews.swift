@@ -397,7 +397,7 @@ private struct PrivatePanel: View {
                 .foregroundStyle(Theme.ink)
 
             if !finder.relay {
-                Text("This site isn't set up to open private ESPN leagues yet.")
+                Text("Private ESPN leagues can't be opened yet.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink2)
             } else {
@@ -428,8 +428,8 @@ private struct PrivatePanel: View {
 
     private var fine: AttributedString {
         let text = finder.accountsAvailable
-            ? "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay on this device. Either way they're only used to read your leagues, through this site's relay to ESPN. *Forget* removes an account's keys everywhere, and signing out of ESPN ends them."
-            : "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. They stay on this device, and are only used to read your leagues, through this site's relay to ESPN. *Forget* removes them, and signing out of ESPN ends them."
+            ? "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay on this device. Either way they're only used to read your leagues, through our secure relay to ESPN. *Forget* removes an account's keys everywhere, and signing out of ESPN ends them."
+            : "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. They stay on this device, and are only used to read your leagues, through our secure relay to ESPN. *Forget* removes them, and signing out of ESPN ends them."
         return (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 

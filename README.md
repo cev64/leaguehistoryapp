@@ -445,7 +445,8 @@ returning visitors keep the old copy.
 
 ## Accounts, plans and ads
 
-Visitors sign in to open a league.
+Visitors sign in to open a league (on the website; the iOS app opens
+leagues without an account, see `ios/README.md`).
 
 **For now it's all free.** With `PRICING: false` in `account-config.js` and
 `free_for_everyone` on in the database's `app_settings` table

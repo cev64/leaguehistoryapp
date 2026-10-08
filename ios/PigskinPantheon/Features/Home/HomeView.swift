@@ -71,6 +71,8 @@ struct HomeView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .background(Theme.page)
                 .task {
+                    // Launch settings for checks (debug builds only).
+                    #if DEBUG
                     if let name = ProcessInfo.processInfo.environment["PP_SLEEPER"], finder.username.isEmpty {
                         finder.username = name
                         Task { await finder.findLeagues(name) }
@@ -84,6 +86,7 @@ struct HomeView: View {
                             scrollToFinder(proxy)
                         }
                     }
+                    #endif
                 }
             }
             .toolbar {
@@ -127,6 +130,8 @@ struct HomeView: View {
         .task {
             finder.start(account: app.account)
             if let pending = app.account.pending { sheet = .gate(pending) }
+            // PP_HOME opens a sheet or a league at launch (debug builds only).
+            #if DEBUG
             switch ProcessInfo.processInfo.environment["PP_HOME"] {
             case "signin": sheet = .auth(.signin)
             case "signup": sheet = .auth(.signup)
@@ -139,6 +144,7 @@ struct HomeView: View {
                 await debugEspnKeys()
             default: break
             }
+            #endif
         }
     }
 
@@ -514,7 +520,7 @@ private struct HowSection: View {
     let wide: Bool
     private let steps = [
         ("Find your league", "Type your Sleeper username, or paste an ESPN league ID or link. Every season the league has played comes in at once."),
-        ("Make a free account", "Your leagues stay on it, on every device. That's all it takes: no card, no trial, no catch."),
+        ("Keep it on your account", "Make a free account and your leagues stay on it, on every device. Or skip it: any league opens without one."),
         ("Send it to the league", "Drop a recap, a head-to-head or the trophy room in the group chat and let the arguments begin."),
     ]
 
@@ -546,8 +552,8 @@ private struct HowSection: View {
 /// "The fine print, minus the fine print."
 private struct FAQSection: View {
     private let faq = [
-        ("Is it really free?", "Yes. Everything is free with an account right now: every league you add, every season, the trophy room and the League Historian AI."),
-        ("Do you need my Sleeper or ESPN password?", "No. Sleeper's league data is public, so your username is enough. A public ESPN league needs only its ID. A private ESPN league needs two cookies from your browser (the finder shows you where to find them), which are encrypted if you save them to your account."),
+        ("Is it really free?", "Yes. Every league, every season, the trophy room and the League Historian AI are free. An account is only needed to keep your leagues on it and to ask the AI."),
+        ("Do you need my Sleeper or ESPN password?", "No. Sleeper's league data is public, so your username is enough. A public ESPN league needs only its ID. A private ESPN league needs two keys ESPN keeps in your web browser (the finder shows you where to find them), which are encrypted if you save them to your account."),
         ("Which leagues work?", "Sleeper and ESPN leagues: redraft, keeper and dynasty, with or without divisions, any scoring. The history goes back as far as each platform keeps it."),
         ("What does the AI know?", "Only your league: every score, standing, trade, waiver claim, draft and lineup the app has read. It quotes the numbers, and it can be wrong now and then, so the record book has the final word."),
         ("Is this made by Sleeper or ESPN?", "No. Pigskin Pantheon is independent and isn't affiliated with or endorsed by Sleeper or ESPN. It reads each platform's league data to build your history."),
@@ -639,10 +645,21 @@ private struct FinalSection: View {
 
             VStack(spacing: 6) {
                 BrandWordmark(size: 16)
-                Text("Not affiliated with or endorsed by Sleeper or ESPN. League data from the Sleeper API and ESPN Fantasy.")
+                Text("\(Legal.disclaimer) League data from the Sleeper API and ESPN Fantasy.")
                     .font(.caption)
                     .foregroundStyle(Theme.ink3)
                     .multilineTextAlignment(.center)
+                // The legal pages, reachable signed out too (they open in Safari).
+                HStack(spacing: 8) {
+                    Link("Privacy", destination: Legal.privacy)
+                    Text("·").foregroundStyle(Theme.ink3)
+                    Link("Terms", destination: Legal.terms)
+                    Text("·").foregroundStyle(Theme.ink3)
+                    Link("Support", destination: Legal.support)
+                }
+                .font(.caption.weight(.semibold))
+                .tint(Theme.accentInk)
+                .padding(.top, 2)
             }
         }
     }

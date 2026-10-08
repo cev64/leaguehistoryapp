@@ -14,7 +14,14 @@ import Foundation
 ///
 /// e.g. SIMCTL_CHILD_PP_LEAGUE=demo xcrun simctl launch <device> com.pigskinpantheon.app
 enum DebugLaunch {
-    private static let env = ProcessInfo.processInfo.environment
+    /// Read in debug builds only, so a release build always opens normally.
+    private static let env: [String: String] = {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment
+        #else
+        return [:]
+        #endif
+    }()
 
     static var league: String? { env["PP_LEAGUE"] }
 
