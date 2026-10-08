@@ -54,6 +54,29 @@ struct TeamBadge: View {
     }
 
     var body: some View {
+        Group {
+            if let url = remoteLogo {
+                RemoteImage(url: url) { phase in
+                    if let image = phase.image {
+                        // The logo bare, as the site shows it: ESPN's are
+                        // transparent, and a colour, rim or initials behind
+                        // one would show through.
+                        image.resizable().scaledToFit()
+                    } else {
+                        // Until it loads, or if it won't: the mark on the colour.
+                        fallback
+                    }
+                }
+            } else {
+                fallback
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+
+    /// The team's mark on its colour, for a team with no picture.
+    private var fallback: some View {
         ZStack {
             shape.fill(LinearGradient(colors: [tint, Color(hex: 0x0B1220)], startPoint: .topLeading, endPoint: .bottomTrailing))
             shape.strokeBorder(.white.opacity(0.35), lineWidth: max(1, size / 26))
@@ -64,19 +87,9 @@ struct TeamBadge: View {
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
                 .padding(size * 0.12)
-            if let url = remoteLogo {
-                RemoteImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    }
-                }
-                .frame(width: size, height: size)
-                .clipShape(shape)
-            }
         }
         .frame(width: size, height: size)
         .overlay(shape.strokeBorder(tint.opacity(0.9), lineWidth: 1.2))
-        .accessibilityHidden(true)
     }
 }
 
