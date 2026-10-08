@@ -73,7 +73,10 @@ struct WheelBar: ViewModifier {
     /// is on; in the wide layout it sits at the foot of the page and
     /// tightens as the page scrolls.
     private var tucks: Bool { tab != nil && shared != nil && !sideRail }
-    /// The wheel's height, kept free at the foot of the page.
+    /// The open wheel's height, kept free at the foot of the page. It holds
+    /// while the wheel tightens: were the page's inset to shrink with it, a
+    /// page scrolled to its foot would be pulled back up, read as a scroll
+    /// up, and open the wheel again, over and over.
     @State private var height: CGFloat = 86
 
     func body(content: Content) -> some View {
@@ -86,7 +89,7 @@ struct WheelBar: ViewModifier {
                         .id(identity)
                         .padding(.horizontal, minimized ? 28 : 12)
                         .padding(.bottom, minimized ? 2 : 6)
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { if !minimized { height = $0 } }
                 }
             }
             .onAppear(perform: publish)

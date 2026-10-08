@@ -92,6 +92,10 @@
 
   // Every player seen, for the site's player table: [name, pos, club, eligible].
   const known = new Set();
+  /* When each player was last seen, as year * 100 + week. The seasons load
+     all at once, so an old season's box scores can land after the newest's,
+     and the club he played for then would stand in for his club now. */
+  const seenAt = new Map();
   function playerEntry(p) {
     if (!p || p.id == null) return null;
     const pid = pidOf(p.id);
@@ -102,9 +106,15 @@
     const name = String(p.fullName || `${p.firstName || ""} ${p.lastName || ""}`).trim() || `Player ${p.id}`;
     return [pid, elig.length ? [name, pos, club, elig] : [name, pos, club]];
   }
-  function register(map) {
-    Object.keys(map).forEach((pid) => known.add(pid));
-    addPlayers(map);
+  function register(map, at = 0) {
+    const newer = {};
+    Object.keys(map).forEach((pid) => {
+      known.add(pid);
+      if (seenAt.has(pid) && seenAt.get(pid) > at) return;
+      seenAt.set(pid, at);
+      newer[pid] = map[pid];
+    });
+    addPlayers(newer);
   }
 
   /* ------------------------------------------------------------ sign-in */
@@ -521,7 +531,7 @@
         { schedule: { filterMatchupPeriodIds: { value: [mp] } } });
       return d ? compactBox(d, sp, mp) : { teams: {}, players: {} };
     });
-    register(box.players || {});
+    register(box.players || {}, year * 100 + sp);
     return box;
   }
 
@@ -1019,7 +1029,7 @@
           { credentials: "omit", headers: { "X-Fantasy-Filter": JSON.stringify({ filterIds: { value: batch } }) } }, "ESPN")).catch(() => []);
       const map = {};
       (list || []).forEach((p) => { const e = playerEntry(p); if (e) map[e[0]] = e[1]; });
-      register(map);
+      register(map, year * 100);
     }
   }
 
