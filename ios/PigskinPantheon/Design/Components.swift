@@ -300,7 +300,8 @@ struct AdaptiveGrid<Content: View>: View {
 /// content held to a readable width on very wide screens.
 struct PageScroll<Content: View>: View {
     var maxWidth: CGFloat = 1180
-    /// Hears the page's scroll offset (from the top of its content).
+    /// Hears the page's scroll offset (from the top of its content), held to
+    /// the page's own length: the bounce past either end isn't a scroll.
     var onScroll: ((CGFloat) -> Void)? = nil
     @ViewBuilder var content: Content
 
@@ -312,7 +313,10 @@ struct PageScroll<Content: View>: View {
                 .frame(maxWidth: maxWidth)
                 .frame(maxWidth: .infinity)
         }
-        .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y + $0.contentInsets.top } action: { _, y in
+        .onScrollGeometryChange(for: CGFloat.self) { geo in
+            let end = geo.contentSize.height + geo.contentInsets.bottom - geo.containerSize.height
+            return max(0, min(geo.contentOffset.y, end) + geo.contentInsets.top)
+        } action: { _, y in
             onScroll?(y)
         }
         .background(Theme.page)
