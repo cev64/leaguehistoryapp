@@ -18,6 +18,7 @@ and `ios/README.md` before changing anything.
 
 - **Show Charlie screenshots** of the app for every iOS change (he's often working remotely).
 - **iPad is always landscape.** Rotate the iPad simulator to landscape before testing or taking any screenshot, including App Store screenshots (iPad 13" landscape: 2752 × 2064). iPhone is portrait.
+  `simctl` can't rotate a simulator, and an iPad app that supports multitasking can't force its own orientation. Scripting Cmd+← in DeviceHub needs Accessibility permission for the terminal, so if it isn't granted, ask Charlie to rotate the iPad simulator once (it stays rotated while booted).
 - Use the demo league (`PP_LEAGUE=demo`) for screenshots meant for anyone else, never a real member's league.
 - Bump `CACHE_VERSION` in `sw.js` when a file in its precache list changes.
 - Push and deploy (GitHub Pages, Supabase migrations and functions) only when Charlie asks. Never force push.
