@@ -891,6 +891,8 @@ struct ChatConsentSheet: View {
 ///   signedin   the member's view (questions go out signed out: the
 ///              function answers "Sign in first.")
 ///   sample     a finished conversation with every mark the renderer knows
+///   showcase   the same without its error and stopped answers (store screenshots;
+///              add the arguments `-aiConsent.v1 YES` to hide the sharing-off note)
 ///   tools      runs three of the AI's tools in the engine and shows them
 ///   ask:<q>    asks <q> as soon as the sheet opens
 ///   stop:<q>   asks <q>, then presses stop four seconds in
@@ -907,6 +909,8 @@ enum DebugChat {
         guard let mode else { return }
         if mode == "sample" {
             chat.loadSample(sample)
+        } else if mode == "showcase" {
+            chat.loadSample(showcase)
         } else if mode == "tools" {
             await chat.sampleTools(engine: engine)
         } else if mode.hasPrefix("ask:"), chat.shown.isEmpty {
@@ -946,5 +950,19 @@ enum DebugChat {
         ChatMessage(role: .user, text: "Who choked hardest?"),
         ChatMessage(role: .assistant, text: "**WaiverWendy** went 11-3 and lost her first playoff game by **0.42**\n\n*(stopped)*"),
     ]
+
+    /// The sample without its error and stopped answers (and their
+    /// questions), for store screenshots.
+    static var showcase: [ChatMessage] {
+        var kept: [ChatMessage] = []
+        for message in sample {
+            if message.role == .assistant, message.error || message.text.contains("(stopped)") {
+                kept.removeLast()
+            } else {
+                kept.append(message)
+            }
+        }
+        return kept
+    }
 }
 #endif

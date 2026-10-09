@@ -295,18 +295,10 @@ private struct LeagueSidebarHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // The names get the column's whole width, under the avatar and
+            // menu: beside them, both were cut short.
             HStack(spacing: 12) {
                 LeagueAvatar(summary: summary, size: 44)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(summary.name)
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(1.6)
-                        .textCase(.uppercase)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    BrandWordmark(size: 19)
-                        .minimumScaleFactor(0.7)
-                }
                 Spacer(minLength: 0)
                 Menu {
                     LeagueMenuItems()
@@ -317,6 +309,16 @@ private struct LeagueSidebarHeader: View {
                 .buttonStyle(.glass)
                 .buttonBorderShape(.circle)
                 .accessibilityLabel("League menu")
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(summary.name)
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                BrandWordmark(size: 19)
+                    .minimumScaleFactor(0.7)
             }
             Button {
                 session.sheet = .chat

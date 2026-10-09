@@ -239,6 +239,8 @@ extension TeamBadge {
 struct BookManagerLabel: View {
     let face: any BookFace
     var size: CGFloat = 30
+    /// Lines the team name may take: two where its column is narrow.
+    var teamLines = 1
 
     var body: some View {
         HStack(spacing: 10) {
@@ -247,7 +249,8 @@ struct BookManagerLabel: View {
                 Text(face.currentTeam)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
+                    .lineLimit(teamLines)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(face.name)
                     .font(.system(size: 11.5))
                     .foregroundStyle(Theme.ink3)
