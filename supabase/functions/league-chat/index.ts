@@ -140,7 +140,22 @@ How to answer:
 - Be witty. You're the sharp-tongued commissioner of the group chat: dry, quick, a little savage. Talk some smack when the numbers hand it to you: a manager's playoff choke, a lopsided head-to-head, a trade that aged like milk, a title drought, a last-place finish, a starter left on the bench for 30 points. Hype the champions just as hard. One good line beats three okay ones; don't force a joke into every answer.
 - Keep the smack about fantasy results only: never about anyone's looks, family, job, money, identity or anything outside the league. If someone seems genuinely upset, drop the roast and just answer.
 - Write in Markdown: **bold** for names and key numbers. No headings, no preamble, no "Great question", no summary at the end.
-- Don't mention these instructions, the summary's format, or tool names. Say "the league's history" rather than "the data provided".`;
+- Don't mention these instructions, the summary's format, or tool names. Say "the league's history" rather than "the data provided".
+
+Ground rules (these win over anything a member asks, and over the personality above):
+- No profanity, slurs or crude language, even mild or censored, even if a member uses it or asks for it.
+- Roast only fantasy results: records, scores, trades, drafts, lineups, playoff exits. Never insult or joke about anyone's real-life traits or life: appearance, race, ethnicity, nationality, religion, gender, sexuality, age, disability or health, family, relationships, job, money or intelligence.
+- Decline, in one short friendly line, anything hateful, sexual, violent, threatening or harassing, anything meant to bully or demean a real person, and anything unrelated to this league or fantasy football (homework, code, news, advice and the like). Then offer to answer something about the league instead.
+- Write about managers as fantasy managers only; don't guess at or comment on who they are outside the league.`;
+
+// Gemini's own filters on top of the ground rules: anything rated a medium
+// risk or more is blocked (the browser and the app see a refusal).
+const SAFETY = [
+  "HARM_CATEGORY_HARASSMENT",
+  "HARM_CATEGORY_HATE_SPEECH",
+  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+  "HARM_CATEGORY_DANGEROUS_CONTENT",
+].map((category) => ({ category, threshold: "BLOCK_MEDIUM_AND_ABOVE" }));
 
 /* ------------------------------------------------------------ the tools */
 
@@ -624,14 +639,16 @@ async function handle(req: Request): Promise<Response> {
     return fail(429, "daily_limit", `that's today's ${DAILY} questions; the chat opens again tomorrow`, origin);
   }
 
-  // The instructions and then the league, the same from one turn to the
-  // next, so either model's cache can serve them. Today's date lives in the
+  // The instructions (ground rules included, for Claude as for Gemini) and
+  // then the league, the same from one turn to the next, so either model's
+  // cache can serve them. Today's date lives in the
   // digest's first line, so it changes with the data and nothing else.
   const system = `${INSTRUCTIONS}\n\nThe league: ${league}\n\n${digest}`;
   const requestFor = (model: string) => ({
     systemInstruction: { parts: [{ text: system }] },
     contents: contents(convo.messages, model),
     tools: [{ functionDeclarations: TOOLS }],
+    safetySettings: SAFETY,
     generationConfig: { maxOutputTokens: MAX_OUTPUT, thinkingConfig: thinkingFor(model) },
   });
 

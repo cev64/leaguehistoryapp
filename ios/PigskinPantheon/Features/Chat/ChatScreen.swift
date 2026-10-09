@@ -8,10 +8,12 @@ import UIKit
 /// scores, a player's history, trades...) run in the league's engine, on the
 /// data the app already has, and go back to it, up to eight per question.
 ///
-/// Members only (Pro only once plans are on): signed out, the same sheet
-/// shows what it is and the way in.
+/// Members only: signed out, the same sheet shows what it is and the way
+/// in. Nothing is sent to the AI before the member allows it (App Review
+/// 5.1.2): the first question asks first, and the ⋯ menu takes it back.
 struct ChatScreen: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @Environment(AppModel.self) private var app
     @Environment(LeagueSession.self) private var session
 
@@ -22,13 +24,18 @@ struct ChatScreen: View {
     /// Signing in from the chat happens over it, so the member lands back
     /// in the conversation.
     @State private var signingIn = false
+    /// The member's yes to sharing with the AI providers.
+    @AppStorage(ChatConversation.consentKey) private var consented = false
+    /// A question held while the member decides whether to share.
+    @State private var held: HeldQuestion?
+    /// A report whose email couldn't be opened (no Mail account).
+    @State private var reportUnsent = false
 
     private var chat: ChatConversation { ChatConversation.of(league: session.id) }
     private var name: String { chat.intro?.name ?? session.summary?.name ?? "the league" }
 
-    /// The site's `pro()`: every signed-in member while plans are off, Pro
-    /// members once they're on (the function checks again: 402
-    /// pro_required).
+    /// The site's `pro()`: every signed-in member while plans are off (the
+    /// function checks again: 402 pro_required).
     private var unlocked: Bool {
         #if DEBUG
         if DebugChat.mode != nil { return true }
@@ -42,9 +49,7 @@ struct ChatScreen: View {
                 if unlocked {
                     conversation
                 } else {
-                    ChatLockedView(name: name, pricing: chat.intro?.pricing ?? false,
-                                   proPrice: chat.intro?.proPrice ?? "$10/month",
-                                   passPrice: chat.intro?.passPrice ?? "$20") {
+                    ChatLockedView(name: name, signedIn: app.account.isSignedIn) {
                         signingIn = true
                     }
                 }
@@ -56,6 +61,24 @@ struct ChatScreen: View {
         .sheet(isPresented: $signingIn) {
             AccountScreen()
                 .environment(app)
+        }
+        .sheet(item: $held) { question in
+            ChatConsentSheet(name: name, allow: {
+                consented = true
+                held = nil
+                // A stopped answer still unwinding: the question waits in the box.
+                if chat.busy, draft.isEmpty { draft = question.text }
+                else if !question.text.isEmpty { ask(question.text) }
+            }, notNow: {
+                // Nothing is sent; the question waits in the box.
+                if draft.isEmpty { draft = question.text }
+                held = nil
+            })
+        }
+        .alert("Couldn't open Mail", isPresented: $reportUnsent) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("The report is copied. Email it to \(Legal.supportEmail) and we'll take a look.")
         }
         .presentationDetents([.medium, .large], selection: $detent)
         .presentationDragIndicator(.visible)
@@ -70,10 +93,15 @@ struct ChatScreen: View {
             #if DEBUG
             await DebugChat.run(chat, engine: session.engine, token: token)
             if DebugChat.mode == "long" { draft = String(repeating: "How many titles? ", count: 130) }
+            if DebugChat.mode == "consent" { ask("Who has the most titles?") }
             #endif
         }
         .onChange(of: unlocked) { _, open in
             if open { chat.warm(engine: session.engine) }
+        }
+        .onChange(of: app.account.isSignedIn) { _, signedIn in
+            // Signed in from here: back to the chat, not the account panel.
+            if signedIn { signingIn = false }
         }
     }
 
@@ -94,10 +122,21 @@ struct ChatScreen: View {
                         .textCase(.uppercase)
                         .foregroundStyle(Theme.goldInk)
                         .lineLimit(1)
-                    Text("League Historian")
-                        .displayStyle(19)
-                        .foregroundStyle(Theme.ink)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        Text("League Historian")
+                            .displayStyle(19)
+                            .foregroundStyle(Theme.ink)
+                            .lineLimit(1)
+                        // Every answer here is written by an AI.
+                        Text("AI")
+                            .font(.system(size: 9.5, weight: .heavy))
+                            .tracking(0.6)
+                            .foregroundStyle(Theme.accentInk)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Theme.accentSoft, in: Capsule())
+                            .accessibilityLabel("AI-generated answers")
+                    }
                 }
             }
             .accessibilityElement(children: .combine)
@@ -111,6 +150,24 @@ struct ChatScreen: View {
                 }
             }
         }
+        if unlocked {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu("More", systemImage: "ellipsis") {
+                    if consented {
+                        Button("Turn Off AI Sharing", systemImage: "hand.raised") {
+                            // Nothing more goes out, the answer being written included.
+                            consented = false
+                            chat.stop()
+                        }
+                    } else {
+                        Button("Turn On AI Sharing…", systemImage: "hand.raised") { held = HeldQuestion(text: "") }
+                    }
+                    Link(destination: Legal.privacy) {
+                        Label("Privacy Policy", systemImage: "lock.shield")
+                    }
+                }
+            }
+        }
     }
 
     // MARK: The conversation
@@ -121,7 +178,7 @@ struct ChatScreen: View {
                 if chat.shown.isEmpty, !chat.busy {
                     ChatWelcome(name: name, suggestions: chat.intro?.suggestions ?? []) { ask($0) }
                     if let intro = chat.intro, intro.endpoint.isEmpty {
-                        ChatNote(text: "The league AI isn't switched on for this site yet.")
+                        ChatNote(text: "Ask the League isn't available right now. Try again later.")
                     } else if let error = chat.introError {
                         ChatNote(text: error)
                     }
@@ -129,7 +186,8 @@ struct ChatScreen: View {
                 ForEach(chat.shown) { message in
                     ChatMessageRow(message: message,
                                    retry: { chat.retry(engine: session.engine, token: token) },
-                                   signIn: { signingIn = true })
+                                   signIn: { signingIn = true },
+                                   report: { report(message) })
                         .transition(.asymmetric(insertion: .move(edge: message.role == .user ? .trailing : .bottom).combined(with: .opacity),
                                                 removal: .opacity))
                 }
@@ -139,6 +197,9 @@ struct ChatScreen: View {
                 }
                 if chat.long {
                     ChatNote(text: "This chat is getting long. Start a new one (↻ above) to keep going.")
+                }
+                if !consented, !chat.shown.isEmpty, !chat.busy {
+                    ChatNote(text: "AI sharing is off. Nothing more is sent until you allow it again.")
                 }
             }
             .animation(.snappy(duration: 0.35), value: chat.shown)
@@ -198,7 +259,7 @@ struct ChatScreen: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.trailing, 50)
             } else {
-                Text("The AI can get things wrong. Check the record book for anything that matters.")
+                Text("Answers are AI-generated and can be wrong. Check the record book for anything that matters.")
                     .font(.caption2)
                     .foregroundStyle(Theme.ink3)
                     .multilineTextAlignment(.center)
@@ -244,8 +305,70 @@ struct ChatScreen: View {
     }
 
     private func ask(_ question: String) {
+        // The first question asks before anything leaves the phone.
+        guard consented else {
+            focused = false
+            held = HeldQuestion(text: question)
+            return
+        }
         chat.ask(question, engine: session.engine, token: token)
         withAnimation(.snappy) { position.scrollTo(edge: .bottom) }
+    }
+
+    /// Hides the answer and writes to support about it, with the question
+    /// and the answer filled in.
+    private func report(_ message: ChatMessage) {
+        guard let (question, answer) = chat.report(message.id) else { return }
+        let body = ChatReport.body(league: name, question: question, answer: answer)
+        guard let url = ChatReport.mail(body: body) else { return }
+        openURL(url) { opened in
+            if !opened {
+                UIPasteboard.general.string = body
+                reportUnsent = true
+            }
+        }
+    }
+}
+
+/// A question waiting on the member's answer to the consent sheet (empty
+/// when the sheet was opened from the menu).
+struct HeldQuestion: Identifiable {
+    let id = UUID()
+    let text: String
+}
+
+/// A report of an answer, as an email to support: the question and what
+/// the AI said, cut short enough to travel in a mailto: link.
+enum ChatReport {
+    static let subject = "Ask the League report"
+
+    static func body(league: String, question: String, answer: String) -> String {
+        """
+        What's wrong with this answer? (optional)
+
+
+        ---
+        League: \(clip(league, 120))
+        Question: \(clip(question, 500))
+
+        Answer (AI-generated):
+        \(clip(answer, 1500))
+        """
+    }
+
+    static func mail(body: String) -> URL? {
+        URL(string: "mailto:\(Legal.supportEmail)?subject=\(encode(subject))&body=\(encode(body))")
+    }
+
+    private static func clip(_ text: String, _ limit: Int) -> String {
+        text.count > limit ? String(text.prefix(limit)) + "…" : text
+    }
+
+    /// Everything but unreserved ASCII escaped, so `&`, `=` and `+` in an
+    /// answer stay in it; line breaks as CRLF, as mailto: wants them.
+    private static func encode(_ text: String) -> String {
+        let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        return text.replacingOccurrences(of: "\n", with: "\r\n").addingPercentEncoding(withAllowedCharacters: unreserved) ?? ""
     }
 }
 
@@ -280,6 +403,9 @@ struct ChatMessageRow: View {
     let message: ChatMessage
     var retry: () -> Void = {}
     var signIn: () -> Void = {}
+    /// Reports the answer (App Review 1.2: objectionable AI output can be
+    /// flagged); nil where there's nothing to report.
+    var report: (() -> Void)? = nil
 
     var body: some View {
         switch message.role {
@@ -295,6 +421,19 @@ struct ChatMessageRow: View {
                     .background(LinearGradient(colors: [Color(hex: 0x2B7CF0), Color(hex: 0x1769E0), Color(hex: 0x0F56BD)],
                                                startPoint: .topLeading, endPoint: .bottomTrailing), in: userShape)
                     .shadow(color: Color(hex: 0x1769E0).opacity(0.22), radius: 9, y: 5)
+            }
+        case .assistant where message.reported:
+            HStack(alignment: .top, spacing: 9) {
+                ChatMark()
+                    .padding(.top, 2)
+                Label("Reported — thanks. This answer is hidden.", systemImage: "flag.fill")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.ink2)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.surface2, in: aiShape)
+                    .overlay(aiShape.stroke(Theme.line, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
             }
         case .assistant:
             HStack(alignment: .top, spacing: 9) {
@@ -331,6 +470,9 @@ struct ChatMessageRow: View {
                 .overlay(aiShape.stroke(message.error ? Theme.red.opacity(0.25) : Theme.line, lineWidth: 1))
                 .contextMenu {
                     Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = message.text }
+                    if !message.error, let report {
+                        Button("Report Answer", systemImage: "flag", action: report)
+                    }
                 }
             }
         }
@@ -514,17 +656,16 @@ struct ChatOrb: View {
     }
 }
 
-// MARK: - Signed out (and the plans, once they're on)
+// MARK: - Signed out
 
-/// What a member without the chat sees: a glimpse of a conversation, what
-/// it does, and the way in. While plans are off that's an account (free);
-/// once they're on (PRICING) it's Pro, or a League Pass for everyone.
+/// What someone without the chat sees: a glimpse of a conversation, what
+/// it does, and the way in. Signed out, that's signing in (the rest of the
+/// app works without an account); signed in to an account the function
+/// won't answer, just that it isn't available.
 struct ChatLockedView: View {
     let name: String
-    let pricing: Bool
-    let proPrice: String
-    let passPrice: String
-    let open: () -> Void
+    let signedIn: Bool
+    let signIn: () -> Void
 
     var body: some View {
         ScrollView {
@@ -571,59 +712,56 @@ struct ChatLockedView: View {
 
     private var card: some View {
         VStack(spacing: 12) {
-            Image(systemName: "lock.fill")
+            Image(systemName: signedIn ? "lock.fill" : "person.fill")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.navy)
                 .frame(width: 48, height: 48)
                 .background(Theme.gold, in: Circle())
-            Text(pricing ? "Pigskin Pantheon Pro" : "Free with an account")
+            Text("Ask the League")
                 .font(.system(size: 11, weight: .bold))
                 .tracking(1.4)
                 .textCase(.uppercase)
                 .foregroundStyle(Theme.goldInk)
-            Text("Your league's own AI historian")
-                .displayStyle(26)
-                .foregroundStyle(Theme.ink)
-                .multilineTextAlignment(.center)
-            Text("Ask anything about \(name) and get the answer in seconds, straight from every season you've played.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.ink2)
-                .multilineTextAlignment(.center)
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(features, id: \.self) { line in
-                    Label {
-                        Text(line).foregroundStyle(Theme.ink)
-                    } icon: {
-                        Image(systemName: "checkmark").fontWeight(.bold).foregroundStyle(Theme.green)
-                    }
-                    .font(.subheadline.weight(.medium))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 4)
-            if pricing {
-                Button(action: open) {
-                    Text("Go Pro · \(proPrice)").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glassProminent)
-                .controlSize(.large)
-                .tint(Theme.gold)
-                .foregroundStyle(Theme.navy)
-                Button("Or get it for your whole league: only \(passPrice) per member a year", action: open)
-                    .font(.footnote.weight(.semibold))
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Theme.accentInk)
+            if signedIn {
+                Text("Not available right now")
+                    .displayStyle(26)
+                    .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)
-                Text("Cancel any time.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.ink3)
+                Text("Ask the League isn't available for this account right now.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.ink2)
+                    .multilineTextAlignment(.center)
             } else {
-                Button(action: open) {
-                    Text("Create free account").frame(maxWidth: .infinity)
+                Text("Sign in to use Ask the League")
+                    .displayStyle(26)
+                    .foregroundStyle(Theme.ink)
+                    .multilineTextAlignment(.center)
+                Text("Ask anything about \(name) and get the answer in seconds, straight from every season you've played.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.ink2)
+                    .multilineTextAlignment(.center)
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(features, id: \.self) { line in
+                        Label {
+                            Text(line).foregroundStyle(Theme.ink)
+                        } icon: {
+                            Image(systemName: "checkmark").fontWeight(.bold).foregroundStyle(Theme.green)
+                        }
+                        .font(.subheadline.weight(.medium))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
+                Button(action: signIn) {
+                    Text("Sign In").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.glassProminent)
                 .controlSize(.large)
                 .tint(Theme.accent)
+                Text("Everything else in the app works without an account.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.ink3)
+                    .multilineTextAlignment(.center)
             }
         }
         .padding(20)
@@ -635,8 +773,113 @@ struct ChatLockedView: View {
     private var features: [String] {
         ["Records, rivalries and head-to-head",
          "Every trade, draft and waiver pickup",
-         "Box scores and player histories",
-         pricing ? "Plus unlimited leagues and no ads" : "Every league you add, all free"]
+         "Box scores and player histories"]
+    }
+}
+
+// MARK: - Sharing with the AI
+
+/// Asked before the first question goes out (App Review 5.1.2(i)): what is
+/// sent, to whom and why, with Allow and Not Now. What it lists is what
+/// chat.js's digestOf and toolkit write out and the app sends with each
+/// question: keep it in step with them.
+struct ChatConsentSheet: View {
+    let name: String
+    let allow: () -> Void
+    let notNow: () -> Void
+    @State private var height: CGFloat = 560
+
+    var body: some View {
+        ScrollView {
+            content
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .background(Theme.page.ignoresSafeArea())
+        .presentationDetents([.height(height)])
+        // A choice either way: swiping it away would leave the question hanging.
+        .interactiveDismissDisabled()
+    }
+
+    private var content: some View {
+        VStack(spacing: 0) {
+            ChatMark(size: 44)
+            Text("Ask the League")
+                .font(.system(size: 11, weight: .bold))
+                .tracking(1.4)
+                .textCase(.uppercase)
+                .foregroundStyle(Theme.goldInk)
+                .padding(.top, 14)
+            Text("Share league data with AI?")
+                .displayStyle(24)
+                .foregroundStyle(Theme.ink)
+                .multilineTextAlignment(.center)
+                .padding(.top, 4)
+            Text("To answer, Ask the League sends the following to \(Legal.aiProviders), through Pigskin Pantheon's server:")
+                .font(.subheadline)
+                .foregroundStyle(Theme.ink2)
+                .multilineTextAlignment(.center)
+                .padding(.top, 8)
+
+            VStack(alignment: .leading, spacing: 12) {
+                item("text.bubble", "Your questions, and this chat so far")
+                item("list.bullet.rectangle", "A summary of \(name): manager and team names, every season's standings, scores and playoff results, records, head-to-heads and most-started players")
+                item("magnifyingglass", "Details the AI looks up as it answers: lineups and box scores, player histories, trades, waiver pickups and drafts")
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous).stroke(Theme.line, lineWidth: 1))
+            .padding(.top, 16)
+
+            Text("It's used only to write the answer. Your email and account details aren't sent to the AI.")
+                .font(.footnote)
+                .foregroundStyle(Theme.ink2)
+                .multilineTextAlignment(.center)
+                .padding(.top, 12)
+            Link("Privacy Policy", destination: Legal.privacy)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.accentInk)
+                .padding(.top, 6)
+
+            VStack(spacing: 8) {
+                Button(action: allow) {
+                    Text("Allow").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(Theme.accent)
+                Button(action: notNow) {
+                    Text("Not Now").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+            }
+            .controlSize(.large)
+            .fontWeight(.semibold)
+            .padding(.top, 18)
+            Text("You can turn this off any time from the ⋯ menu in Ask the League.")
+                .font(.caption)
+                .foregroundStyle(Theme.ink3)
+                .multilineTextAlignment(.center)
+                .padding(.top, 10)
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 26)
+        .padding(.bottom, 16)
+        .frame(maxWidth: 520)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func item(_ icon: String, _ text: String) -> some View {
+        Label {
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+        }
     }
 }
 
@@ -648,11 +891,15 @@ struct ChatLockedView: View {
 ///   signedin   the member's view (questions go out signed out: the
 ///              function answers "Sign in first.")
 ///   sample     a finished conversation with every mark the renderer knows
+///   showcase   the same without its error and stopped answers (store screenshots;
+///              add the arguments `-aiConsent.v1 YES` to hide the sharing-off note)
 ///   tools      runs three of the AI's tools in the engine and shows them
 ///   ask:<q>    asks <q> as soon as the sheet opens
 ///   stop:<q>   asks <q>, then presses stop four seconds in
 ///   long       fills the question box past the 2,000-character limit
-/// and SIMCTL_CHILD_PP_CHAT_URL=http://127.0.0.1:<port> sends the questions
+///   consent    asks a question, so the consent sheet opens (unless already allowed)
+/// Questions go out only once AI sharing is allowed: tap Allow, or launch
+/// with the arguments `-aiConsent.v1 YES`. And SIMCTL_CHILD_PP_CHAT_URL=http://127.0.0.1:<port> sends the questions
 /// to a stand-in for the league-chat function instead.
 enum DebugChat {
     static var mode: String? { ProcessInfo.processInfo.environment["PP_CHAT"] }
@@ -662,6 +909,8 @@ enum DebugChat {
         guard let mode else { return }
         if mode == "sample" {
             chat.loadSample(sample)
+        } else if mode == "showcase" {
+            chat.loadSample(showcase)
         } else if mode == "tools" {
             await chat.sampleTools(engine: engine)
         } else if mode.hasPrefix("ask:"), chat.shown.isEmpty {
@@ -701,5 +950,19 @@ enum DebugChat {
         ChatMessage(role: .user, text: "Who choked hardest?"),
         ChatMessage(role: .assistant, text: "**WaiverWendy** went 11-3 and lost her first playoff game by **0.42**\n\n*(stopped)*"),
     ]
+
+    /// The sample without its error and stopped answers (and their
+    /// questions), for store screenshots.
+    static var showcase: [ChatMessage] {
+        var kept: [ChatMessage] = []
+        for message in sample {
+            if message.role == .assistant, message.error || message.text.contains("(stopped)") {
+                kept.removeLast()
+            } else {
+                kept.append(message)
+            }
+        }
+        return kept
+    }
 }
 #endif

@@ -2,7 +2,8 @@ import SwiftUI
 
 /// The account panel (account.js drawPanel): who's signed in, the leagues
 /// on the account (open, unsync), the ESPN accounts whose keys are saved,
-/// the profile, and signing out. Signed out, it's the sign-in dialog.
+/// the profile, the legal pages, signing out and deleting the account.
+/// Signed out, it's the sign-in dialog.
 struct AccountScreen: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
@@ -43,6 +44,9 @@ private struct AccountPanel: View {
     @State private var profileError: String?
     @State private var savingProfile = false
     @State private var confirmSignOut = false
+    @State private var confirmDelete = false
+    @State private var deleting = false
+    @State private var deleteError: String?
 
     private var account: AccountStore { app.account }
 
@@ -75,7 +79,12 @@ private struct AccountPanel: View {
                 Button("Sign out", role: .destructive) { confirmSignOut = true }
                     .frame(maxWidth: .infinity)
             }
+
+            AboutSection()
+            deleteSection
         }
+        .disabled(deleting)
+        .interactiveDismissDisabled(deleting)
         .scrollContentBackground(.hidden)
         .background(Theme.page)
         .navigationTitle("Your account")
@@ -102,6 +111,12 @@ private struct AccountPanel: View {
         .confirmationDialog("Sign out?", isPresented: $confirmSignOut, titleVisibility: .hidden) {
             Button("Sign out", role: .destructive) { Task { await signOut() } }
         }
+        .alert("Delete your account?", isPresented: $confirmDelete) {
+            Button("Delete Account", role: .destructive) { Task { await deleteAccount() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your account, the leagues synced to it and any ESPN keys saved to it. It can't be undone.")
+        }
     }
 
     // MARK: Leagues
@@ -109,7 +124,7 @@ private struct AccountPanel: View {
     private var leaguesSection: some View {
         Section {
             if account.leagues.isEmpty {
-                Text("No leagues yet. Open one from the front page and add it to your account.")
+                Text("No leagues yet. Find one and open it, and it's added to your account.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink2)
             }
@@ -194,7 +209,7 @@ private struct AccountPanel: View {
     private var espnSection: some View {
         Section {
             if finder.connected.isEmpty {
-                Text("No ESPN keys saved. A private ESPN league opens with your ESPN keys (espn_s2 and SWID): add them on the front page, under ESPN ▸ Private league?")
+                Text("No ESPN keys saved. A private ESPN league opens with your ESPN keys (espn_s2 and SWID): add them with Connect ESPN.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink2)
             }
@@ -237,7 +252,7 @@ private struct AccountPanel: View {
         } header: {
             Text("ESPN accounts")
         } footer: {
-            Text("Keys saved to your account are encrypted and only used to read your leagues, through the site's relay to ESPN. Forget removes an account's keys everywhere.")
+            Text("Keys saved to your account are encrypted and only used to read your leagues, through Pigskin Pantheon's relay to ESPN. Forget removes an account's keys everywhere.")
         }
     }
 
@@ -285,7 +300,80 @@ private struct AccountPanel: View {
     private func signOut() async {
         await account.signOut()
         account.say("Signed out.")
-        // A real league is for signed-in members: losing access closes it.
-        if let league = app.league, !league.isDemo { app.closeLeague() }
+        // On the site's rule a real league is for signed-in members; in the
+        // app it stays open.
+        if Supabase.requireAccount, let league = app.league, !league.isDemo { app.closeLeague() }
+    }
+
+    // MARK: Deleting the account
+
+    private var deleteSection: some View {
+        Section {
+            Button(role: .destructive) {
+                confirmDelete = true
+            } label: {
+                HStack {
+                    Text("Delete Account")
+                    if deleting { Spacer(); ProgressView() }
+                }
+                .frame(maxWidth: .infinity)
+            }
+        } footer: {
+            if let deleteError {
+                Text(deleteError).foregroundStyle(Theme.red)
+            }
+        }
+    }
+
+    /// Gone on the server first; only then signed out here, and the sheet
+    /// shows the signed-out account (the sign-in dialog).
+    private func deleteAccount() async {
+        deleting = true
+        deleteError = nil
+        defer { deleting = false }
+        do {
+            try await account.deleteAccount()
+            account.say("Your account has been deleted.")
+        } catch {
+            deleteError = error.localizedDescription
+        }
+    }
+}
+
+/// The legal pages, support and the app's version (App Review wants them
+/// reachable from inside the app). The pages open in Safari.
+struct AboutSection: View {
+    private var version: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) (\(build))"
+    }
+
+    var body: some View {
+        Section {
+            Link(destination: Legal.privacy) { row("Privacy Policy", "hand.raised") }
+            Link(destination: Legal.terms) { row("Terms of Service", "doc.text") }
+            Link(destination: Legal.support) { row("Support", "questionmark.circle") }
+            if let mail = URL(string: "mailto:\(Legal.supportEmail)") {
+                Link(destination: mail) { row("Email Support", "envelope") }
+            }
+            LabeledContent("Version", value: version)
+        } header: {
+            Text("About")
+        } footer: {
+            Text(Legal.disclaimer)
+        }
+    }
+
+    private func row(_ title: String, _ icon: String, detail: String? = nil) -> some View {
+        HStack {
+            Label(title, systemImage: icon)
+            Spacer(minLength: 8)
+            if let detail {
+                Text(detail).font(.subheadline).foregroundStyle(Theme.ink3).lineLimit(1)
+            }
+            Image(systemName: "arrow.up.right").font(.caption.weight(.bold)).foregroundStyle(Theme.ink3)
+        }
     }
 }

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="How Pigskin Pantheon handles your information: accounts, league data, private ESPN keys, the Ask the League AI chat, analytics and how to delete your account." />
+  <title>Privacy Policy · Pigskin Pantheon</title>
+  <link rel="canonical" href="https://pigskinpantheon.com/privacy.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Pigskin Pantheon" />
+  <meta property="og:title" content="Privacy Policy · Pigskin Pantheon" />
+  <meta property="og:description" content="How Pigskin Pantheon handles your information: accounts, league data, private ESPN keys, the Ask the League AI chat, analytics and how to delete your account." />
+  <meta property="og:url" content="https://pigskinpantheon.com/privacy.html" />
+  <meta property="og:image" content="https://pigskinpantheon.com/img/landing/og.jpg" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#071827" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pantheon" />
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <script src="pwa.js" defer></script>
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="landing.css" />
+  <style>
+    /* Long-form text for the legal and support pages. */
+    body.lp:not(#_) {
+      --lg-page: #eef2f6;
+      --lg-card: #ffffff;
+      --lg-ink: #0b1726;
+      --lg-muted: #586679;
+      --lg-line: #dce3eb;
+      --lg-link: #1769e0;
+      --lg-soft: #f5f7fa;
+      background: var(--lg-page);
+      color: var(--lg-ink);
+    }
+    @media (prefers-color-scheme: dark) {
+      body.lp:not(#_) {
+        --lg-page: #08121d;
+        --lg-card: #0f1e2f;
+        --lg-ink: #e6edf5;
+        --lg-muted: #9db0c3;
+        --lg-line: #223750;
+        --lg-link: #7fb2ff;
+        --lg-soft: #132740;
+      }
+    }
+    .lg-main { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
+    .lg { background: var(--lg-card); border: 1px solid var(--lg-line); border-radius: 20px; padding: 28px 22px 32px; font-size: 16.5px; line-height: 1.7; color: var(--lg-ink); }
+    @media (min-width: 640px) { .lg { padding: 44px 48px 52px; } }
+    .lg h1 { margin: 0 0 6px; font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: clamp(34px, 7vw, 46px); line-height: 1.05; letter-spacing: .02em; text-transform: uppercase; color: var(--lg-ink); }
+    .lg .lg-meta { margin: 0 0 22px; color: var(--lg-muted); font-size: 14.5px; }
+    .lg h2 { margin: 34px 0 8px; font-size: 21px; line-height: 1.3; font-weight: 700; color: var(--lg-ink); }
+    .lg h3 { margin: 22px 0 4px; font-size: 17px; font-weight: 700; color: var(--lg-ink); }
+    .lg p { margin: 0 0 14px; }
+    .lg ul, .lg ol { margin: 0 0 14px; padding-left: 22px; }
+    .lg li { margin: 0 0 7px; }
+    .lg a { color: var(--lg-link); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+    .lg a:focus-visible, .lg summary:focus-visible { outline: 3px solid var(--lp-gold); outline-offset: 2px; border-radius: 4px; }
+    .lg .lg-box { margin: 0 0 20px; padding: 16px 18px; background: var(--lg-soft); border: 1px solid var(--lg-line); border-radius: 14px; }
+    .lg .lg-box p:last-child, .lg .lg-box ul:last-child { margin-bottom: 0; }
+    .lg .lg-box h2 { margin-top: 0; font-size: 18px; }
+    .lg .lg-caps { font-size: 15px; text-transform: uppercase; letter-spacing: .01em; }
+    .lg details { margin: 0 0 10px; border: 1px solid var(--lg-line); border-radius: 14px; background: var(--lg-soft); }
+    .lg summary { cursor: pointer; padding: 14px 18px; font-weight: 700; list-style: none; }
+    .lg summary::-webkit-details-marker { display: none; }
+    .lg summary::before { content: "+"; display: inline-block; width: 1.2em; font-weight: 700; color: var(--lg-muted); }
+    .lg details[open] summary::before { content: "\2212"; }
+    .lg details > div { padding: 0 18px 4px 38px; }
+    .lg .lg-toc { margin: 0 0 20px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+    .lg .lg-toc a { display: inline-block; padding: 6px 12px; border: 1px solid var(--lg-line); border-radius: 999px; background: var(--lg-soft); font-size: 14px; font-weight: 600; text-decoration: none; color: var(--lg-ink); }
+    .lg .lg-toc a:hover { border-color: var(--lg-link); }
+    .lg-mail { display: inline-flex; margin: 4px 0 14px; text-decoration: none !important; color: var(--lp-navy) !important; }
+    html:has(body.lp) { scroll-padding-top: 84px; }
+  </style>
+</head>
+<body class="lp">
+  <a class="lp-skip" href="#main">Skip to the page</a>
+
+  <header class="lp-nav" id="top">
+    <div class="lp-wrap lp-nav-inner">
+      <a class="lp-logo" href="index.html" aria-label="Pigskin Pantheon home">
+        <img src="icons/crest.png" alt="" width="40" height="40" />
+        <span>Pigskin <span class="brand-accent">Pantheon</span></span>
+      </a>
+      <nav class="lp-links" aria-label="Legal and help">
+        <a href="privacy.html" aria-current="page">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="support.html">Support</a>
+      </nav>
+      <div class="lp-nav-end">
+        <a class="lp-btn lp-btn-gold lp-btn-sm" href="index.html#find">Open <span class="lp-long">your </span>league</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="lg-main" id="main">
+    <article class="lg">
+      <h1>Privacy Policy</h1>
+      <p class="lg-meta">Effective October 8, 2026 · Applies to the Pigskin Pantheon website (pigskinpantheon.com) and the Pigskin Pantheon iPhone app</p>
+
+      <div class="lg-box">
+        <h2>The short version</h2>
+        <ul>
+          <li>You sign in with an email address and password. We store your email, a display name, the leagues you add and a few usage counts.</li>
+          <li>Your league's scores, standings and history are read from Sleeper's and ESPN's own services, on your device, and cached there.</li>
+          <li>Private ESPN leagues need your ESPN <code>espn_s2</code> and <code>SWID</code> cookies. We keep them on your device, and only save them to your account (encrypted) if you choose to.</li>
+          <li>When you use Ask the League, your question and a text summary of your league are sent through our server to Google (Gemini) and, as a backup, Anthropic (Claude) to write an answer. The app asks your permission before your first question.</li>
+          <li>The iPhone app has no ads, no analytics and no tracking. We do not sell your data.</li>
+          <li>You can delete your account in the app (Account, then Delete Account) or by emailing <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a>.</li>
+        </ul>
+      </div>
+
+      <ul class="lg-toc" aria-label="Sections">
+        <li><a href="#who">Who we are</a></li>
+        <li><a href="#collect">What we collect</a></li>
+        <li><a href="#espn-keys">ESPN keys</a></li>
+        <li><a href="#league-data">League data</a></li>
+        <li><a href="#ai">Ask the League (AI)</a></li>
+        <li><a href="#tracking">Analytics and ads</a></li>
+        <li><a href="#payments">Payments</a></li>
+        <li><a href="#sharing">Who we share with</a></li>
+        <li><a href="#retention">Retention and deletion</a></li>
+        <li><a href="#rights">Your rights</a></li>
+        <li><a href="#children">Children</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+
+      <h2 id="who">Who we are</h2>
+      <p>Pigskin Pantheon (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an independent fantasy football history service run by an individual developer based in the United States. It turns a Sleeper or ESPN fantasy football league's history into recaps, a record book, player cards, a trophy room and an AI historian. We are the controller of the personal information described in this policy. You can reach us at <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a>.</p>
+
+      <h2 id="collect">What we collect</h2>
+      <h3>Account information</h3>
+      <p>When you create an account we collect your email address and a password, and optionally a display name. Sign-in and password storage are handled by Supabase, our account provider. We never see or store your password in readable form: Supabase keeps only a salted hash. The website can also offer sign-in with Google when that option is switched on; if you use it, Google tells us your name and email address. We do not receive your Google password.</p>
+      <h3>What you enter and what you sync</h3>
+      <ul>
+        <li>Your Sleeper username, if you enter one, and the ESPN league IDs you enter.</li>
+        <li>The leagues you add to your account: each league's ID (and the IDs of its earlier seasons), its name and its avatar picture address. This lets your leagues follow you from one device to another.</li>
+        <li>A log of when you added or removed a league (&ldquo;league changes&rdquo;), which we use to apply plan limits and to answer support questions.</li>
+        <li>If you take part in a League Pass (a website feature for groups, not currently offered), the pass's league, its seats and who holds them.</li>
+      </ul>
+      <h3>Usage counts for the AI chat</h3>
+      <p>To keep the AI chat within a fair daily allowance, we record how many new questions your account asked each day. We do not store the text of your questions or of the answers on our servers.</p>
+      <h3>Messages to us</h3>
+      <p>If you email us we keep the message and your address so we can reply and keep a record of the request.</p>
+      <h3>Technical data</h3>
+      <p>Our hosting and service providers (see <a href="#sharing">Who we share with</a>) may process technical data such as IP address, device and browser type and request times in the ordinary course of delivering their service and keeping it secure. We do not use this to build profiles about you.</p>
+      <h3>On your device</h3>
+      <p>The website and the app keep data on your device so they work faster and remember your place: finished seasons of your leagues (cached for about a month), recently opened leagues, your sign-in session, and your Ask the League conversation for the length of a browser tab on the website. On iPhone the sign-in session is kept in the Keychain. Deleting the app (or clearing the site's data in your browser) removes these.</p>
+
+      <h2 id="espn-keys">Private ESPN leagues and your ESPN keys</h2>
+      <p>A public ESPN league needs nothing but its league ID. A private ESPN league only opens with your ESPN <code>espn_s2</code> and <code>SWID</code> cookies, which work like a password to your ESPN account. We treat them that way:</p>
+      <ul>
+        <li>The keys you enter are kept on your device.</li>
+        <li>To read a private league, your device sends the keys to our relay, a server function that adds them as cookies to a read-only request to ESPN's fantasy football service and passes ESPN's answer straight back. The relay only talks to ESPN's fantasy football addresses, never logs your keys and never sends them anywhere but ESPN.</li>
+        <li>If you are signed in, you can choose to also save the keys to your account (a box you can untick) so your private leagues open on your other devices. Saved keys are encrypted with AES-GCM by a server function before they reach our database, bound to your account, and are readable only by that function. They are never sent back to your browser or app.</li>
+        <li>You can remove them at any time with Forget on the ESPN account's row, which removes them from the device and from your account. Deleting your account removes them too.</li>
+      </ul>
+      <p>Only enter keys for your own ESPN account. We use them only to read the league you open.</p>
+
+      <h2 id="league-data">League data from Sleeper and ESPN</h2>
+      <p>The website and the app read your league's data (managers, teams, scores, rosters, transactions) from Sleeper's public API and ESPN's fantasy API. For Sleeper leagues and public ESPN leagues, your device makes these requests directly to Sleeper or ESPN, so they see your device's IP address and the league you request, as they would if you opened their own sites. Private ESPN leagues go through our relay as described above. We do not copy a league's data to our servers, except for the AI chat described next. Sleeper's and ESPN's own privacy policies apply to what they receive: see <a href="https://sleeper.com/privacy" target="_blank" rel="noopener">Sleeper</a> and <a href="https://privacy.thewaltdisneycompany.com/en/" target="_blank" rel="noopener">ESPN (The Walt Disney Company)</a>.</p>
+
+      <h2 id="ai">Ask the League (AI chat)</h2>
+      <p>Ask the League lets signed-in members ask an AI historian questions about a league. To answer, the app or website sends, through our server:</p>
+      <ul>
+        <li>your question and the conversation so far;</li>
+        <li>a text summary of the league, written on your device from the data it already loaded: manager and team display names, scores, records, standings, champions, head-to-head results, transactions such as trades and waiver pickups, and player names and points; and</li>
+        <li>if the AI asks for more detail, the extra league information it requests (for example one week's lineups).</li>
+      </ul>
+      <p>Our server adds our instructions and an API key and forwards this to <strong>Google's Gemini API</strong>, a third-party AI provider, to generate the answer. If Google cannot answer (for example, when it is overloaded or a daily limit is reached), the same material is sent instead to <strong>Anthropic's Claude API</strong>, another third-party AI provider. The answer is streamed back to you.</p>
+      <p>Both providers receive the text described above and act as our service providers. They have their own privacy practices: see <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a> and the <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Gemini API Additional Terms</a>, and <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic's Privacy Policy</a>. We use Gemini's free (unpaid) tier. Under Google's terms for unpaid services, Google may use content sent to it, and human reviewers may read it, to provide, improve and develop its products and machine-learning technologies. For that reason, the league summary and your questions may be used by Google in this way. Do not put sensitive personal information in your questions.</p>
+      <p>The app asks for your permission before your first question and names these providers; if you decline, nothing is sent. Our server does not store the text of your questions or the answers, and does not keep the league summary after the request is finished. It records only the daily question count described above. (Providers may keep what they receive for the periods in their own policies.) On the website your conversation is kept in your browser tab and disappears when you close the tab.</p>
+      <p>AI answers are generated automatically and can be wrong. See our <a href="terms.html">Terms of Service</a>.</p>
+
+      <h2 id="tracking">Analytics, ads and tracking</h2>
+      <ul>
+        <li><strong>iPhone app:</strong> no analytics, no advertising, no ad identifiers and no tracking. We do not track you across other companies' apps or websites, and the app does not use App Tracking Transparency because it has nothing to ask permission for.</li>
+        <li><strong>Website:</strong> where configured, the site uses Cloudflare Web Analytics to count visits (page views, referrers, countries and device types). It sets no cookies and does not fingerprint visitors. This page, the Terms and the Support page do not load it. The website currently shows no ads. If we ever turn ads on, we will update this policy first and name the ad provider.</li>
+        <li>We do not sell your personal information or share it for cross-context behavioral advertising.</li>
+      </ul>
+
+      <h2 id="payments">Payments</h2>
+      <p>Everything in Pigskin Pantheon is currently free. The website has the groundwork for paid plans. If paid plans are offered on the website, payment is handled by Stripe, which collects your payment details directly; we never see or store your card number. We keep Stripe's customer and subscription identifiers and your plan status on your profile so we can tell what you have paid for. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's Privacy Policy</a>. The iPhone app has no in-app purchases.</p>
+
+      <h2 id="use">How we use information</h2>
+      <ul>
+        <li>to create and secure your account, and send the emails you ask for (confirmation and password reset);</li>
+        <li>to show your leagues and open private ESPN leagues for you;</li>
+        <li>to answer your Ask the League questions and keep its use within daily limits;</li>
+        <li>to respond to support requests, prevent abuse and keep the service working; and</li>
+        <li>to meet legal obligations.</li>
+      </ul>
+
+      <h2 id="sharing">Who we share with</h2>
+      <p>We share personal information only with service providers who help us run the service, and only as needed:</p>
+      <ul>
+        <li><strong>Supabase</strong>: accounts, our database and server functions (<a href="https://supabase.com/privacy" target="_blank" rel="noopener">privacy policy</a>).</li>
+        <li><strong>Google</strong> (Gemini API) and <strong>Anthropic</strong> (Claude API): the AI chat, as described above.</li>
+        <li><strong>Stripe</strong>: payments on the website, if plans are offered.</li>
+        <li><strong>Cloudflare</strong>: cookieless website analytics (<a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">privacy policy</a>).</li>
+        <li><strong>GitHub</strong>: hosts the website's static files (<a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">privacy statement</a>).</li>
+        <li>An email delivery provider that sends account emails on our behalf.</li>
+        <li><strong>Sleeper and ESPN</strong>: your device (or our relay, for private ESPN leagues) requests league data from them, as described above.</li>
+      </ul>
+      <p>We may also disclose information if the law requires it, or to protect the rights, safety and security of our users or the service. We do not sell personal information.</p>
+
+      <h2 id="retention">Retention and deletion</h2>
+      <p>We keep your account information and synced leagues while your account exists. You can delete your account in the iPhone app (Account, then Delete Account) or by emailing <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> from the address on the account. Deletion removes your profile, your synced leagues and league change log, any ESPN keys saved to your account, and your chat usage counts, plus any League Pass you own and your seat on any pass. Deletion does not cancel a paid subscription held with Stripe (none exist while everything is free); cancel it there first. Backups may keep copies for a short time before they are overwritten. Payment records held by Stripe may be kept as the law requires.</p>
+      <p>Data cached on your device is not on our servers; it is removed when you delete the app or clear the site's data in your browser. Content sent to Google or Anthropic for the AI chat is kept by them under their own policies, and deleting your account here does not change that.</p>
+
+      <h2 id="rights">Your rights and choices</h2>
+      <p>Depending on where you live (for example under the GDPR or the California Consumer Privacy Act) you may have the right to know what personal information we hold about you, to get a copy, to correct it, to delete it, to object to or restrict some uses, and not to be discriminated against for using these rights. You can edit your display name in the account screen, and delete your account yourself. For anything else, email <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> and we will respond within the time the law allows (generally 30 days). We may need to confirm that the request comes from the account's owner. If you are in the European Economic Area or the United Kingdom, you may also complain to your local data protection authority.</p>
+      <p>Where the law requires a legal basis for processing, ours are: performing our contract with you (providing the service), our legitimate interests in running and securing it, your consent (such as before the first AI question) and compliance with legal obligations.</p>
+
+      <h2 id="security">Security</h2>
+      <p>We use reasonable safeguards: connections are encrypted with HTTPS, passwords are stored only as hashes by Supabase, saved ESPN keys are encrypted and readable only by one server function, and database access is restricted by row-level security. No system is perfectly secure, and we cannot guarantee absolute security.</p>
+
+      <h2 id="transfers">International transfers</h2>
+      <p>Our servers and our providers' servers are mainly in the United States. If you use the service from another country, your information is transferred to and processed in the United States, where data protection laws may differ from those where you live.</p>
+
+      <h2 id="children">Children</h2>
+      <p>Pigskin Pantheon is not directed to children under 13, and you must be at least 13 to create an account. We do not knowingly collect personal information from children under 13. If you believe a child has given us information, email us and we will delete it.</p>
+
+      <h2 id="changes">Changes to this policy</h2>
+      <p>We may update this policy as the service changes. We will post the new version here with a new effective date, and if a change is significant we will tell you in the app or by email. Using the service after a change means you accept it.</p>
+
+      <h2 id="contact">Contact</h2>
+      <p>Questions, requests or complaints about privacy: <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a>. See also our <a href="terms.html">Terms of Service</a> and <a href="support.html">Support</a> page.</p>
+    </article>
+  </main>
+
+  <footer class="footer lp-footer">
+    <div class="lp-wrap lp-footer-inner">
+      <a class="lp-logo lp-logo-sm" href="index.html"><img src="icons/crest.png" alt="" width="28" height="28" /><span>Pigskin <span class="brand-accent">Pantheon</span></span></a>
+      <p><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="support.html">Support</a></p>
+      <p>Not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA.</p>
+    </div>
+  </footer>
+</body>
+</html>

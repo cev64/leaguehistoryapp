@@ -11,15 +11,19 @@ final class AppModel {
     var recents: [RecentLeague] = RecentLeague.load()
     let account = AccountStore()
 
-    /// Opens a league by its id ("demo", a Sleeper id, "espn-<id>"). The
-    /// site's own rule: a league page is for signed-in members (the demo is
-    /// for everyone), so a real league waits on the account first.
+    /// Who was signed in when the open league last heard: signing in with
+    /// a league open adds it to the account.
+    @ObservationIgnored private var leagueUser: String?
+
+    /// Opens a league by its id ("demo", a Sleeper id, "espn-<id>"). Signed
+    /// in, a real league is added to the account once it loads; signed out,
+    /// it opens all the same, unsynced (`Supabase.requireAccount`).
     func open(_ id: String) {
         let id = id.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !id.isEmpty else { return }
         if let league, league.id == id { return }
-        // Signed out, a real league waits on the sign-in sheet (on the front
-        // page), and opens once they're in (account.js admit()).
+        // Only when the account is required (the site's rule): signed out, a
+        // real league waits on the sign-in sheet and opens once they're in.
         guard account.mayOpen(id) else {
             closeLeague()
             account.askToSignIn(for: id)
@@ -30,17 +34,20 @@ final class AppModel {
         league?.close()
         let session = LeagueSession(id: id, app: self)
         league = session
+        leagueUser = account.user?.id
         // A session that changes while the league is open (signed in later,
-        // a fresh token) goes to its engine too. Signed out (here, or turned
-        // away when the token was refreshed), a real league closes, as the
-        // site reloads into its gate (account.js relock).
+        // a fresh token) goes to its engine too. Signed in later, the league
+        // goes on the account; signed out, it stays open.
         account.observeSession("league") { [weak self] s in
             guard let self, let league = self.league else { return }
             if s == nil, !league.isDemo, Supabase.requireAccount {
                 self.closeLeague()
-            } else {
-                league.resendSession(s)
+                return
             }
+            league.resendSession(s)
+            let user = self.account.user?.id
+            if let user, user != self.leagueUser { Task { await self.admit(league) } }
+            self.leagueUser = user
         }
         Task {
             await account.freshen()
@@ -58,12 +65,17 @@ final class AppModel {
 
     /// The gate once the league has loaded: a real league is added to the
     /// member's account (sync_league), as account.js does. If it can't be,
-    /// the league closes and the front page says why ("Couldn't add …").
+    /// the account isn't needed to look at it, so it stays open and says
+    /// why; on the site's rule it closes and the front page says why.
     func admit(_ session: LeagueSession) async {
         guard league === session, !session.isDemo, session.phase == .ready, let summary = session.summary else { return }
         if let message = await account.admit(summary), league === session {
-            closeLeague()
-            account.gateFailure = AccountStore.GateFailure(id: session.id, name: summary.name, message: message)
+            if Supabase.requireAccount {
+                closeLeague()
+                account.gateFailure = AccountStore.GateFailure(id: session.id, name: summary.name, message: message)
+            } else {
+                account.say("Couldn't add \(summary.name) to your account. \(message)")
+            }
         }
     }
 

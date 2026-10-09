@@ -160,7 +160,9 @@ private struct BookTitlesCard: View {
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundStyle(Theme.ink3)
                                 .frame(width: 22, alignment: .leading)
-                            BookManagerLabel(face: manager)
+                            // The count and years columns are fixed, so a long
+                            // team name wraps rather than being cut.
+                            BookManagerLabel(face: manager, teamLines: 2)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text(row.marks)
                                 .font(.system(size: 13, weight: .heavy))
