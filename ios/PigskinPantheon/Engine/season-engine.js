@@ -23,10 +23,12 @@
     const LAST_WEEK = HAS_PLAYOFFS ? Math.max(REGULAR_WEEKS, S.lastWeek) : REGULAR_WEEKS;
 
     /* A team's mark for a badge: their Sleeper avatar where there is one,
-       otherwise the first character of the team's name. */
+       otherwise the first character of the team's name. The logo comes from
+       the league, so only an http(s) or data:image address is used, escaped. */
+    const safeLogo = (src) => (typeof src === "string" && /^(https?:\/\/|data:image\/)/i.test(src.trim()) ? src.trim() : "");
     const teamMark = (team) => {
-      const src = team && team.ownerId && window.TEAM_LOGOS && window.TEAM_LOGOS[team.ownerId];
-      return src ? `<img class="team-logo" src="${src}" alt="">` : League.esc((team && team.icon) || "");
+      const src = safeLogo(team && team.ownerId && window.TEAM_LOGOS && window.TEAM_LOGOS[team.ownerId]);
+      return src ? `<img class="team-logo" src="${League.esc(src)}" alt="">` : League.esc((team && team.icon) || "");
     };
 
     const teams = season.teams;

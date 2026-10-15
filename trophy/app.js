@@ -877,24 +877,29 @@ function onCurrentChanged(index) {
   if (history.replaceState) history.replaceState(null, "", `${location.pathname}${location.search}#${item.id}`);
 }
 
+/* Titles, stats and link labels carry team and manager names straight from
+   the league, so every value is escaped before it goes into the sheet. */
+const esc = (value) => String(value == null ? "" : value)
+  .replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
 function fillSheet(item) {
   dom.sheetWing.textContent = item.wingName;
   dom.sheetWing.style.color = item.accent;
   dom.sheetTitle.textContent = item.kind === "plaque" ? item.bigValue : item.title;
   dom.sheetSub.innerHTML = item.kind === "plaque"
-    ? `<strong>${item.title}</strong> · ${item.subtitle}`
-    : `<strong>${item.subtitle}</strong>${item.owner && item.owner !== item.subtitle ? ` · ${item.owner}` : ""}`;
+    ? `<strong>${esc(item.title)}</strong> · ${esc(item.subtitle)}`
+    : `<strong>${esc(item.subtitle)}</strong>${item.owner && item.owner !== item.subtitle ? ` · ${esc(item.owner)}` : ""}`;
   dom.sheetBlurb.textContent = item.blurb || "";
 
   dom.sheetStats.innerHTML = (item.stats || []).map((stat) => `
     <div class="stat">
-      <dt>${stat.label}</dt>
-      <dd>${stat.value}</dd>
+      <dt>${esc(stat.label)}</dt>
+      <dd>${esc(stat.value)}</dd>
     </div>
   `).join("");
 
   dom.sheetLinks.innerHTML = (item.links || []).map((link) => `
-    <a class="sheet-link" href="${link.href}">${link.label} <span aria-hidden="true">→</span></a>
+    <a class="sheet-link" href="${esc(link.href)}">${esc(link.label)} <span aria-hidden="true">→</span></a>
   `).join("");
 }
 
@@ -1128,7 +1133,8 @@ function applyDeepLink() {
 
   const team = target.match(/^locker=(.+)$/);
   if (team) {
-    const ownerId = decodeURIComponent(team[1]);
+    let ownerId;
+    try { ownerId = decodeURIComponent(team[1]); } catch (err) { return; }
     if (hall.lockers[ownerId]) setTimeout(() => openLocker(ownerId), 60);
     return;
   }

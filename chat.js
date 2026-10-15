@@ -1053,7 +1053,6 @@
       try {
         const leagueText = await digest();
         for (let round = 0; ; round++) {
-          if (round > MAX_TOOL_ROUNDS) throw new ChatError("That one needed too many look-ups. Try asking it more narrowly.", "too_many_steps");
           if (text && !/\n\n$/.test(text)) text += "\n\n";
           const done = await post({ league: model.name, digest: leagueText, messages: history }, busy.signal, (event) => {
             if (event.t === "text") {
@@ -1072,6 +1071,8 @@
           if (done.stop === "max_tokens" && uses.length) throw new ChatError("That answer ran too long. Try asking something narrower.", "max_tokens");
           history.push({ role: "assistant", content });
           if (done.stop !== "tool_use" || !uses.length) break;
+          // Round 0 is look-up 1: at most MAX_TOOL_ROUNDS are worked out.
+          if (round >= MAX_TOOL_ROUNDS) throw new ChatError("That one needed too many look-ups. Try asking it more narrowly.", "too_many_steps");
           // The AI asked for detail: work it out here and send it back,
           // every result in one turn.
           msgEl.classList.add("is-looking");
@@ -1132,7 +1133,9 @@
     // A plan change (upgrading, or preview's switch) redraws both.
     if (window.Account && window.Account.on) window.Account.on(() => { drawFab(); if (opened && !busy) draw(); });
     // A chat already under way on another page opens where it left off.
-    if (shown.length && sessionStorage.getItem(`${leagueKey}:open`) === "1") open();
+    let wasOpen = false;
+    try { wasOpen = sessionStorage.getItem(`${leagueKey}:open`) === "1"; } catch (err) { /* blocked */ }
+    if (shown.length && wasOpen) open();
     addEventListener("pagehide", () => {
       try { sessionStorage.setItem(`${leagueKey}:open`, opened ? "1" : "0"); } catch (err) { /* blocked */ }
     });

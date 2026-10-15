@@ -1808,9 +1808,12 @@
         </article>`;
 
       // A team as it was in a season, or a manager across all of them.
+      // The logo comes from the league, so only an http(s) or data:image
+      // address is used, escaped.
+      const safeLogo = (src) => (typeof src === "string" && /^(https?:\/\/|data:image\/)/i.test(src.trim()) ? src.trim() : "");
       const mark = (ownerId, icon) => {
-        const src = window.TEAM_LOGOS && window.TEAM_LOGOS[ownerId];
-        return src ? `<img class="team-logo" src="${src}" alt="">` : esc(icon || "");
+        const src = safeLogo(window.TEAM_LOGOS && window.TEAM_LOGOS[ownerId]);
+        return src ? `<img class="team-logo" src="${esc(src)}" alt="">` : esc(icon || "");
       };
       function seasonTeam(year, teamId) {
         const t = model.season(year).teams[teamId];

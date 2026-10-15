@@ -8,7 +8,7 @@
        copies in IndexedDB
    Bump CACHE_VERSION whenever the precache list or these rules change. */
 
-const CACHE_VERSION = 'v105';
+const CACHE_VERSION = 'v106';
 const SHELL_CACHE = `league-history-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `league-history-fonts-${CACHE_VERSION}`;
 
@@ -119,10 +119,16 @@ async function staleWhileRevalidate(request) {
   const cached = await cache.match(request);
   const network = fetch(request).then((response) => {
     // Opaque font responses are fine to store; they replay verbatim.
-    if (response && (response.ok || response.type === 'opaque')) cache.put(request, response.clone());
+    if (response && (response.ok || response.type === 'opaque')) cache.put(request, response.clone()).catch(() => {});
     return response;
-  }).catch(() => null);
-  return cached || network || fetch(request);
+  });
+  if (cached) {
+    // Refresh in the background; a failure here doesn't matter.
+    network.catch(() => {});
+    return cached;
+  }
+  // Nothing cached and offline: a plain network error, never respondWith(null).
+  return network.catch(() => Response.error());
 }
 
 self.addEventListener('fetch', (event) => {

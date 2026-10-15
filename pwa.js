@@ -45,9 +45,12 @@
     style.textContent = [
       '.lh-install {',
       '  position: fixed;',
-      '  z-index: 999;',
+      /* under the chat window (190) and the account dialogs (200+) */
+      '  z-index: 175;',
       '  right: max(16px, env(safe-area-inset-right));',
-      '  bottom: calc(16px + env(safe-area-inset-bottom));',
+      /* --lhc-lift (chat.css) is what lives at the foot: a phone's season
+         capsule, the trophy room's ad bar */
+      '  bottom: calc(var(--lhc-lift, 0px) + 16px + env(safe-area-inset-bottom));',
       '  display: flex;',
       '  align-items: center;',
       '  gap: 4px;',
@@ -94,6 +97,24 @@
       '  color: #9fb2c4;',
       '}',
       '.lh-install-close:hover { background: rgba(255, 255, 255, .1); color: #fff; }',
+      /* Ask the League's button (chat.css: 18px up, 50px tall) holds the
+         same corner, so the pill waits just above it, and goes away while
+         the chat is open. */
+      'html:has(.lhc-fab) .lh-install,',
+      'html:has(.season-nav.sn-bottom):has(.lhc-fab) .lh-install {',
+      '  bottom: calc(var(--lhc-lift, 0px) + 80px + env(safe-area-inset-bottom));',
+      '}',
+      /* On a phone the trophy room's foot is its controls and that button
+         sits under the header on the right, so the pill takes the left. */
+      '@media (max-width: 640px) {',
+      '  html:has(#hallAd) .lh-install {',
+      '    top: calc(66px + env(safe-area-inset-top));',
+      '    bottom: auto;',
+      '    left: max(14px, env(safe-area-inset-left));',
+      '    right: auto;',
+      '  }',
+      '}',
+      'html.lhc-open .lh-install { display: none; }',
     ].join('\n');
     document.head.appendChild(style);
   }

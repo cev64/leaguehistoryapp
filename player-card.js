@@ -613,10 +613,13 @@
 
   // A fantasy team's mark: the manager's Sleeper avatar where there is one,
   // otherwise the team's colour with its initial.
+  // The logo comes from the league, so only an http(s) or data:image address
+  // is used, escaped.
   function mark(team) {
-    const src = window.TEAM_LOGOS && window.TEAM_LOGOS[team.ownerId];
+    const raw = window.TEAM_LOGOS && window.TEAM_LOGOS[team.ownerId];
+    const src = typeof raw === "string" && /^(https?:\/\/|data:image\/)/i.test(raw.trim()) ? raw.trim() : "";
     return `<span class="pc-mark" style="--c:${team.color}" title="${esc(team.name)} · ${esc(team.owner)}">${
-      src ? `<img src="${src}" alt="">` : esc(team.name.trim().charAt(0))}</span>`;
+      src ? `<img src="${esc(src)}" alt="">` : esc(team.name.trim().charAt(0))}</span>`;
   }
 
   function teamOf(season, id) {
