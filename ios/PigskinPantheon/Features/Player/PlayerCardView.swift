@@ -80,9 +80,14 @@ private struct PCPlayerCardContent: View {
                         PCTilesRow(card: card, wide: wide)
                         PCTimelineCard(card: card, wide: wide)
                         if wide {
-                            HStack(alignment: .top, spacing: 12) {
-                                PCManagersCard(card: card).frame(maxWidth: .infinity).layoutPriority(1.1)
-                                PCTopCard(card: card).frame(maxWidth: .infinity)
+                            // Side by side, half each: a layout priority here
+                            // let the managers take the row and crushed the
+                            // medals to a sliver.
+                            Grid(horizontalSpacing: 12) {
+                                GridRow(alignment: .top) {
+                                    PCManagersCard(card: card)
+                                    PCTopCard(card: card)
+                                }
                             }
                             .id(PCSection.managers)
                         } else {

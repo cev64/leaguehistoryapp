@@ -255,28 +255,44 @@ private struct WideLeagueLayout: View {
     @ViewBuilder private var detail: some View {
         switch tab {
         case .season, .year:
-            NavigationStack {
+            LaunchStack(tab: tab) {
                 SeasonScreen(year: tab.year ?? session.year)
                     .leagueDestinations()
             }
         case .records:
-            NavigationStack {
+            LaunchStack(tab: tab) {
                 RecordBookScreen()
                     .leagueDestinations()
             }
         case .office:
-            NavigationStack {
+            LaunchStack(tab: tab) {
                 FrontOfficeScreen()
                     .leagueDestinations()
             }
         case .trophy:
             TrophyRoomScreen()
         case .search:
-            NavigationStack {
+            LaunchStack(tab: tab) {
                 PlayerSearchScreen()
                     .leagueDestinations()
             }
         }
+    }
+}
+
+/// A wide layout's page in its stack, opened on the launch route when one
+/// is set for its tab (PP_ROUTE, debug builds), as the phone's tabs are.
+private struct LaunchStack<Content: View>: View {
+    @State private var path: NavigationPath
+    @ViewBuilder var content: Content
+
+    init(tab: LeagueTab, @ViewBuilder content: () -> Content) {
+        _path = State(initialValue: NavigationPath(DebugLaunch.routes(for: tab)))
+        self.content = content()
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) { content }
     }
 }
 
