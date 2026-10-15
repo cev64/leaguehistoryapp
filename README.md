@@ -115,7 +115,8 @@ whole schedule with every week's score, the draft and the league's status;
 one call per final week for both lineups of every game; and, only when the
 front office is opened, one call per week for waivers and pickups plus the
 league's activity feed for trades. A finished season is kept in IndexedDB
-for a month, like Sleeper's.
+for a month, like Sleeper's, from a few days after its last game, once
+ESPN's stat corrections for the last week are in.
 
 How ESPN's data maps onto the site:
 

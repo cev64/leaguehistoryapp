@@ -478,10 +478,20 @@
       const d = await leagueGet(n, year, views("mSettings", "mTeam", "mMatchup", "mStandings", "mDraftDetail", "mStatus"));
       return d ? compactSeason(d, year) : null;
     });
-    // A season that finished this year keeps for a month from now on.
-    if (core && !past && isComplete(core, gs)) await storeSet(key, { t: Date.now() + TTL.finished - TTL.live, v: core });
+    /* A season that finished this year keeps for a month, once it has been
+       over a few days: ESPN's stat corrections for the last week land after
+       the title game is decided, and a copy kept from the night it ended
+       would keep the scores from before them for a month. */
+    if (core && !past && isComplete(core, gs) && await settled(key)) await storeSet(key, { t: Date.now() + TTL.finished - TTL.live, v: core });
     if (core) cores.set(`${n}:${year}`, core);
     return core;
+  }
+  /* Whether the season under `key` was first seen over more than SETTLE ago
+     (the first sighting is kept, for a month). */
+  const SETTLE = 4 * L._core.DAY;
+  async function settled(key) {
+    const since = await cachedFn(`${key}:over`, TTL.finished, async () => Date.now());
+    return Date.now() - since > SETTLE;
   }
 
   /* Over once ESPN has moved on to a later season, or has given every team
@@ -806,7 +816,9 @@
     // Every week that is final: its lineups.
     const mpOf = {};
     Object.keys(core.periods).forEach((mp) => spOf(mp).forEach((sp) => { mpOf[sp] = Number(mp); }));
-    const ttl = complete ? TTL.finished : L._core.DAY;
+    // Kept a month once the season is over and settled (seasonCore), a day
+    // while stat corrections can still come in.
+    const ttl = complete && (year < gs.season || await settled(`espn:season:${n}:${year}`)) ? TTL.finished : L._core.DAY;
     const weeks = [];
     for (let w = core.status.first || 1; w <= final; w++) weeks.push(w);
     const boxes = {};
