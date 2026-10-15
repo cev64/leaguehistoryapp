@@ -910,7 +910,7 @@ private struct BKCardView: View {
 
         if let route = game.boxScore(year: season.year) {
             NavigationLink(value: route) { content.contentShape(Rectangle()) }
-                .buttonStyle(PanelRowPressStyle())
+                .buttonStyle(Felt(PanelRowPressStyle()))
                 .accessibilityLabel("\(label), box score")
         } else {
             content
@@ -980,7 +980,7 @@ private struct BKRowView: View {
                 content(row: row, team: team)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(PanelRowPressStyle())
+            .buttonStyle(Felt(PanelRowPressStyle()))
             .accessibilityLabel(accessibility(row, team))
         } else {
             tbd

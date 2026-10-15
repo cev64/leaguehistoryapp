@@ -9,6 +9,8 @@
 import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
+import os from 'os';
+import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,5 +27,12 @@ for (const f of fs.readdirSync(ROOT).filter((f) => f.endsWith('.js'))) {
   try { new vm.Script(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }); }
   catch (e) { failed++; console.error(`${f}: ${e.message}`); }
 }
+// The iPhone app's copy of account-config.js, without the plans and prices
+// (ios/tools/app-account-config.sh): it has to parse too.
+try {
+  const out = path.join(os.tmpdir(), 'pp-app-account-config.js');
+  execFileSync('sh', [path.join(ROOT, 'ios/tools/app-account-config.sh'), path.join(ROOT, 'account-config.js'), out], { stdio: ['ignore', 'ignore', 'pipe'] });
+  new vm.Script(fs.readFileSync(out, 'utf8'), { filename: "account-config.js (the app's copy)" });
+} catch (e) { failed++; console.error(`account-config.js (the app's copy): ${e.stderr ? String(e.stderr).trim() : e.message}`); }
 console.log(failed ? `${failed} script(s) failed to parse` : 'all scripts parse');
 process.exit(failed ? 1 : 0);

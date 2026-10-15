@@ -196,7 +196,7 @@ private struct OfficeRowView: View {
     var body: some View {
         if row.picks.isEmpty {
             NavigationLink(value: row.who.route) { content }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
         } else {
             content
         }
@@ -215,7 +215,7 @@ private struct OfficeRowView: View {
                         OfficeWhoView(who: row.who)
                     } else {
                         NavigationLink(value: row.who.route) { OfficeWhoView(who: row.who) }
-                            .buttonStyle(.plain)
+                            .buttonStyle(Felt(.plain))
                     }
                     Spacer(minLength: 6)
                     OfficeBig(value: row.big, sub: row.bigSub, tone: row.tone)
@@ -311,7 +311,7 @@ private struct OfficeChipView: View {
                     }
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(Felt(.plain))
         .popover(isPresented: $showsHint) {
             Text(chip.hint)
                 .font(.footnote.weight(.semibold))
@@ -378,7 +378,7 @@ private struct OfficeItemView: View {
             .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(Felt(.plain))
         .contextMenu {
             ForEach(item.players, id: \.pid) { p in
                 Button { push(.player(id: p.pid)) } label: { Label(p.name, systemImage: "person") }
@@ -491,7 +491,7 @@ private struct OfficeSideView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(Felt(.plain))
             VStack(alignment: .leading, spacing: 5) {
                 if side.got.isEmpty {
                     Text("Nothing").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.muted)
@@ -532,7 +532,7 @@ private struct OfficeSideView: View {
         .contentShape(Rectangle())
         if let pid = got.pid {
             NavigationLink(value: LeagueRoute.player(id: pid)) { line }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
         } else {
             line
         }

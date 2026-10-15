@@ -352,7 +352,10 @@
         const ids = [...new Set([league.id, ...(league.ids || [])])];
         const had = u.leagues.find((l) => l.league_ids.some((x) => ids.includes(x)));
         if (had) {
-          had.league_ids = [...new Set([...had.league_ids, ...ids])];
+          // As sync_league() on the server: only Pro adds new ids to a row
+          // (without it they could be any league; the ids already there keep
+          // matching a renewed league).
+          if (!PRICING || planOf(db, u) === "pro") had.league_ids = [...new Set([...had.league_ids, ...ids])];
           had.name = league.name || had.name;
           had.avatar = league.avatar || had.avatar;
           save(db);
@@ -660,7 +663,10 @@
     if (row) {
       if (openLeagues().includes(row)) {
         const known = new Set(row.league_ids || []);
-        return { kind: "ok", refresh: league.ids.some((id) => !known.has(id)) };
+        // A renewal's new ids go on the row on Pro only (sync_league() keeps
+        // a free row's ids as they are), so a free member doesn't send a
+        // sync that changes nothing on every visit.
+        return { kind: "ok", refresh: isPro() && league.ids.some((id) => !known.has(id)) };
       }
       return { kind: "over-limit", row, current: openLeagues()[0] };
     }

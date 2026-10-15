@@ -167,10 +167,23 @@
     const entries = (season.matchups[week] || []).filter((e) => e.matchup_id != null);
     const rows = entries.map((e) => teamWeek(season, e, db)).filter(Boolean);
     const byTeam = Object.fromEntries(rows.map((r) => [r.teamId, r]));
-    // A regular-season loss the best lineup would have won.
+    /* A regular-season loss the best lineup would have won. A game over
+       several weeks (season.multiWeeks) is scored in its last, on all its
+       weeks' points, so every one of its weeks' bench points count. */
+    const span = (season.multiWeeks || {})[week] || [week];
+    const leftOver = {};
+    span.filter((w) => w !== week).forEach((w) => {
+      (season.matchups[w] || []).filter((e) => e.matchup_id != null).forEach((e) => {
+        const r = teamWeek(season, e, db);
+        if (r) leftOver[r.teamId] = (leftOver[r.teamId] || 0) + r.left;
+      });
+    });
     (season.results[week] || []).forEach(([a, as, b, bs]) => {
       [[a, as, bs], [b, bs, as]].forEach(([id, own, opp]) => {
-        if (byTeam[id]) byTeam[id].costGame = own < opp && byTeam[id].optimal > opp;
+        const r = byTeam[id];
+        if (!r) return;
+        if (span.length > 1) r.gameBest = round2(own + r.left + (leftOver[id] || 0));
+        r.costGame = own < opp && (span.length > 1 ? r.gameBest : r.optimal) > opp;
       });
     });
     return { year, week, rows: rows.sort((x, y) => y.left - x.left), byTeam };

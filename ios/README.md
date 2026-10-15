@@ -15,9 +15,11 @@ JavaScript and draws what it answers natively.
 
 - **The engine** (`PigskinPantheon/Engine/LeagueEngine.swift`) is a hidden
   `WKWebView` with the site's own address (`pigskinpantheon.com`), one per
-  open league, like a browser tab. It loads `account-config.js`,
-  `sleeper.js`, `espn.js`, `demo.js`, `insights.js` and `chat.js` straight
-  from the repository root, unchanged, so the app reads Sleeper and ESPN
+  open league, like a browser tab. It loads `sleeper.js`, `espn.js`,
+  `demo.js`, `insights.js` and `chat.js` straight from the repository root,
+  unchanged, and `account-config.js` without its plans, prices and payment
+  links (a build phase runs `tools/app-account-config.sh`; keep those
+  between its "site only" lines). So the app reads Sleeper and ESPN
   exactly as the site does: the same requests, the same IndexedDB cache
   (finished seasons kept a month), the same ESPN relay and league AI, which
   accept it because its origin is the site's.

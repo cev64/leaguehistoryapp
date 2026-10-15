@@ -96,7 +96,7 @@ struct RecapShareSheet: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 4)
                     }
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(Felt(.glassProminent))
 
                     HStack(spacing: 10) {
                         Button {
@@ -118,7 +118,7 @@ struct RecapShareSheet: View {
                             Label("Share as text", systemImage: "text.bubble")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(Felt(.glass))
                     }
                     .font(.subheadline.weight(.semibold))
                 }

@@ -40,18 +40,21 @@ struct RootView: View {
             if let id = DebugLaunch.league, app.league == nil { app.open(id) }
         }
         .onOpenURL { url in
-            // pigskinpantheon.com links and pantheon://league/<id>
+            // A league's link on the site (…?league=<id>, what "Share this
+            // league" sends). It only reaches the app once the app claims
+            // pigskinpantheon.com as a universal link (an Associated Domains
+            // entitlement and the site's apple-app-site-association); until
+            // then links open in Safari.
             if let id = DeepLink.leagueId(in: url) { app.open(id) }
         }
     }
 }
 
 enum DeepLink {
-    /// The league a link names: a site link (…?league=<id>) or pantheon://league/<id>.
+    /// The league a site link names (…?league=<id>).
     static func leagueId(in url: URL) -> String? {
         let parts = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        if let id = parts?.queryItems?.first(where: { $0.name == "league" })?.value, !id.isEmpty { return id }
-        if url.scheme == "pantheon", url.host == "league" { return url.pathComponents.dropFirst().first }
-        return nil
+        guard let id = parts?.queryItems?.first(where: { $0.name == "league" })?.value, !id.isEmpty else { return nil }
+        return id
     }
 }

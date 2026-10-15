@@ -153,7 +153,7 @@ private struct SOSRowView: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(Felt(.plain))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(row.rank). \(team?.name ?? row.id), \(row.aria), opponents went \(row.record)")
         .accessibilityAddTraits(.isButton)

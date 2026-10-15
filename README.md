@@ -115,7 +115,8 @@ whole schedule with every week's score, the draft and the league's status;
 one call per final week for both lineups of every game; and, only when the
 front office is opened, one call per week for waivers and pickups plus the
 league's activity feed for trades. A finished season is kept in IndexedDB
-for a month, like Sleeper's.
+for a month, like Sleeper's, from a few days after its last game, once
+ESPN's stat corrections for the last week are in.
 
 How ESPN's data maps onto the site:
 
@@ -129,6 +130,10 @@ How ESPN's data maps onto the site:
   ESPN's games. Seasons from before ESPN tagged its games are sorted by
   who is still alive. ESPN's consolation ladder is winners-move-on, never a
   toilet bowl. One- and two-week rounds are both handled.
+- **Two-week matchups**: a regular-season matchup period two weeks long is
+  one game, as ESPN counts it, decided by both weeks' points and counted in
+  the week it ends. Each week keeps its own box scores; the two-week totals
+  stay out of one-week records (highest week, blowouts).
 - **Final places** are ESPN's own (`rankCalculatedFinal`), so the
   champion, last place and the trophy room match what ESPN shows.
 - **Players** come from ESPN's own data (name, position, club, eligible
@@ -137,7 +142,9 @@ How ESPN's data maps onto the site:
   isn't loaded for an ESPN league.
 - **Lineup slots** map to Sleeper's (RB/WR is `WRRB_FLEX`, OP is
   `SUPER_FLEX`, ESPN's DT/DE/DL slots read as DL and CB/S/DB as DB), so the
-  lineup tools work unchanged.
+  lineup tools work unchanged. ESPN's team quarterback (TQB) and edge
+  rusher (ER) slots, which Sleeper doesn't have, keep their names and take
+  the players ESPN lets into them.
 - **Trades** come from the league's activity feed (2019 on), because ESPN's
   transaction list leaves the players out of other teams' trades. Waivers,
   pickups and FAAB bids come from the transaction list.
@@ -521,7 +528,13 @@ own domain.
   `league_changes` tables with row-level security, and `sync_league()` /
   `unsync_league()`, which enforce the free plan's one league and 30-day
   swap on the server; `has_pro()` and `app_settings` decide who counts as
-  Pro (everyone, for now).
+  Pro (everyone, for now). `20261016000000_league_limit.sql` makes the one
+  league hold: a per-member lock (no racing two syncs), a free row never
+  gains new league ids (a renewal still matches by the ids it has), and a
+  trigger on `synced_leagues` that holds both for any writer. The gate
+  itself runs in the browser over Sleeper's public data, so the limit
+  keeps honest accounts to one league; it can't hide a league's history
+  from someone who edits the page's script.
 - `supabase/functions/stripe-webhook/` — keeps Pro subscriptions and
   League Passes in step with Stripe's events, then works out the plans.
   Nothing else can write a plan.

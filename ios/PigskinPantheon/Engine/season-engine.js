@@ -60,6 +60,16 @@
     const playedWeeks = season.playedWeeks;
     const lastPlayedWeek = playedWeeks.length ? playedWeeks[playedWeeks.length - 1] : 0;
 
+    /* A regular-season game over more than one week (an ESPN two-week
+       matchup) is on each of its weeks' schedules but is one game, scored
+       in its last week (season.multiWeeks: { end week: its weeks }). */
+    const MULTI_WEEKS = season.multiWeeks || {};
+    const SPAN = {};
+    Object.values(MULTI_WEEKS).forEach((weeks) => weeks.forEach((w) => { SPAN[w] = weeks; }));
+    const spanEnd = (w) => (SPAN[w] ? SPAN[w][SPAN[w].length - 1] : w);
+    // A week whose games start there: every week but a span's later ones.
+    const startsGame = (w) => !SPAN[w] || SPAN[w][0] === w;
+
     // The postseason games, looked up by bracket and game number.
     const postOf = (bracket, m) => season.postseason.find((g) => g.bracket === bracket && g.m === m) || null;
     const playoffWeekPlayed = (w) => w > REGULAR_WEEKS && w <= season.lastFinal &&
@@ -222,11 +232,12 @@
       return ((leader.wins - team.wins) + (team.losses - leader.losses)) / 2;
     }
 
-    // The regular-season weeks still to come in which a team has a game.
+    // The regular-season games still to come for a team, after the week:
+    // a two-week game once, by the week it starts.
     function gamesLeft(id, week) {
       let n = 0;
       for (let w = week + 1; w <= REGULAR_WEEKS; w++) {
-        if ((schedule[w] || []).some(([a, b]) => a === id || b === id)) n += 1;
+        if (startsGame(w) && (schedule[w] || []).some(([a, b]) => a === id || b === id)) n += 1;
       }
       return n;
     }
@@ -508,9 +519,9 @@
     const poss = (name) => (/s$/i.test(name) ? `${name}'` : `${name}'s`);   // "the Dawgs' bench", "MCM22's bench"
 
     // A week's played games: the regular season's, or the playoffs' (a
-    // two-week round counts in the week it ends).
+    // two-week round, or a two-week matchup, counts in the week it ends).
     function gamesOfWeek(w) {
-      if (w <= REGULAR_WEEKS) return (results[w] || []).map(([a, as, b, bs]) => ({ a, as, b, bs, label: "", final: false }));
+      if (w <= REGULAR_WEEKS) return (results[w] || []).map(([a, as, b, bs]) => ({ a, as, b, bs, label: "", final: false, multi: Boolean(MULTI_WEEKS[w]) }));
       return season.postseason
         .filter((g) => g.played && g.week === w && g.a && g.b)
         .sort((x, y) => (x.bracket === y.bracket ? (x.p || 99) - (y.p || 99) : x.bracket === "W" ? -1 : 1))
@@ -530,7 +541,7 @@
       model.seasons.forEach((s) => {
         Object.keys(s.results).map(Number).forEach((w) => (s.results[w] || []).forEach(([a, as, b, bs]) => {
           if (!s.teams[a] || !s.teams[b]) return;
-          historyGames.push({ year: s.year, week: w, oa: s.teams[a].ownerId, ob: s.teams[b].ownerId, as, bs, playoff: false, multi: false });
+          historyGames.push({ year: s.year, week: w, oa: s.teams[a].ownerId, ob: s.teams[b].ownerId, as, bs, playoff: false, multi: Boolean(s.multiWeeks && s.multiWeeks[w]) });
         }));
         s.postseason.filter((g) => g.played && g.a && g.b && s.teams[g.a] && s.teams[g.b]).forEach((g) => {
           historyGames.push({ year: s.year, week: g.week, oa: s.teams[g.a].ownerId, ob: s.teams[g.b].ownerId, as: g.aScore, bs: g.bScore, playoff: true, multi: g.weeks.length > 1 });
@@ -735,7 +746,9 @@
         if (!tie && sw2 && sw2.apOf >= 5 && sw2.ap / sw2.apOf < 0.35) add(50, `${W} won with only the week's ${ordinal(sw2.rank)}-best score`);
         if (!tie && sl2 && sl2.apOf >= 5 && sl2.ap / sl2.apOf > 0.65) add(53, `${L} lost with the week's ${ordWord(sl2.rank)}highest score`);
         const lu = lineupOf(l);
-        if (!tie && lu && lu.costGame) add(62, `${poss(L)} best lineup would have scored ${fmt(lu.optimal)} and won`, { title: `${poss(L)} bench costs them`, dek: `Their best lineup would have scored ${fmt(lu.optimal)} to ${poss(W)} ${fmt(ws)}.`, weight: lu.optimal - ws }, "bench");
+        // A two-week game's best is both weeks' best lineups (gameBest).
+        const best = lu && (lu.gameBest != null ? lu.gameBest : lu.optimal);
+        if (!tie && lu && lu.costGame) add(62, `${poss(L)} best lineup${lu.gameBest != null ? "s" : ""} would have scored ${fmt(best)} and won`, { title: `${poss(L)} bench costs them`, dek: `Their best lineup${lu.gameBest != null ? "s" : ""} would have scored ${fmt(best)} to ${poss(W)} ${fmt(ws)}.`, weight: best - ws }, "bench");
         notes.sort((a, b) => b.pri - a.pri);
         notes.forEach((n) => { if (n.head) notesFor.push({ ...n.head, pri: n.pri + (n.kind === "margin" ? m / 100 : 0) + (n.head.weight || 0) / 100, kind: n.kind }); });
         return {
@@ -943,7 +956,7 @@
 
       const opponents = {};
       TEAM_IDS.forEach((id) => { opponents[id] = []; });
-      Object.keys(schedule).map(Number).filter((w) => w <= REGULAR_WEEKS).forEach((w) => {
+      Object.keys(schedule).map(Number).filter((w) => w <= REGULAR_WEEKS && startsGame(w)).forEach((w) => {
         schedule[w].forEach(([a, b]) => { opponents[a].push(b); opponents[b].push(a); });
       });
 
@@ -1009,6 +1022,8 @@
     }
 
     const isPlayed = (w) => playedWeeks.includes(w);
+    // Played, or part of a two-week game that has been (the week rail).
+    const weekDone = (w) => isPlayed(spanEnd(w));
 
 
     const boxWeeks = () => model.boxWeeks(SEASON);
@@ -1020,6 +1035,6 @@
 
     const weeksText = (weeks) => (weeks.length > 1 ? `NFL Weeks ${weeks[0]}–${weeks[weeks.length - 1]}` : `NFL Week ${weeks[0]}`);
 
-    return { SEASON, REGULAR_WEEKS, PLAYOFF_TEAMS, BYES, MEDIAN, HAS_PLAYOFFS, HAS_DIVISIONS, WB_ROUNDS, LB_ROUNDS, LAST_WEEK, DIVISION_NAMES, divisionOrder, latestWeek, lastPlayedWeek, CLINCH_KEY, TIE_RULE, PRIOR, HAS_BRACKET, SEASON_VIEWS, HOME_VIEW, state, computeStats, buildPicture, playoffScenarios, gamesBack, gamesLeft, gamesOfWeek, powerRankings, allPlay, weekRecap, recapText, strengthOfSchedule, viewsFor, asOfWeek, isPlayed, playoffWeekPlayed, lastPlayoffWeek, weeksText, boxWeek, postOf };
+    return { SEASON, REGULAR_WEEKS, PLAYOFF_TEAMS, BYES, MEDIAN, HAS_PLAYOFFS, HAS_DIVISIONS, WB_ROUNDS, LB_ROUNDS, LAST_WEEK, DIVISION_NAMES, divisionOrder, latestWeek, lastPlayedWeek, CLINCH_KEY, TIE_RULE, PRIOR, HAS_BRACKET, SEASON_VIEWS, HOME_VIEW, state, computeStats, buildPicture, playoffScenarios, gamesBack, gamesLeft, gamesOfWeek, powerRankings, allPlay, weekRecap, recapText, strengthOfSchedule, viewsFor, asOfWeek, isPlayed, weekDone, playoffWeekPlayed, lastPlayoffWeek, weeksText, boxWeek, postOf };
   };
 })();

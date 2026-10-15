@@ -152,7 +152,7 @@ private struct BoxScoreCard: View {
                 .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .leading)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(Felt(.plain))
             .accessibilityLabel("\(team.name): season and schedule")
         } else {
             Text(id).frame(maxWidth: .infinity)
@@ -280,7 +280,7 @@ private struct BoxPlayerCell: View {
                     .padding(.vertical, 8)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .accessibilityLabel("\(player.name), \(player.pos), \(player.nfl), \(Fmt.pts(player.pts)) points")
                 .contextMenu {
                     NavigationLink(value: LeagueRoute.player(id: player.id)) {

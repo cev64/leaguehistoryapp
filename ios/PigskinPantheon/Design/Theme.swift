@@ -145,6 +145,19 @@ enum Fmt {
     }
 }
 
+/// A column of records. Its width is set for W–L ("10–3"), and a tie adds
+/// a third number ("10–3–1") that the width can't hold. The column widens
+/// to the widest record in it, measured in the column's own type, and keeps
+/// its set width while nobody in it has tied.
+enum RecordColumn {
+    static func width(_ records: some Sequence<String>, size: CGFloat, weight: UIFont.Weight, atLeast base: CGFloat = 0) -> CGFloat {
+        let font = UIFont.monospacedDigitSystemFont(ofSize: size, weight: weight)
+        let widest = records.reduce(0) { max($0, ($1 as NSString).size(withAttributes: [.font: font]).width) }
+        // A point either side for the rounding between this and SwiftUI.
+        return max(base, ceil(widest) + 2)
+    }
+}
+
 extension UIColor {
     convenience init(hex: UInt32) {
         self.init(red: CGFloat((hex >> 16) & 0xFF) / 255,

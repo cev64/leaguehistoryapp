@@ -121,7 +121,9 @@ private struct BookProfileHero: View {
                                 .foregroundStyle(.white)
                                 .monospacedDigit()
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.7)
+                                // A long all-time record with ties ("112–98–3")
+                                // on a phone's quarter width.
+                                .minimumScaleFactor(0.55)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 8)
@@ -282,6 +284,8 @@ private struct BookSeasonHistoryCard: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(Theme.ink)
                             .monospacedDigit()
+                            // "10–3–1" whole: the team name gives way first.
+                            .fixedSize()
                         Image(systemName: "chevron.right")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(Theme.ink3)
@@ -290,7 +294,7 @@ private struct BookSeasonHistoryCard: View {
                     .padding(.vertical, 10)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .accessibilityLabel("\(season.teamName), \(season.year): open that season")
                 if index < profile.seasons.count - 1 { Divider().overlay(Theme.line).padding(.leading, 14) }
             }
@@ -467,7 +471,7 @@ private struct BookStartersCard: View {
                     .padding(.vertical, 7)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(p.rank). \(p.name), \(p.pos), \(p.starts) starts")
                 if index < s.players.count - 1 { Divider().overlay(Theme.line) }
@@ -535,6 +539,11 @@ private struct BookHeadToHeadCard: View {
         return (profile.h2hOrders[sort.id] ?? profile.h2h.map(\.ownerId)).compactMap { byId[$0] }
     }
 
+    /// The table's Record column: 52, or the widest head-to-head record with ties.
+    private var recordWidth: CGFloat {
+        RecordColumn.width(profile.h2h.map(\.record), size: 12.5, weight: .bold, atLeast: 52)
+    }
+
     var body: some View {
         Card {
             BookCardHead(title: "Head-to-Head", symbol: CardIcon.versus) {
@@ -554,7 +563,7 @@ private struct BookHeadToHeadCard: View {
                     .padding(.vertical, 10)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 if index < rows.count - 1 { Divider().overlay(Theme.line).padding(.leading, 14) }
             }
         }
@@ -584,7 +593,7 @@ private struct BookHeadToHeadCard: View {
         HStack(spacing: 8) {
             BookSortHeader(title: "Opponent", key: "team", state: $sort, defaults: profile.h2hDefaults, alignment: .leading)
                 .frame(maxWidth: .infinity)
-            BookSortHeader(title: "Record", key: "wins", state: $sort, defaults: profile.h2hDefaults).frame(width: 52)
+            BookSortHeader(title: "Record", key: "wins", state: $sort, defaults: profile.h2hDefaults).frame(width: recordWidth)
             BookSortHeader(title: "PCT", key: "pct", state: $sort, defaults: profile.h2hDefaults).frame(width: 44)
             BookSortHeader(title: "PF", key: "pf", state: $sort, defaults: profile.h2hDefaults).frame(width: 70)
             BookSortHeader(title: "PA", key: "pa", state: $sort, defaults: profile.h2hDefaults).frame(width: 70)
@@ -599,7 +608,7 @@ private struct BookHeadToHeadCard: View {
         HStack(spacing: 8) {
             BookManagerLabel(face: row, size: 28).frame(maxWidth: .infinity, alignment: .leading)
             Group {
-                Text(row.record).fontWeight(.bold).frame(width: 52, alignment: .trailing)
+                Text(row.record).fontWeight(.bold).frame(width: recordWidth, alignment: .trailing)
                 Text(row.pct).frame(width: 44, alignment: .trailing)
                 Text(row.pf).frame(width: 70, alignment: .trailing)
                 Text(row.pa).frame(width: 70, alignment: .trailing)

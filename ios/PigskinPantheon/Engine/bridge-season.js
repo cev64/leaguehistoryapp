@@ -14,7 +14,7 @@
     const FINISHED = season.finished;
     const playedWeek = (w) => (FINISHED ? true
       : w === 0 ? E.lastPlayedWeek > 0
-      : w > E.REGULAR_WEEKS ? E.playoffWeekPlayed(w) : E.isPlayed(w));
+      : w > E.REGULAR_WEEKS ? E.playoffWeekPlayed(w) : E.weekDone(w));
     let next = null;
     if (!FINISHED) for (let w = 1; w <= E.LAST_WEEK && next === null; w++) if (!playedWeek(w)) next = w;
     const weeks = [];
@@ -169,7 +169,8 @@
     const E = B.seasonEngine(year);
     const season = B.model().season(year);
     const weeks = Object.keys(season.schedule).map(Number).filter((w) => w <= E.REGULAR_WEEKS).sort((a, b) => a - b);
-    return weeks.map((w) => ({ week: w, played: E.isPlayed(w), games: season.schedule[w].map(([a, b]) => ({ a, b })) }));
+    // A two-week matchup's first week reads as played once the game is.
+    return weeks.map((w) => ({ week: w, played: E.weekDone(w), games: season.schedule[w].map(([a, b]) => ({ a, b })) }));
   }
 
   /* ==================================================================

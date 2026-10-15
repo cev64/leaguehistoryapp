@@ -1911,7 +1911,8 @@
             if (!p.streak.best || p.streak.run > p.streak.best.length) {
               p.streak.best = { length: p.streak.run, fromYear: p.streak.from, toYear: season.year };
             }
-            if (!p.biggestWin || mine - theirs > p.biggestWin.margin) {
+            // A game over two weeks isn't one week's margin or score.
+            if (!game.multi && (!p.biggestWin || mine - theirs > p.biggestWin.margin)) {
               p.biggestWin = { margin: mine - theirs, year: season.year, week: game.week, opponentId: opp };
             }
           } else {
@@ -1923,7 +1924,7 @@
           { ownerId: aOwner, team: aTeam, opponentId: bOwner, points: game.aScore },
           { ownerId: bOwner, team: bTeam, opponentId: aOwner, points: game.bScore }
         ].forEach((entry) => {
-          if (!profiles[entry.ownerId]) return;
+          if (!profiles[entry.ownerId] || game.multi) return;
           const current = profiles[entry.ownerId].highestWeek;
           if (!current || entry.points > current.points) {
             profiles[entry.ownerId].highestWeek = {

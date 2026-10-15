@@ -75,7 +75,7 @@ def main() -> None:
         "lastPlayedWeek", "CLINCH_KEY", "TIE_RULE", "PRIOR", "HAS_BRACKET", "SEASON_VIEWS", "HOME_VIEW",
         "state", "computeStats", "buildPicture", "playoffScenarios", "gamesBack", "gamesLeft",
         "gamesOfWeek", "powerRankings", "allPlay", "weekRecap", "recapText", "strengthOfSchedule",
-        "viewsFor", "asOfWeek", "isPlayed", "playoffWeekPlayed", "lastPlayoffWeek", "weeksText",
+        "viewsFor", "asOfWeek", "isPlayed", "weekDone", "playoffWeekPlayed", "lastPlayoffWeek", "weeksText",
         "boxWeek", "postOf",
     ]
     missing = [name for name in exports if not re.search(rf"\b(const|let|function|async function)\s+{name}\b", body)]

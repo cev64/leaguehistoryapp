@@ -83,7 +83,7 @@ struct LeagueRow: View {
             .padding(.vertical, 11)
             .contentShape(Rectangle())
         }
-        .buttonStyle(RowPressStyle())
+        .buttonStyle(Felt(RowPressStyle()))
     }
 }
 
@@ -225,7 +225,7 @@ private struct SleeperForm: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(Felt(.glassProminent))
                 .controlSize(.large)
                 .disabled(finder.looking || finder.username.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -321,7 +321,7 @@ private struct EspnForm: View {
                     } label: {
                         Text("Open League").font(.headline).frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(Felt(.glassProminent))
                     .controlSize(.large)
                     .disabled(finder.espnInput.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
@@ -388,7 +388,7 @@ private struct EspnForm: View {
             .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
-        .buttonStyle(RowPressStyle())
+        .buttonStyle(Felt(RowPressStyle()))
         .accessibilityHint(finder.privateOpen ? "Hides the private league steps" : "Shows how to open a private league")
     }
 }
@@ -419,7 +419,7 @@ private struct PrivatePanel: View {
                     Text(hint).font(.footnote).foregroundStyle(Theme.ink2)
                 } else if !finder.connected.isEmpty && finder.accountsAvailable && !finder.espnSignedIn {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Button("Sign in", action: signIn).font(.footnote.weight(.semibold))
+                        Button("Sign in", action: signIn).buttonStyle(Felt(.automatic)).font(.footnote.weight(.semibold))
                         Text("to save them to your account, so your private leagues open on your other devices too.")
                             .font(.footnote).foregroundStyle(Theme.ink2)
                     }
@@ -490,7 +490,7 @@ private struct PrivatePanel: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(Felt(.glassProminent))
             .controlSize(.large)
             .disabled(finder.savingKeys || finder.s2.isEmpty || finder.swid.isEmpty)
         }
@@ -522,13 +522,13 @@ private struct PrivatePanel: View {
             Label("Send the link to your computer", systemImage: "laptopcomputer.and.arrow.down")
                 .font(.footnote.weight(.semibold))
         }
-        .buttonStyle(.glass)
+        .buttonStyle(Felt(.glass))
         Button("Have your keys already? Enter them here") {
             withAnimation(.smooth) { finder.keysAnyway = true }
             focus.wrappedValue = .s2
         }
         .font(.footnote.weight(.semibold))
-        .buttonStyle(.plain)
+        .buttonStyle(Felt(.plain))
         .foregroundStyle(Theme.accentInk)
     }
 
@@ -578,7 +578,7 @@ private struct PrivatePanel: View {
                         Button("Forget", role: .destructive) { Task { await finder.forget(row, account: app.account) } }
                         if finder.busySwid == row.swid { ProgressView() }
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(Felt(.glass))
                     .font(.footnote.weight(.semibold))
                     .disabled(finder.busySwid != nil)
                 }
@@ -594,7 +594,7 @@ private struct PrivatePanel: View {
                     Label("Add another ESPN account", systemImage: "plus")
                         .font(.footnote.weight(.semibold))
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(Felt(.glass))
             }
         }
     }

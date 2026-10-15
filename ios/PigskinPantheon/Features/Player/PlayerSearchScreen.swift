@@ -147,7 +147,7 @@ private struct PCHitSection<Menu: View>: View {
                                 if i >= columns { Rectangle().fill(Theme.line.opacity(0.7)).frame(height: 1).padding(.leading, 66) }
                             }
                     }
-                    .buttonStyle(PCHitPressStyle())
+                    .buttonStyle(Felt(PCHitPressStyle()))
                     .contextMenu { menu(hit) }
                     .transition(.opacity)
                 }

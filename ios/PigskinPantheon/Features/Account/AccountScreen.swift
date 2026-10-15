@@ -154,7 +154,7 @@ private struct AccountPanel: View {
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .swipeActions {
                     Button("Unsync", systemImage: "minus.circle", role: .destructive) { unsyncing = row }
                 }
@@ -229,10 +229,10 @@ private struct AccountPanel: View {
                     HStack {
                         if row.local && !row.account && finder.espnSignedIn {
                             Button("Save to my account") { Task { await finder.saveToAccount(row.swid, account: account) } }
-                                .buttonStyle(.glass)
+                                .buttonStyle(Felt(.glass))
                         }
                         Button("Forget", role: .destructive) { Task { await finder.forget(row, account: account) } }
-                            .buttonStyle(.glass)
+                            .buttonStyle(Felt(.glass))
                         if finder.busySwid == row.swid { ProgressView().padding(.leading, 4) }
                     }
                     .font(.footnote.weight(.semibold))

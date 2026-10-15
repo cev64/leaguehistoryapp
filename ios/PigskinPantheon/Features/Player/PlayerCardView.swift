@@ -32,7 +32,7 @@ struct PlayerCardView: View {
                 PageScroll {
                     EmptyCard(title: "Couldn't load", detail: "Player history could not be loaded.", symbol: "exclamationmark.triangle")
                     Button("Try again") { Task { await load() } }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(Felt(.borderedProminent))
                         .frame(maxWidth: .infinity)
                 }
                 .navigationTitle("Player")
@@ -294,7 +294,7 @@ private struct PCTilesRow: View {
                 NavigationLink(value: LeagueRoute.boxScore(year: game.season, week: game.week, a: game.a, b: game.b)) {
                     PCTile(label: "Best game", value: card.tiles.best, detail: card.tiles.bestDetail, linked: true)
                 }
-                .buttonStyle(PCPressStyle())
+                .buttonStyle(Felt(PCPressStyle()))
             } else {
                 PCTile(label: "Best game", value: card.tiles.best, detail: card.tiles.bestDetail)
             }
@@ -418,7 +418,7 @@ private struct PCTimelineCard: View {
                     NavigationLink(value: LeagueRoute.team(year: row.season, teamId: team.id)) {
                         PCMark(team: team, size: wide ? 22 : 16, corner: wide ? 6 : 4)
                     }
-                    .buttonStyle(PCPressStyle())
+                    .buttonStyle(Felt(PCPressStyle()))
                     .accessibilityLabel("\(team.name), \(team.owner), \(String(row.season))")
                 }
                 if row.more > 0 {
@@ -521,7 +521,7 @@ private struct PCManagersCard: View {
                 NavigationLink(value: LeagueRoute.manager(ownerId: m.ownerId)) {
                     PCManagerRow(manager: m, share: Double(m.starts) / Double(most))
                 }
-                .buttonStyle(PCRowPressStyle())
+                .buttonStyle(Felt(PCRowPressStyle()))
             }
         }
     }
@@ -615,7 +615,7 @@ private struct PCTopCard: View {
                             NavigationLink(value: LeagueRoute.boxScore(year: game.season, week: game.week, a: game.team.id, b: opp.id)) {
                                 PCMedal(game: game)
                             }
-                            .buttonStyle(PCPressStyle())
+                            .buttonStyle(Felt(PCPressStyle()))
                         } else {
                             PCMedal(game: game)
                         }
@@ -699,7 +699,7 @@ private struct PCGameLogCard: View {
                         NavigationLink(value: LeagueRoute.boxScore(year: row.season, week: row.week, a: team.id, b: opp)) {
                             PCLogRowView(row: row, all: all, wide: wide, linked: true)
                         }
-                        .buttonStyle(PCRowPressStyle())
+                        .buttonStyle(Felt(PCRowPressStyle()))
                     } else {
                         PCLogRowView(row: row, all: all, wide: wide, linked: false)
                     }
@@ -723,7 +723,7 @@ private struct PCGameLogCard: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(help ? Theme.accent : Theme.ink3)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(Felt(.plain))
             .accessibilityLabel("What the points shading means")
             Spacer(minLength: 6)
             if wide && card.seasons.count <= 8 {

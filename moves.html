@@ -1965,11 +1965,13 @@
           </div>` : `<div class="fo-empty">Not one benching cost a point. Remarkable.</div>`);
         const games = s.lostGames.length ? card("Games lost to the lineup", "lineup", `${s.lostGames.length}`, `
           <div class="fo-list">${s.lostGames.sort((a, b) => a.week - b.week).map((g) => {
-            const opp = (model.season(y).results[g.week] || []).map(([a, as, b, bs]) => (a === g.teamId ? [b, bs] : b === g.teamId ? [a, as] : null)).find(Boolean);
+            const opp = (model.season(y).results[g.week] || []).map(([a, as, b, bs]) => (a === g.teamId ? [b, bs, as] : b === g.teamId ? [a, as, bs] : null)).find(Boolean);
+            // A two-week game: its score and both weeks' best lineups.
+            const two = g.gameBest != null;
             return `<div class="fo-item">
               <div class="fo-item-main">
                 <strong>${teamName(y, g.teamId)} · Week ${g.week}</strong>
-                <span>Lost ${fmt(g.actual)}–${fmt(opp[1])} to ${teamName(y, opp[0])}. The best lineup scored <em>${fmt(g.optimal)}</em>.</span>
+                <span>Lost ${fmt(two ? opp[2] : g.actual)}–${fmt(opp[1])} to ${teamName(y, opp[0])}. The best lineup${two ? "s" : ""} scored <em>${fmt(two ? g.gameBest : g.optimal)}</em>.</span>
               </div>
               <span class="fo-big"><strong>${fmt(g.left)}</strong><span>on the bench</span></span>
             </div>`;

@@ -12,7 +12,6 @@
 		AA0000000000000000000103 /* demo.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000203 /* demo.js */; };
 		AA0000000000000000000104 /* insights.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000204 /* insights.js */; };
 		AA0000000000000000000105 /* chat.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000205 /* chat.js */; };
-		AA0000000000000000000106 /* account-config.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000206 /* account-config.js */; };
 		AA0000000000000000000107 /* players.json in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000207 /* players.json */; };
 /* End PBXBuildFile section */
 
@@ -87,6 +86,7 @@
 				AA0000000000000000000801 /* Sources */,
 				AA0000000000000000000401 /* Frameworks */,
 				AA0000000000000000000802 /* Resources */,
+				AA0000000000000000000803 /* Bundle account-config.js */,
 			);
 			buildRules = (
 			);
@@ -146,12 +146,35 @@
 				AA0000000000000000000103 /* demo.js in Resources */,
 				AA0000000000000000000104 /* insights.js in Resources */,
 				AA0000000000000000000105 /* chat.js in Resources */,
-				AA0000000000000000000106 /* account-config.js in Resources */,
 				AA0000000000000000000107 /* players.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AA0000000000000000000803 /* Bundle account-config.js */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/tools/app-account-config.sh",
+				"$(SRCROOT)/../account-config.js",
+			);
+			name = "Bundle account-config.js";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/account-config.js",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# The site's account-config.js without its plans, prices and payment links\n# (ios/tools/app-account-config.sh says why).\n/bin/sh \"$SCRIPT_INPUT_FILE_0\" \"$SCRIPT_INPUT_FILE_1\" \"$SCRIPT_OUTPUT_FILE_0\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AA0000000000000000000801 /* Sources */ = {

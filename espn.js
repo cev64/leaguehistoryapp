@@ -66,7 +66,9 @@
   const clubOf = (proTeamId) => CLUB[proTeamId] || "FA";
 
   /* ESPN's lineup slots, as the Sleeper slot each one plays like. ESPN's
-     DT, DE and DL slots all read as DL, CB, S and DB as DB. */
+     DT, DE and DL slots all read as DL, CB, S and DB as DB. Two have no
+     Sleeper slot and keep ESPN's own name: TQB, a team quarterback (an NFL
+     club's quarterbacks scored as one), and ER, an edge rusher (IDP). */
   const SLOT_NAME = {
     0: "QB", 1: "TQB", 2: "RB", 3: "WRRB_FLEX", 4: "WR", 5: "REC_FLEX", 6: "TE", 7: "SUPER_FLEX",
     8: "DL", 9: "DL", 10: "LB", 11: "DL", 12: "DB", 13: "DB", 14: "DB", 15: "IDP_FLEX", 16: "DEF",
@@ -76,9 +78,10 @@
   const SLOT_ORDER = [0, 1, 2, 3, 4, 5, 6, 23, 7, 8, 9, 11, 24, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
   const BENCH = 20, IR = 21;
   // The positions a player may fill, from the slots ESPN lets him into.
+  // TQB and ER name themselves: only a player ESPN lets into one fills it.
   const ELIGIBLE = {
-    0: "QB", 2: "RB", 4: "WR", 6: "TE", 8: "DL", 9: "DL", 11: "DL", 10: "LB", 12: "DB", 13: "DB", 14: "DB",
-    16: "DEF", 17: "K", 18: "P", 19: "HC",
+    0: "QB", 1: "TQB", 2: "RB", 4: "WR", 6: "TE", 8: "DL", 9: "DL", 11: "DL", 10: "LB", 12: "DB", 13: "DB", 14: "DB",
+    16: "DEF", 17: "K", 18: "P", 19: "HC", 24: "ER",
   };
   const POSITION = { 1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 7: "P", 9: "DT", 10: "DE", 11: "LB", 12: "CB", 13: "S", 14: "HC", 16: "DST" };
 
@@ -96,9 +99,13 @@
     if (!p || p.id == null) return null;
     const pid = pidOf(p.id);
     const club = clubOf(p.proTeamId);
-    if (Number(p.id) < 0) return [pid, [`${String(p.fullName || `${pid} D/ST`).trim()}`, "DST", pid]];
-    const elig = [...new Set((p.eligibleSlots || []).map((s) => ELIGIBLE[s]).filter(Boolean))];
-    const pos = POSITION[p.defaultPositionId] || elig[0] || "?";
+    const slots = p.eligibleSlots || [];
+    // A team defence is a club. Any other club-wide player ESPN keeps (a
+    // team quarterback) is a player like the rest, under its own slots.
+    const teamQb = slots.includes(1) && !slots.includes(16);
+    if (Number(p.id) < 0 && !teamQb) return [pid, [`${String(p.fullName || `${pid} D/ST`).trim()}`, "DST", pid]];
+    const elig = [...new Set(slots.map((s) => ELIGIBLE[s]).filter(Boolean))];
+    const pos = teamQb && !slots.includes(0) ? "TQB" : POSITION[p.defaultPositionId] || elig[0] || "?";
     const name = String(p.fullName || `${p.firstName || ""} ${p.lastName || ""}`).trim() || `Player ${p.id}`;
     return [pid, elig.length ? [name, pos, club, elig] : [name, pos, club]];
   }
@@ -471,16 +478,35 @@
       const d = await leagueGet(n, year, views("mSettings", "mTeam", "mMatchup", "mStandings", "mDraftDetail", "mStatus"));
       return d ? compactSeason(d, year) : null;
     });
-    // A season that finished this year keeps for a month from now on.
-    if (core && !past && isComplete(core, gs)) await storeSet(key, { t: Date.now() + TTL.finished - TTL.live, v: core });
+    /* A season that finished this year keeps for a month, once it has been
+       over a few days: ESPN's stat corrections for the last week land after
+       the title game is decided, and a copy kept from the night it ended
+       would keep the scores from before them for a month. */
+    if (core && !past && isComplete(core, gs) && await settled(key)) await storeSet(key, { t: Date.now() + TTL.finished - TTL.live, v: core });
     if (core) cores.set(`${n}:${year}`, core);
     return core;
   }
+  /* Whether the season under `key` was first seen over more than SETTLE ago
+     (the first sighting is kept, for a month). */
+  const SETTLE = 4 * L._core.DAY;
+  async function settled(key) {
+    const since = await cachedFn(`${key}:over`, TTL.finished, async () => Date.now());
+    return Date.now() - since > SETTLE;
+  }
 
   /* Over once ESPN has moved on to a later season, or has given every team
-     its final place and played its last week. */
-  const isComplete = (core, gs) => core.year < gs.season ||
-    (core.teams.length > 0 && core.teams.every((t) => t.rank > 0) && core.status.latest >= core.status.final);
+     its final place and decided every game of its last matchup period (the
+     championship, where there are playoffs). Its places and its latest
+     scoring period alone aren't enough: during the season's last week ESPN
+     already reports that week as the latest, the final one, and can rank
+     every team on the standings so far. */
+  const isComplete = (core, gs) => {
+    if (core.year < gs.season) return true;
+    if (!core.teams.length || !core.teams.every((t) => t.rank > 0)) return false;
+    const last = Math.max(0, ...core.games.map((g) => g.mp));
+    const games = core.games.filter((g) => g.mp === last && g.home && g.away);
+    return games.length > 0 && games.every((g) => g.winner === "HOME" || g.winner === "AWAY" || g.winner === "TIE");
+  };
 
   /* One week's lineups: { teamId: { e: [[pid, slot], ...], p: { pid: pts } } },
      the players met registered as a side effect. */
@@ -790,7 +816,9 @@
     // Every week that is final: its lineups.
     const mpOf = {};
     Object.keys(core.periods).forEach((mp) => spOf(mp).forEach((sp) => { mpOf[sp] = Number(mp); }));
-    const ttl = complete ? TTL.finished : L._core.DAY;
+    // Kept a month once the season is over and settled (seasonCore), a day
+    // while stat corrections can still come in.
+    const ttl = complete && (year < gs.season || await settled(`espn:season:${n}:${year}`)) ? TTL.finished : L._core.DAY;
     const weeks = [];
     for (let w = core.status.first || 1; w <= final; w++) weeks.push(w);
     const boxes = {};
@@ -894,18 +922,21 @@
        as they stand, so it is seeded in that same order (record, then points
        for, division leaders first). Once the playoffs begin, ESPN's own
        seeds are the truth. */
-    // The regular season as scored so far, counted the way the pages count it.
+    // The regular season as scored so far, counted the way the pages count
+    // it: a two-week matchup is one game, on both weeks' points, once both
+    // are final.
     const table = Object.fromEntries(core.teams.map((t) => [t.id, { wins: 0, losses: 0, ties: 0, pf: 0 }]));
     core.games.forEach((g) => {
       if (g.mp > core.mpc || !g.home || !g.away || !table[g.home.id] || !table[g.away.id]) return;
-      spOf(g.mp).filter((w) => w <= final).forEach((w) => {
-        const a = Number(g.home.pts[w]) || 0, b = Number(g.away.pts[w]) || 0;
-        if (!a && !b) return;
-        [[g.home.id, a, b], [g.away.id, b, a]].forEach(([id, own, opp]) => {
-          const t = table[id];
-          t.pf += own;
-          if (own > opp) t.wins++; else if (own < opp) t.losses++; else t.ties++;
-        });
+      const sps = spOf(g.mp);
+      if (!sps.every((w) => w <= final)) return;
+      const sum = (side) => sps.reduce((n, w) => n + (Number(side.pts[w]) || 0), 0);
+      const a = sum(g.home), b = sum(g.away);
+      if (!a && !b) return;
+      [[g.home.id, a, b], [g.away.id, b, a]].forEach(([id, own, opp]) => {
+        const t = table[id];
+        t.pf += own;
+        if (own > opp) t.wins++; else if (own < opp) t.losses++; else t.ties++;
       });
     });
     const started = core.games.some((g) => g.mp > core.mpc && (g.winner === "HOME" || g.winner === "AWAY"));
@@ -917,10 +948,19 @@
       : L.seedOrder(core.teams.map((t) => t.id), table, (id) => divisionOf[id], divisions.length > 1 ? divisions.length : 0);
     const { winners, losers } = brackets(core, { R, playoffTeams, seeds, final, spOf, complete });
 
+    // Regular-season matchup periods longer than a week: one game each,
+    // scored in its last week (buildSeason).
+    const spans = [];
+    for (let mp = 1; mp <= core.mpc; mp++) {
+      const sps = spOf(mp);
+      if (sps.length > 1) spans.push(sps);
+    }
+
     return {
       league, users, rosters, winners, losers, matchups, final,
       // ESPN's first week is its own, not a setting edited after the fact.
       startWeek: core.status.first || 1, fixedStart: true, lastWeek,
+      ...(spans.length ? { spans } : {}),
       finalRanks: complete ? Object.fromEntries(core.teams.map((t) => [t.id, t.rank])) : null,
     };
   }

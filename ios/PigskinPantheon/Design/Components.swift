@@ -373,6 +373,30 @@ enum Haptics {
     }
 }
 
+/// A button that taps back: drawn in the style it names (`Felt(.glass)`,
+/// `Felt(.plain)`, `Felt(RowPressStyle())`), with a light tap as its action
+/// runs. On the action, not the touch, so a scroll that begins on a row
+/// stays quiet. A button whose action already answers with feedback of its
+/// own (a sort, a week, a tab, the trophy room's steps) keeps its plain
+/// style, so nothing taps twice.
+struct Felt: PrimitiveButtonStyle {
+    private let draw: @MainActor (Configuration) -> AnyView
+
+    init<S: PrimitiveButtonStyle>(_ style: S) {
+        draw = { c in
+            AnyView(Button(role: c.role) { Haptics.tap(); c.trigger() } label: { c.label }.buttonStyle(style))
+        }
+    }
+
+    init<S: ButtonStyle>(_ style: S) {
+        draw = { c in
+            AnyView(Button(role: c.role) { Haptics.tap(); c.trigger() } label: { c.label }.buttonStyle(style))
+        }
+    }
+
+    func makeBody(configuration: Configuration) -> some View { draw(configuration) }
+}
+
 extension View {
     /// A pane of white over a dark hero (a stat tile, a badge): the look of
     /// tinted glass without glass, which belongs to the bars over the page.
