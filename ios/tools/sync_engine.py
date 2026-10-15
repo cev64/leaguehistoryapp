@@ -18,14 +18,18 @@ Run it from anywhere after changing season.html:
 
     python3 ios/tools/sync_engine.py
 
-It fails loudly when a marker it cuts on has moved, rather than producing a
+It fails loudly when a marker it cuts on has moved or appears more than once,
+or when the result doesn't parse (`node --check`), rather than producing a
 half-copied engine.
 """
 from __future__ import annotations
 
+import os
 import pathlib
 import re
+import subprocess
 import sys
+import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "ios" / "PigskinPantheon" / "Engine" / "season-engine.js"
@@ -35,6 +39,8 @@ def between(text: str, start: str, end: str, *, include_end: bool = False) -> st
     i = text.find(start)
     if i < 0:
         sys.exit(f"sync_engine: start marker not found: {start!r}")
+    if text.count(start) > 1:
+        sys.exit(f"sync_engine: start marker found {text.count(start)} times, expected once: {start!r}")
     j = text.find(end, i + len(start))
     if j < 0:
         sys.exit(f"sync_engine: end marker not found after {start!r}: {end!r}")
@@ -93,7 +99,21 @@ def main() -> None:
 }})();
 """
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(header + body + footer, encoding="utf-8")
+    # Check the engine parses before it replaces the old one.
+    fd, tmp = tempfile.mkstemp(prefix=".season-engine.", suffix=".js", dir=OUT.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(header + body + footer)
+        try:
+            check = subprocess.run(["node", "--check", tmp], capture_output=True, text=True)
+        except FileNotFoundError:
+            sys.exit("sync_engine: node isn't installed, so the engine couldn't be checked; nothing written")
+        if check.returncode != 0:
+            sys.exit(f"sync_engine: the engine doesn't parse; nothing written\n{check.stderr.strip()}")
+        os.replace(tmp, OUT)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
     print(f"sync_engine: wrote {OUT.relative_to(ROOT)} ({len(body.splitlines())} lines from season.html)")
 
 

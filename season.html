@@ -4506,7 +4506,7 @@
       const seasonOver = week >= REGULAR_WEEKS || TEAM_IDS.every((id) => !gamesLeft(id, week));
       if (seasonOver) {
         seeds.forEach((id, i) => {
-          flags[id] = (BYES ? i < BYES : HAS_DIVISIONS && leaders.includes(id)) ? "z" : i < P ? "x" : "e";
+          flags[id] = (BYES ? i < BYES : HAS_DIVISIONS && i < P && leaders.includes(id)) ? "z" : i < P ? "x" : "e";
         });
         return flags;
       }
@@ -4524,29 +4524,29 @@
     function flagsFromBounds(minW, maxW) {
       const flags = {};
       const P = PLAYOFF_TEAMS;
-      const D = HAS_DIVISIONS ? DIVISION_NAMES.length : 0;
+      // Only a real division has a leader; "No Division" is just the teams left over.
+      const REAL = HAS_DIVISIONS ? DIVISION_NAMES.filter((d) => d !== "No Division") : [];
+      const D = REAL.length;
 
       TEAM_IDS.forEach((id) => {
         const others = TEAM_IDS.filter((x) => x !== id);
         const couldCatch = others.filter((x) => maxW(x) >= minW(id)).length;
         const sureAhead = others.filter((x) => minW(x) > maxW(id)).length;
-        const rivals = HAS_DIVISIONS ? others.filter((x) => divisionOf(x) === divisionOf(id)) : [];
-        const ownDivision = HAS_DIVISIONS && rivals.every((x) => maxW(x) < minW(id));
-        const lostDivision = !HAS_DIVISIONS || rivals.some((x) => minW(x) > maxW(id));
+        const inDivision = REAL.includes(divisionOf(id));
+        const rivals = inDivision ? others.filter((x) => divisionOf(x) === divisionOf(id)) : [];
+        const ownDivision = inDivision && rivals.every((x) => maxW(x) < minW(id));
+        const lostDivision = !inDivision || rivals.some((x) => minW(x) > maxW(id));
 
-        let bye = false;
-        if (BYES) {
-          if (!HAS_DIVISIONS) bye = couldCatch < BYES;
-          else if (ownDivision) {
-            // Other divisions that could still produce a leader seeded above it.
-            const threats = DIVISION_NAMES.filter((d) => d !== divisionOf(id) &&
-              divisionOrder[d].some((x) => maxW(x) >= minW(id))).length;
-            bye = threats < BYES;
-          }
-        }
-        const berth = ownDivision || couldCatch + (HAS_DIVISIONS ? D - 1 : 0) < P;
+        // Other divisions that could still produce a leader seeded above it.
+        const threats = ownDivision ? REAL.filter((d) => d !== divisionOf(id) &&
+          divisionOrder[d].some((x) => maxW(x) >= minW(id))).length : 0;
+        const bye = BYES ? (HAS_DIVISIONS ? ownDivision && threats < BYES : couldCatch < BYES) : false;
+        // A division title is a berth unless a leader for every spot could
+        // be seeded above it. Without one, the leaders of the other divisions
+        // (all of them, for a team in none) may be seeded above it.
+        const berth = (ownDivision && threats < P) || couldCatch + (D - (inDivision ? 1 : 0)) < P;
         const out = lostDivision && sureAhead >= P;
-        flags[id] = bye || (!BYES && ownDivision) ? "z" : berth ? "x" : out ? "e" : null;
+        flags[id] = bye || (!BYES && ownDivision && berth) ? "z" : berth ? "x" : out ? "e" : null;
       });
       return flags;
     }
@@ -4731,7 +4731,9 @@
       if (!tile || !window.Insights) return;
       Promise.all([Insights.lineupWeek(model, SEASON, week), League.players()]).then(([lw, db]) => {
         if (!tile.isConnected) return;
-        const worst = lw && lw.rows.filter((r) => r.blunder && r.blunder.cost > 0).sort((a, b) => b.blunder.cost - a.blunder.cost)[0];
+        // No lineups to judge is no news, not a week of perfect lineups.
+        if (!lw || !lw.rows.length) { tile.remove(); return; }
+        const worst = lw.rows.filter((r) => r.blunder && r.blunder.cost > 0).sort((a, b) => b.blunder.cost - a.blunder.cost)[0];
         if (!worst) { tile.querySelector("strong").textContent = "Every lineup was perfect"; tile.querySelector("span").textContent = ""; return; }
         const b = worst.blunder;
         tile.querySelector("strong").innerHTML = `${nameOf(worst.teamId)} benched ${playerName(db, b.benched.pid)}`;
@@ -4762,6 +4764,7 @@
     const recordText = (w, l, t) => (t ? `${w}–${l}–${t}` : `${w}–${l}`);
     const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
     const verbS = (name, verb) => (/s$/i.test(name) ? verb : `${verb}s`);   // "the Dawgs beat", "MCM22 beats"
+    const poss = (name) => (/s$/i.test(name) ? `${name}'` : `${name}'s`);   // "the Dawgs' bench", "MCM22's bench"
 
     // A week's played games: the regular season's, or the playoffs' (a
     // two-week round counts in the week it ends).
@@ -4935,6 +4938,10 @@
 
       /* ---- every game, with its story ---------------------------------- */
       const notesFor = [];
+      // The week's closest finish: the decided game with the smallest margin.
+      const decided = games.filter((g) => !g.multi && g.as !== g.bs);
+      const closest = decided.reduce((c, g) => (!c || Math.abs(g.as - g.bs) < Math.abs(c.as - c.bs) ? g : c), null);
+      const weekTied = games.some((g) => !g.multi && g.as === g.bs);
       const gameStories = games.map((g) => {
         const tie = g.as === g.bs;
         const [w, ws, l, ls] = g.as >= g.bs ? [g.a, g.as, g.b, g.bs] : [g.b, g.bs, g.a, g.as];
@@ -4951,11 +4958,11 @@
           else if (hr <= 5 && yearsOfHistory > 1) add(78, `The ${ordinal(hr)}-highest score in league history`, { title: `${W} put up ${fmt(ws)}`, dek: `The ${ordinal(hr)}-highest score in league history, in a win over ${L}.` }, "high");
           else if (seasonHigh(ws)) add(55, `A season-high score`, { title: `${W} drop a season-high ${fmt(ws)}`, dek: `${L} were the ones in the way, ${fmt(ws)}–${fmt(ls)}.` }, "high");
           const lr = lowRank(ls);
-          if (lr <= 3 && yearsOfHistory > 1) add(70, `${L}'s ${fmt(ls)} is the ${ordWord(lr)}lowest score in league history`, { title: `${L} manage just ${fmt(ls)}`, dek: `The ${ordWord(lr)}lowest score in league history.` }, "low");
+          if (lr <= 3 && yearsOfHistory > 1) add(70, `${poss(L)} ${fmt(ls)} is the ${ordWord(lr)}lowest score in league history`, { title: `${L} manage just ${fmt(ls)}`, dek: `The ${ordWord(lr)}lowest score in league history.` }, "low");
           const mr = marginRank(m);
           if (mr <= 3 && yearsOfHistory > 1) add(76, `The ${ordWord(mr)}biggest blowout in league history`, { title: `${W} crush ${L} by ${fmt(m)}`, dek: `The ${ordWord(mr)}biggest margin the league has seen.` }, "margin");
           else if (m >= 50) add(30, "", { title: `${W} rout ${L}`, dek: `A ${fmt(m)}-point win, ${fmt(ws)}–${fmt(ls)}.` }, "margin");
-          if (m < 2) add(64, "", { title: `${W} survive ${L} by ${fmt(m)}`, dek: `${fmt(ws)}–${fmt(ls)}, the week's closest finish.` }, "close");
+          if (m < 2 && g === closest) add(64, "", { title: `${W} survive ${L} by ${fmt(m)}`, dek: `${fmt(ws)}–${fmt(ls)}, the week's closest ${weekTied ? "decided game" : "finish"}.` }, "close");
         }
         if (statsBefore && !tie) {
           const bw = statsBefore[w], bl = statsBefore[l];
@@ -4963,7 +4970,7 @@
             add(74 + Math.round(40 * (bl.pct - bw.pct)), `An upset: ${bw.record} over ${bl.record}`, { title: `${W} stun ${L}`, dek: `${W} (${bw.record}) took down ${L} (${bl.record}), ${fmt(ws)}–${fmt(ls)}.` }, "upset");
           }
           const sl = streakOf(bl.form), sw = streakOf(bw.form);
-          if (sl.kind === "W" && sl.n >= 3) add(66 + sl.n, `Snapped ${L}'s ${sl.n}-game winning streak`, { title: `${W} end ${L}'s ${sl.n}-game run`, dek: `${fmt(ws)}–${fmt(ls)}.` }, "streak");
+          if (sl.kind === "W" && sl.n >= 3) add(66 + sl.n, `Snapped ${poss(L)} ${sl.n}-game winning streak`, { title: `${W} end ${poss(L)} ${sl.n}-game run`, dek: `${fmt(ws)}–${fmt(ls)}.` }, "streak");
           if (sw.kind === "L" && sw.n >= 3) add(56 + sw.n, `Ended a ${sw.n}-game losing streak`, { title: `${W} snap a ${sw.n}-game skid`, dek: `${verbS(W, "beat")} ${L}, ${fmt(ws)}–${fmt(ls)}.` }, "streak");
           const aw = streakOf(statsAfter[w].form), al = streakOf(statsAfter[l].form);
           if (aw.kind === "W" && aw.n >= 4) add(40 + aw.n, `${aw.n} wins in a row for ${W}`, aw.n >= 6 ? { title: `${W} make it ${aw.n} straight`, dek: `${verbS(W, "beat")} ${L}, ${fmt(ws)}–${fmt(ls)}.` } : null, "streak");
@@ -4973,8 +4980,8 @@
         if (!tie) {
           const sr = series(oid(w), oid(l));
           if (!sr.n && yearsOfHistory > 1) add(20, `Their first ever meeting`);
-          else if (!sr.a && sr.n >= 3) add(68, `${W}'s first win over ${L} in ${sr.n + 1} tries`, { title: `${W} finally beat ${L}`, dek: `A first win in ${sr.n + 1} meetings, ${fmt(ws)}–${fmt(ls)}.` }, "series");
-          else if (sr.lastA && sr.lastA < SEASON - 1) add(52, `${W}'s first win over ${L} since ${sr.lastA}`);
+          else if (!sr.a && sr.n >= 3) add(68, `${poss(W)} first win over ${L} in ${sr.n + 1} tries`, { title: `${W} finally beat ${L}`, dek: `A first win in ${sr.n + 1} meetings, ${fmt(ws)}–${fmt(ls)}.` }, "series");
+          else if (sr.lastA && sr.lastA < SEASON - 1) add(52, `${poss(W)} first win over ${L} since ${sr.lastA}`);
           else if (sr.n >= 2) {
             const a = sr.a + 1, b = sr.b;
             add(22, a > b ? `${W} lead the all-time series ${recordText(a, b, sr.t)}` : a === b ? `The all-time series is tied ${recordText(a, b, sr.t)}` : `${L} still lead the all-time series ${recordText(b, a, sr.t)}`);
@@ -4987,7 +4994,7 @@
         if (!tie && sw2 && sw2.apOf >= 5 && sw2.ap / sw2.apOf < 0.35) add(50, `${W} won with only the week's ${ordinal(sw2.rank)}-best score`);
         if (!tie && sl2 && sl2.apOf >= 5 && sl2.ap / sl2.apOf > 0.65) add(53, `${L} lost with the week's ${ordWord(sl2.rank)}highest score`);
         const lu = lineupOf(l);
-        if (!tie && lu && lu.costGame) add(62, `${L}'s best lineup would have scored ${fmt(lu.optimal)} and won`, { title: `${L}'s bench costs them`, dek: `Their best lineup would have scored ${fmt(lu.optimal)} to ${W}'s ${fmt(ws)}.`, weight: lu.optimal - ws }, "bench");
+        if (!tie && lu && lu.costGame) add(62, `${poss(L)} best lineup would have scored ${fmt(lu.optimal)} and won`, { title: `${poss(L)} bench costs them`, dek: `Their best lineup would have scored ${fmt(lu.optimal)} to ${poss(W)} ${fmt(ws)}.`, weight: lu.optimal - ws }, "bench");
         notes.sort((a, b) => b.pri - a.pri);
         notes.forEach((n) => { if (n.head) notesFor.push({ ...n.head, pri: n.pri + (n.kind === "margin" ? m / 100 : 0) + (n.head.weight || 0) / 100, kind: n.kind }); });
         return {
@@ -5159,7 +5166,7 @@
         </div>
       </article>`);
 
-      if (r.power) {
+      if (r.power && r.power.length) {
         const top = r.power[0];
         const riser = r.power.slice().sort((a, b) => b.move - a.move)[0];
         const faller = r.power.slice().sort((a, b) => a.move - b.move)[0];
