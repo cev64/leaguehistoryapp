@@ -310,12 +310,18 @@
   /* ------------------------------------------------------------ brackets */
 
   /* The weeks a bracket round is played over. Sleeper's round types: one
-     week per round, a two-week championship, or two weeks per round. */
+     week per round, a two-week championship, or two weeks per round.
+     `rounds` is the winner's bracket's count for both brackets: a losers
+     bracket round is played in the same weeks as the winner's round of the
+     same number, so with a two-week championship only round `rounds` is
+     two weeks long in either bracket, and a losers round past it comes in
+     the weeks after. */
   function roundWeeks(settings, round, rounds) {
     const start = settings.playoffWeekStart;
     const type = settings.playoffRoundType || 0;
     if (type === 2) return [start + (round - 1) * 2, start + (round - 1) * 2 + 1];
     if (type === 1 && round === rounds) return [start + round - 1, start + round];
+    if (type === 1 && rounds && round > rounds) return [start + round];
     return [start + round - 1];
   }
 
@@ -615,7 +621,8 @@
     };
     [["W", winners, rounds], ["L", losers, lbRounds]].forEach(([bracket, games, count]) => {
       games.forEach((g) => {
-        const weeks = roundWeeks(settings, g.r, count);
+        // Both brackets' rounds go by the winner's bracket (roundWeeks).
+        const weeks = roundWeeks(settings, g.r, rounds || lbRounds);
         if (g.w == null || g.l == null) {
           const settled = settle(g, weeks, bracket === "L" && toilet);
           // Written into the bracket itself: the pages draw from it too.
