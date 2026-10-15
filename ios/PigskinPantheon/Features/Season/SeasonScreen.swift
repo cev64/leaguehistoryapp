@@ -271,7 +271,7 @@ struct OutcomeCard: View {
                 in: RoundedRectangle(cornerRadius: 18, style: .continuous)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(Felt(.plain))
     }
 }
 

@@ -603,7 +603,7 @@ private struct RecordPanel: View {
                 } label: {
                     Image(systemName: "xmark")
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(Felt(.glass))
                 .buttonBorderShape(.circle)
                 .accessibilityLabel(stage.inLocker ? "Back to the wall" : "Back to the hall")
             }
@@ -657,7 +657,7 @@ private struct RecordPanel: View {
                         .frame(maxWidth: .infinity)
                         .contentShape(.rect)
                     }
-                    .buttonStyle(.glass(.regular.tint(accent.opacity(0.18)).interactive()))
+                    .buttonStyle(Felt(.glass(.regular.tint(accent.opacity(0.18)).interactive())))
                 }
             }
         }
@@ -725,7 +725,7 @@ private struct TrophyDoorway: View {
                 if note == nil { ProgressView().tint(Theme.gold).padding(.top, 6) }
                 else if let retry {
                     Button("Try again", action: retry)
-                        .buttonStyle(.glassProminent)
+                        .buttonStyle(Felt(.glassProminent))
                         .padding(.top, 6)
                 }
             }

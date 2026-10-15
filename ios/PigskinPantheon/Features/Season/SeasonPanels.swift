@@ -357,7 +357,7 @@ extension View {
             NavigationLink(value: route) {
                 Rectangle().fill(Color.clear).contentShape(Rectangle())
             }
-            .buttonStyle(PanelRowPressStyle())
+            .buttonStyle(Felt(PanelRowPressStyle()))
             .accessibilityLabel(label)
         }
     }

@@ -182,7 +182,7 @@ private struct BookTitlesCard: View {
                         .padding(.vertical, 10)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(Felt(.plain))
                     .accessibilityHint("Opens \(manager.currentTeam)'s history")
                     if index < rows.count - 1 { Divider().overlay(Theme.line).padding(.leading, 14) }
                 }
@@ -219,7 +219,7 @@ private struct BookAllTimeStandingsCard: View {
                     .padding(.vertical, 10)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .accessibilityHint("Opens \(row.currentTeam)'s history")
                 if index < rows.count - 1 { Divider().overlay(Theme.line).padding(.leading, 14) }
             }
@@ -342,7 +342,7 @@ private struct BookSearchResults: View {
                         .padding(.vertical, 9)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(Felt(.plain))
                     if index < hits.count - 1 { Divider().overlay(Theme.line).padding(.leading, 66) }
                 }
             }

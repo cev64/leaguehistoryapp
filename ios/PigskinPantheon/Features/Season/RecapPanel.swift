@@ -25,7 +25,7 @@ struct RecapPanel: View {
                         Text("\(info.source) didn't answer. Try again in a moment.")
                     } actions: {
                         Button("Try again") { Task { await load() } }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(Felt(.bordered))
                     }
                     .padding(.vertical, 8)
                 }
@@ -236,7 +236,7 @@ private struct RecapGame: View {
                     .padding(.vertical, 4)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .accessibilityLabel("Box score: \(name(game.a)) versus \(name(game.b))")
             }
         }
@@ -642,7 +642,7 @@ struct RecapTeamLink: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(Felt(.plain))
             .accessibilityLabel("\(team.name): season and schedule")
         } else {
             Text(teamId)
@@ -660,7 +660,7 @@ struct RecapPlayerChip: View {
                 .lineLimit(1)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(Felt(.plain))
         .contextMenu {
             NavigationLink(value: LeagueRoute.player(id: player.id)) {
                 Label("\(player.name)'s history", systemImage: "person.text.rectangle")

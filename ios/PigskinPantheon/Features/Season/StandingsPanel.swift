@@ -579,7 +579,7 @@ private struct FinalPhoneRow: View {
             .background(champion ? Theme.gold.opacity(0.09) : Color.clear)
             .contentShape(Rectangle())
         }
-        .buttonStyle(PanelRowPressStyle())
+        .buttonStyle(Felt(PanelRowPressStyle()))
     }
 }
 
@@ -624,6 +624,6 @@ private struct FinalWideRow: View {
             .background(champion ? Theme.gold.opacity(0.09) : Color.clear)
             .contentShape(Rectangle())
         }
-        .buttonStyle(PanelRowPressStyle())
+        .buttonStyle(Felt(PanelRowPressStyle()))
     }
 }

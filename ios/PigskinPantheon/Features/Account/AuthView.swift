@@ -146,6 +146,7 @@ struct AuthView: View {
             Button("Forgot your password?") {
                 withAnimation { mode = .forgot; error = nil }
             }
+            .buttonStyle(Felt(.automatic))
             .frame(maxWidth: .infinity)
             .font(.subheadline)
             if !embedded {
@@ -202,6 +203,7 @@ struct AuthView: View {
             Button("Back to sign in") {
                 withAnimation { mode = .signin; error = nil }
             }
+            .buttonStyle(Felt(.automatic))
             .frame(maxWidth: .infinity)
             .font(.subheadline)
         }
@@ -226,7 +228,7 @@ struct AuthView: View {
                 } label: {
                     Text("Done").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(Felt(.glassProminent))
                 .controlSize(.large)
             }
             .padding(.vertical, 8)
@@ -278,7 +280,7 @@ struct AuthView: View {
             .font(.headline)
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.glassProminent)
+        .buttonStyle(Felt(.glassProminent))
         .controlSize(.large)
         .padding(.vertical, 4)
     }

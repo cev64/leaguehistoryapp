@@ -290,7 +290,7 @@ private struct BookSeasonHistoryCard: View {
                     .padding(.vertical, 10)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .accessibilityLabel("\(season.teamName), \(season.year): open that season")
                 if index < profile.seasons.count - 1 { Divider().overlay(Theme.line).padding(.leading, 14) }
             }
@@ -467,7 +467,7 @@ private struct BookStartersCard: View {
                     .padding(.vertical, 7)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(p.rank). \(p.name), \(p.pos), \(p.starts) starts")
                 if index < s.players.count - 1 { Divider().overlay(Theme.line) }
@@ -554,7 +554,7 @@ private struct BookHeadToHeadCard: View {
                     .padding(.vertical, 10)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 if index < rows.count - 1 { Divider().overlay(Theme.line).padding(.leading, 14) }
             }
         }

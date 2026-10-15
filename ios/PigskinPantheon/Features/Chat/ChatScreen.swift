@@ -456,12 +456,12 @@ struct ChatMessageRow: View {
                             HStack(spacing: 8) {
                                 if message.signIn {
                                     Button("Sign in", action: signIn)
-                                        .buttonStyle(.glassProminent)
+                                        .buttonStyle(Felt(.glassProminent))
                                         .tint(Theme.accent)
                                 }
                                 if message.retry {
                                     Button("Try again", action: retry)
-                                        .buttonStyle(.glass)
+                                        .buttonStyle(Felt(.glass))
                                 }
                             }
                             .font(.subheadline.weight(.semibold))
@@ -763,7 +763,7 @@ struct ChatLockedView: View {
                 Button(action: signIn) {
                     Text("Sign In").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(Felt(.glassProminent))
                 .controlSize(.large)
                 .tint(Theme.accent)
                 Text("Everything else in the app works without an account.")
@@ -854,12 +854,12 @@ struct ChatConsentSheet: View {
                 Button(action: allow) {
                     Text("Allow").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(Felt(.glassProminent))
                 .tint(Theme.accent)
                 Button(action: notNow) {
                     Text("Not Now").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(Felt(.glass))
             }
             .controlSize(.large)
             .fontWeight(.semibold)

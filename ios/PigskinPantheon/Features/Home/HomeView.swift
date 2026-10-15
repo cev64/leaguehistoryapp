@@ -324,7 +324,7 @@ private struct WelcomeCard: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(Felt(.glass))
             .controlSize(.large)
         }
         .foregroundStyle(.white)
@@ -409,7 +409,7 @@ private struct DemoSection: View {
                 .padding(.vertical, 11)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(RowPressStyle())
+            .buttonStyle(Felt(RowPressStyle()))
         }
     }
 }
@@ -429,22 +429,22 @@ private struct HomeAboutSection: View {
             Button(action: about) {
                 MenuRow(symbol: "info", color: Theme.accent, title: "About Pigskin Pantheon")
             }
-            .buttonStyle(RowPressStyle())
+            .buttonStyle(Felt(RowPressStyle()))
             RowDivider(inset: 58)
             Link(destination: Legal.privacy) {
                 MenuRow(symbol: "hand.raised.fill", color: Color(hex: 0x667085), title: "Privacy Policy", external: true)
             }
-            .buttonStyle(RowPressStyle())
+            .buttonStyle(Felt(RowPressStyle()))
             RowDivider(inset: 58)
             Link(destination: Legal.terms) {
                 MenuRow(symbol: "doc.text.fill", color: Color(hex: 0x667085), title: "Terms of Use", external: true)
             }
-            .buttonStyle(RowPressStyle())
+            .buttonStyle(Felt(RowPressStyle()))
             RowDivider(inset: 58)
             Link(destination: Legal.support) {
                 MenuRow(symbol: "questionmark", color: Theme.green, title: "Support", external: true)
             }
-            .buttonStyle(RowPressStyle())
+            .buttonStyle(Felt(RowPressStyle()))
         }
     }
 }

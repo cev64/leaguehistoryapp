@@ -344,7 +344,7 @@ private struct LeagueSidebarHeader: View {
                     .lineLimit(1)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(Felt(.glassProminent))
             .tint(Theme.gold)
         }
         .padding(.vertical, 6)
@@ -451,7 +451,7 @@ private struct LeagueToolbar: ViewModifier {
                 } label: {
                     Label("Ask the League", systemImage: "sparkles")
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(Felt(.glassProminent))
                 .tint(Theme.gold)
             }
             // The league's menu, as a plain "…" (the sidebar has its own on
@@ -496,7 +496,7 @@ struct DemoBanner: View {
                     .font(.footnote.weight(.bold))
                     .lineLimit(1)
                     .fixedSize()
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(Felt(.glassProminent))
                     .tint(.white)
                     .foregroundStyle(Theme.navy)
             }
@@ -544,7 +544,7 @@ private struct LeagueLoadingView: View {
             } label: {
                 Image(systemName: "xmark")
             }
-            .buttonStyle(.glass)
+            .buttonStyle(Felt(.glass))
             .padding()
         }
     }
@@ -563,9 +563,9 @@ private struct LeagueFailedView: View {
                 Text(message)
             } actions: {
                 Button("Try again") { session.retry() }
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(Felt(.glassProminent))
                 Button("Choose a league") { app.closeLeague() }
-                    .buttonStyle(.glass)
+                    .buttonStyle(Felt(.glass))
             }
             .background(Theme.page)
         }

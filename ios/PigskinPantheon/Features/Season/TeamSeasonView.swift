@@ -148,7 +148,7 @@ private struct TeamHero: View {
                             .minimumScaleFactor(0.7)
                             .multilineTextAlignment(.leading)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(Felt(.plain))
                     .accessibilityHint("Opens \(team.owner)'s career")
                     Text(ownerLine).font(.system(size: 13)).foregroundStyle(.white.opacity(0.72))
                 }
@@ -181,7 +181,7 @@ private struct TeamHero: View {
                 Label("\(team.owner)'s career", systemImage: "person.crop.circle")
                     .font(.subheadline.weight(.semibold))
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(Felt(.bordered))
             .tint(.white)
         }
         .padding(18)
@@ -287,7 +287,7 @@ private struct TeamScheduleSection: View {
                     .fixedSize()
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .accessibilityLabel("Box score, week \(g.week): \(text)")
             } else {
                 Text(text).font(.system(size: 13.5, weight: .bold)).monospacedDigit().foregroundStyle(Theme.ink).lineLimit(1).fixedSize()
@@ -321,7 +321,7 @@ private struct TeamStartersSection: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.ink3)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(Felt(.plain))
                 .accessibilityLabel("What the week cells mean")
                 .popover(isPresented: $showHelp) {
                     TeamStripHelp(tint: tint)
@@ -424,7 +424,7 @@ private struct TeamStartersSection: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(Felt(.plain))
         .accessibilityLabel("\(p.name), \(p.pos), \(p.starts) starts, \(Fmt.pts(p.pts)) points")
     }
 

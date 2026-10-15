@@ -77,7 +77,7 @@ struct GameCard: View {
                     .padding(.vertical, 11)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(Felt(.plain))
         }
     }
 }
@@ -113,7 +113,7 @@ private struct GameSide: View {
                 .background(won ? Theme.accentSoft.opacity(0.6) : Color.clear)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(Felt(.plain))
             .accessibilityLabel("\(team.name), \(Fmt.pts(score))\(won ? ", won" : "")")
         }
     }
@@ -146,7 +146,7 @@ private struct UpcomingGame: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(Felt(.plain))
         }
     }
 }
