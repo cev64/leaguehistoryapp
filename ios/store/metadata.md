@@ -161,7 +161,7 @@ Likely result: 4+ on Apple's new scale (4+, 9+, 13+, 16+, 18+). If the chatbot a
 
 ## App Privacy (nutrition label)
 
-Matches `ios/APP_STORE.md` and `PrivacyInfo.xcprivacy` (five collected types, all linked to the user, none used for tracking, one required-reason API).
+Matches `ios/APP_STORE.md` and `PrivacyInfo.xcprivacy` (six collected types, all linked to the user, none used for tracking, one required-reason API).
 
 - Do you or your third-party partners collect data from this app: Yes
 - Tracking: No. Do not check "Used to track you" for anything. No tracking domains, no ad or analytics SDKs
@@ -174,12 +174,13 @@ Matches `ios/APP_STORE.md` and `PrivacyInfo.xcprivacy` (five collected types, al
 | Identifiers: User ID | Yes | Yes | No | App Functionality | The account's ID |
 | User Content: Other User Content | Yes | Yes | No | App Functionality | Questions asked in Ask the League. They go to Google (Gemini) and Anthropic (Claude) after the user gives permission, together with the league's own results text |
 | Other Data | Yes | Yes | No | App Functionality | Sleeper username, league IDs and the ESPN keys saved to the account (kept encrypted) |
+| Usage Data: Product Interaction | Yes | Yes | No | App Functionality | Each day's count of Ask the League questions and the requests they made, for the daily allowance (`chat_usage`), kept until the account is deleted |
 
-Everything else: Not collected. That includes Purchases, Financial Info, Health and Fitness, Location, Sensitive Info, Contacts, Browsing History, Search History, Device ID, Advertising Data, Usage Data, Diagnostics (no crash or analytics SDK) and Photos or Videos (saving a recap picture to Photos only writes to the library; nothing is read or sent).
+Everything else: Not collected. That includes Purchases, Financial Info, Health and Fitness, Location, Sensitive Info, Contacts, Browsing History, Search History, Device ID, Advertising Data, other Usage Data, Diagnostics (no crash or analytics SDK) and Photos or Videos (saving a recap picture to Photos only writes to the library; nothing is read or sent).
 
 Notes for the form:
 
-- All five data types are only collected when someone makes an account or uses Ask the League. Opening a league or the demo without an account collects nothing from the person. Apple's label still has to list them, because the app can collect them.
+- All six data types are only collected when someone makes an account or uses Ask the League. Opening a league or the demo without an account collects nothing from the person. Apple's label still has to list them, because the app can collect them.
 - League data is read from Sleeper's and ESPN's public or keyed APIs directly on the device. It is not sent to Pigskin Pantheon's servers except as the league text in a question to Ask the League.
 - Data sent to Google and Anthropic counts as collected through third-party partners. Their handling is covered in the privacy policy.
 - Export compliance: `ITSAppUsesNonExemptEncryption = NO` is in Info.plist (standard HTTPS only), so the encryption question is answered for you.
