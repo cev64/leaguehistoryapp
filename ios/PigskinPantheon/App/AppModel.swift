@@ -49,8 +49,10 @@ final class AppModel {
             if let user, user != self.leagueUser { Task { await self.admit(league) } }
             self.leagueUser = user
         }
-        Task {
+        session.opening = Task {
             await account.freshen()
+            // Closed (or another league opened) while the token was freshened.
+            guard league === session else { return }
             await session.load()
             await admit(session)
         }
@@ -119,6 +121,9 @@ final class LeagueSession: Identifiable {
     var year: Int = Calendar.current.component(.year, from: Date())
     /// A sheet raised over the league (the league AI, the account).
     var sheet: LeagueSheet?
+    /// The first load, from `AppModel.open`: cancelled if the league closes first.
+    @ObservationIgnored var opening: Task<Void, Never>?
+    @ObservationIgnored private var closed = false
     private weak var app: AppModel?
 
     var isDemo: Bool { LeagueEngine.isDemo(id) }
@@ -130,20 +135,26 @@ final class LeagueSession: Identifiable {
     }
 
     func load() async {
+        guard !closed else { return }
         phase = .loading(done: 0, total: 0)
         engine.onProgress = { [weak self] done, total in
-            self?.phase = .loading(done: done, total: total)
+            // Not once the league shows: a page iOS restarted reads it again quietly.
+            guard let self, case .loading = self.phase else { return }
+            self.phase = .loading(done: done, total: total)
         }
         do {
             if let session = app?.account.engineSession {
-                try? await engine.run("Bridge.setSession(s)", ["s": session])
+                try? await engine.setSession(session)
             }
-            let summary = try await engine.call(LeagueSummary.self, "Bridge.load()")
+            let summary = try await engine.load(LeagueSummary.self)
+            // Closed while it loaded: not kept, nor added to the recents.
+            guard !closed else { return }
             self.summary = summary
             self.year = summary.opening?.year ?? summary.newest?.year ?? year
             app?.remember(summary)
             phase = .ready
         } catch {
+            guard !closed else { return }
             phase = .failed(error.localizedDescription)
         }
     }
@@ -160,11 +171,14 @@ final class LeagueSession: Identifiable {
     /// The member signed in or out, or their token was refreshed: the
     /// engine's `window.Account` stand-in hears it too.
     func resendSession(_ session: [String: Any]?) {
-        Task { try? await engine.run("Bridge.setSession(s)", ["s": session ?? NSNull()]) }
+        Task { try? await engine.setSession(session) }
     }
 
     func close() {
+        closed = true
+        opening?.cancel()
         engine.tearDown()
+        PanelCache.clear()
     }
 
     var season: Season? { summary?.season(year) }

@@ -68,7 +68,7 @@ struct ChatScreen: View {
                 held = nil
                 // A stopped answer still unwinding: the question waits in the box.
                 if chat.busy, draft.isEmpty { draft = question.text }
-                else if !question.text.isEmpty { ask(question.text) }
+                else if !question.text.isEmpty, !ask(question.text), draft.isEmpty { draft = question.text }
             }, notNow: {
                 // Nothing is sent; the question waits in the box.
                 if draft.isEmpty { draft = question.text }
@@ -86,7 +86,8 @@ struct ChatScreen: View {
         .sensoryFeedback(.impact(weight: .light), trigger: chat.sentCount)
         .sensoryFeedback(.success, trigger: chat.answeredCount)
         .sensoryFeedback(.error, trigger: chat.failedCount)
-        .task {
+        // A conversation forgotten on signing out is replaced: prepared again.
+        .task(id: ObjectIdentifier(chat)) {
             await chat.prepare(engine: session.engine)
             // Start reading the league while they type.
             if unlocked { chat.warm(engine: session.engine) }
@@ -300,19 +301,26 @@ struct ChatScreen: View {
     private func send() {
         let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !chat.busy, !chat.full else { return }
-        draft = ""
-        ask(question)
+        // The box empties only once the question is taken (or held to ask first).
+        if ask(question) { draft = "" }
     }
 
-    private func ask(_ question: String) {
+    @discardableResult
+    private func ask(_ question: String) -> Bool {
         // The first question asks before anything leaves the phone.
         guard consented else {
             focused = false
             held = HeldQuestion(text: question)
-            return
+            return true
         }
-        chat.ask(question, engine: session.engine, token: token)
+        guard chat.ask(question, engine: session.engine, token: token) else {
+            // Not taken: the welcome couldn't be read. It's read again (its
+            // reason shows under it meanwhile), and the question waits.
+            Task { await chat.prepare(engine: session.engine) }
+            return false
+        }
         withAnimation(.snappy) { position.scrollTo(edge: .bottom) }
+        return true
     }
 
     /// Hides the answer and writes to support about it, with the question

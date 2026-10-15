@@ -95,6 +95,13 @@ final class ChatConversation {
         return made
     }
 
+    /// Signed out (or the account deleted): every conversation goes, an
+    /// answer being written included.
+    static func forgetAll() {
+        all.values.forEach { $0.fresh() }
+        all = [:]
+    }
+
     let leagueId: String
 
     /// What the API sees: every turn, tool calls included, as JSON.
@@ -113,6 +120,10 @@ final class ChatConversation {
 
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var digestJob: Task<String, Error>?
+    /// The engine the digest is being written by: the league opened again
+    /// has a new one.
+    @ObservationIgnored private weak var digestEngine: LeagueEngine?
+    @ObservationIgnored private var digestTurn = 0
     /// Bumped by a new chat, so an answer cancelled by it doesn't write
     /// itself into the fresh conversation.
     @ObservationIgnored private var generation = 0
@@ -145,11 +156,20 @@ final class ChatConversation {
     }
 
     private func digest(engine: LeagueEngine) -> Task<String, Error> {
-        if let digestJob { return digestJob }
-        let job = Task { @MainActor in
-            try await engine.call(String.self, "Bridge.chat.digest()")
+        if let digestJob, digestEngine === engine { return digestJob }
+        digestTurn += 1
+        let turn = digestTurn
+        let job = Task { @MainActor [weak self] in
+            do {
+                return try await engine.call(String.self, "Bridge.chat.digest()")
+            } catch {
+                // Written out afresh for the next question.
+                if let self, self.digestTurn == turn { self.digestJob = nil }
+                throw error
+            }
         }
         digestJob = job
+        digestEngine = engine
         return job
     }
 
@@ -177,10 +197,13 @@ final class ChatConversation {
         ask(last, engine: engine, token: token)
     }
 
-    func ask(_ question: String, engine: LeagueEngine, token: @escaping ChatToken) {
+    /// False when the question wasn't taken (no welcome read yet, say), so
+    /// the screen keeps it in the box.
+    @discardableResult
+    func ask(_ question: String, engine: LeagueEngine, token: @escaping ChatToken) -> Bool {
         let question = Self.clipped(question.trimmingCharacters(in: .whitespacesAndNewlines))
         // Nothing leaves the phone until the member has said yes.
-        guard Self.consented, !question.isEmpty, !busy, !full, let intro else { return }
+        guard Self.consented, !question.isEmpty, !busy, !full, let intro else { return false }
         let mark = history.count
         let markShown = shown.count
         history.append(["role": "user", "content": question])
@@ -319,6 +342,7 @@ final class ChatConversation {
                 self.task = nil
             }
         }
+        return true
     }
 
     /// Hides an answer the member reported and returns it with the question

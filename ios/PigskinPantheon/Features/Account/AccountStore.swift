@@ -207,7 +207,9 @@ final class AccountStore {
         } catch let error as AccountError {
             // Turned away (revoked, expired, signed out elsewhere): signed out
             // here too. A network failure keeps the session for a later try.
-            if case .server(let status, _) = error, (400...401).contains(status) || status == 403 {
+            if case .server(let status, _) = error, (400...401).contains(status) || status == 403,
+               // Not if they signed out, or in again, while this was in flight.
+               stored?.refreshToken == current.refreshToken {
                 apply(nil)
                 profile = nil
                 leagues = []
@@ -288,6 +290,11 @@ final class AccountStore {
         apply(nil)
         profile = nil
         leagues = []
+        pending = nil
+        gateFailure = nil
+        hints = [:]
+        // The league AI conversations were the member's.
+        ChatConversation.forgetAll()
     }
 
     /// delete_my_account(): the account and everything on it (its synced
@@ -305,6 +312,7 @@ final class AccountStore {
         pending = nil
         gateFailure = nil
         hints = [:]
+        ChatConversation.forgetAll()
         UserDefaults.standard.removeObject(forKey: Self.seenKey)
     }
 

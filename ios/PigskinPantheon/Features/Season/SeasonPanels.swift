@@ -10,10 +10,25 @@ import SwiftUI
 
 /// Every panel answer read this session, by engine and call, so going back
 /// to a week (or a view) shows it at once. A league's answers don't change
-/// while its engine is open; a new session has a new engine.
+/// while its engine is open; a new session has a new engine, and closing a
+/// league empties it. The oldest answers go once it holds `limit`.
 @MainActor
 enum PanelCache {
-    static var answers: [String: Any] = [:]
+    static let limit = 300
+    private static var answers: [String: Any] = [:]
+    private static var order: [String] = []
+
+    static subscript(key: String) -> Any? { answers[key] }
+
+    static func store(_ answer: Any, for key: String) {
+        if answers.updateValue(answer, forKey: key) == nil { order.append(key) }
+        while order.count > limit { answers[order.removeFirst()] = nil }
+    }
+
+    static func clear() {
+        answers = [:]
+        order = []
+    }
 }
 
 /// Reads one Bridge call for a panel and draws it, with the loading card
@@ -31,13 +46,13 @@ struct PanelLoader<Value: Decodable, Content: View>: View {
 
     private var key: String {
         let args = arguments.keys.sorted().map { "\($0)=\(String(describing: arguments[$0]!))" }.joined(separator: "&")
-        return "\(ObjectIdentifier(session.engine).hashValue)|\(expression)|\(args)"
+        return "\(session.engine.instance.uuidString)|\(expression)|\(args)"
     }
 
     var body: some View {
         let key = self.key
         Group {
-            if let shown = value ?? (PanelCache.answers[key] as? Value) {
+            if let shown = value ?? (PanelCache[key] as? Value) {
                 content(shown)
             } else if let error {
                 EmptyCard(title: failureTitle, detail: error, symbol: "exclamationmark.triangle")
@@ -46,12 +61,12 @@ struct PanelLoader<Value: Decodable, Content: View>: View {
             }
         }
         .task(id: key) {
-            if let hit = PanelCache.answers[key] as? Value { value = hit; return }
+            if let hit = PanelCache[key] as? Value { value = hit; return }
             value = nil
             error = nil
             do {
                 let answer = try await session.engine.call(Value.self, expression, arguments)
-                PanelCache.answers[key] = answer
+                PanelCache.store(answer, for: key)
                 value = answer
             } catch {
                 self.error = error.localizedDescription

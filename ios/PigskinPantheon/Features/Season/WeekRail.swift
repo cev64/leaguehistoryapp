@@ -30,6 +30,8 @@ struct WeekRail: View {
     /// The week under the disc while swiping (nil: the chosen week).
     @State private var visWeek: Int?
     @State private var swiping = false
+    /// The wheel is at rest (no finger, no momentum, no snapping).
+    @State private var idle = true
     @State private var length: CGFloat = 0
     @State private var position = ScrollPosition()
     /// Shown once its week is on the centre line: before it knows its own
@@ -67,11 +69,15 @@ struct WeekRail: View {
             // snaps a week onto the centre line, like scroll-snap-align: center
             .scrollTargetBehavior(SlotSnap(slot: slot, horizontal: horizontal))
             .onScrollPhaseChange { _, phase in
+                idle = phase == .idle
                 switch phase {
                 case .interacting:
                     swiping = true
                 case .idle:
-                    settle(proxy)
+                    // On the next turn of the run loop: settling scrolls the
+                    // wheel again, which can't change its phase in the same
+                    // frame. A swipe begun meanwhile settles on its own.
+                    DispatchQueue.main.async { if idle { settle(proxy) } }
                 default:
                     break
                 }

@@ -7,7 +7,8 @@ import SwiftUI
 /// capsule has them. Each tab keeps its own season.
 ///
 /// Launch straight onto a tab and season with PP_OFFICE=<tab>/<season>
-/// (e.g. trades/all, lineups/2024, picks/2028), as the site's #<tab>/<season>.
+/// (e.g. trades/all, lineups/2024, picks/2028), as the site's #<tab>/<season>
+/// (Debug builds only).
 struct FrontOfficeScreen: View {
     @Environment(LeagueSession.self) private var session
     @State private var store: OfficeStore?
@@ -26,6 +27,9 @@ struct FrontOfficeScreen: View {
             }
         }
         .task(id: session.id) {
+            // Back from a page it opened, or from another tab: the tab and
+            // seasons stay. One that couldn't start is started again.
+            if let store, store.engine === session.engine, store.nav != nil || store.error == nil { return }
             let s = OfficeStore(engine: session.engine, source: session.summary?.source ?? "Sleeper")
             store = s
             await s.start()
@@ -211,12 +215,14 @@ final class OfficeStore {
             let nav = try await engine.call(OfficeNav.self, "Bridge.office.nav()")
             self.nav = nav
             years = nav.start
+            #if DEBUG
             // PP_OFFICE=<tab>/<season>, as the site's #<tab>/<season>
             if let raw = ProcessInfo.processInfo.environment["PP_OFFICE"] {
                 let parts = raw.split(separator: "/").map(String.init)
                 if let t = parts.first, nav.tabs.contains(where: { $0.id == t }) { tab = t }
                 if parts.count > 1 { years[tab] = parts[1] == "all" ? Self.all : Int(parts[1]) ?? years[tab] }
             }
+            #endif
             await show()
         } catch {
             self.error = "\(source) didn't answer. Try again in a moment."

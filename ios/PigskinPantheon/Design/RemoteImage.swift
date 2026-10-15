@@ -51,8 +51,9 @@ struct RemoteImage<Content: View>: View {
 }
 
 /// The app's pictures: one download per address, kept in memory (and the
-/// downloads on disk), and the addresses that failed remembered so they
-/// aren't asked for on every appearance.
+/// downloads on disk), and the addresses that are gone (a 404, say)
+/// remembered so they aren't asked for on every appearance. A picture that
+/// failed for want of a network is asked for again next time.
 @MainActor
 final class ImageStore {
     static let shared = ImageStore()
@@ -87,15 +88,17 @@ final class ImageStore {
         if let image {
             let cost = Int(image.size.width * image.size.height * image.scale * image.scale * 4)
             memory.setObject(image, forKey: url as NSURL, cost: cost)
-        } else {
-            failed.insert(url)
         }
         return image
     }
 
     private func fetch(_ url: URL) async -> UIImage? {
         guard let (data, response) = try? await session.data(from: url) else { return nil }
-        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) { return nil }
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            // Gone for good, unless it was only too soon (408, 429).
+            if (400..<500).contains(http.statusCode), ![408, 429].contains(http.statusCode) { failed.insert(url) }
+            return nil
+        }
         if Self.isSVG(data, response) {
             return await SVGRasterizer.shared.image(svg: data, pixels: 192)
         }
@@ -127,10 +130,12 @@ final class SVGRasterizer: NSObject, WKNavigationDelegate {
     static let shared = SVGRasterizer()
 
     private var webView: WKWebView?
-    private var ready: [CheckedContinuation<Void, Never>] = []
+    private var ready: [CheckedContinuation<WKWebView?, Never>] = []
     private var loaded = false
 
-    private func page() async -> WKWebView {
+    /// The page, once it's up; nil if it couldn't come up (the next picture
+    /// tries a fresh one).
+    private func page() async -> WKWebView? {
         if let webView, loaded { return webView }
         if webView == nil {
             let config = WKWebViewConfiguration()
@@ -141,20 +146,46 @@ final class SVGRasterizer: NSObject, WKNavigationDelegate {
             view.loadHTMLString("<!doctype html><meta charset=utf-8><title>svg</title>", baseURL: nil)
             webView = view
         }
-        await withCheckedContinuation { ready.append($0) }
-        return webView!
+        return await withCheckedContinuation { ready.append($0) }
     }
 
     nonisolated func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         MainActor.assumeIsolated {
+            guard webView === self.webView else { return }
             loaded = true
-            ready.forEach { $0.resume() }
-            ready = []
+            finish(webView)
         }
     }
 
+    nonisolated func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        MainActor.assumeIsolated { reset(webView) }
+    }
+
+    nonisolated func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        MainActor.assumeIsolated { reset(webView) }
+    }
+
+    nonisolated func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        MainActor.assumeIsolated { reset(webView) }
+    }
+
+    /// The page failed or was killed: whoever waits gets nothing, and the
+    /// next picture starts a fresh page.
+    private func reset(_ view: WKWebView) {
+        guard view === webView else { return }
+        webView = nil
+        loaded = false
+        finish(nil)
+    }
+
+    private func finish(_ view: WKWebView?) {
+        let waiting = ready
+        ready = []
+        waiting.forEach { $0.resume(returning: view) }
+    }
+
     func image(svg: Data, pixels: Int) async -> UIImage? {
-        let view = await page()
+        guard let view = await page() else { return nil }
         let script = """
         const img = new Image();
         await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = src; });

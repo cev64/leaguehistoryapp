@@ -123,6 +123,11 @@ final class TrophyStage {
     /// The inspect sheet's size, while it is up.
     @ObservationIgnored private var sheetSize: CGSize?
 
+    // The room closed with its league: its frame clock stops with it.
+    isolated deinit {
+        link?.invalidate()
+    }
+
     init() {
         for (s, camera) in [(scene, cameraNode), (lockerScene, lockerCamera)] {
             s.background.contents = UIColor(trophyRGB: 0x070D17)
@@ -180,9 +185,12 @@ final class TrophyStage {
 
     // MARK: Loading
 
+    /// Reads the hall and builds it, once. A load that failed can be tried
+    /// again (the doorway's button, or opening the room again).
     func load(session: LeagueSession) async {
         guard !started else { return }
         started = true
+        phase = .loading
         summary = session.summary
         do {
             let hall = try await session.engine.call(TrophyHall.self, "Bridge.trophy.hall()")
@@ -206,6 +214,7 @@ final class TrophyStage {
             startLoop()
             enterHall()
         } catch {
+            started = false
             phase = .failed(error.localizedDescription)
         }
     }
@@ -285,7 +294,8 @@ final class TrophyStage {
         guard let target = TrophyLaunch.target, let hall else { return }
         if target.hasPrefix("wing:"), let wing = hall.wings.first(where: { $0.id == target.dropFirst(5) }) {
             rail = Float(wing.start); railTarget = rail
-        } else if target.hasPrefix("focus:"), let item = hall.rail.first(where: { $0.id == target.split(separator: ":")[1] }) {
+        } else if target.hasPrefix("focus:"), let id = target.split(separator: ":").dropFirst().first,
+                  let item = hall.rail.first(where: { $0.id == id }) {
             rail = Float(item.railIndex); railTarget = rail
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { self.focusExhibit(item.railIndex) }
             if target.hasSuffix(":link") {
@@ -901,7 +911,11 @@ private final class DisplayTarget: NSObject {
     weak var stage: TrophyStage?
     init(_ stage: TrophyStage) { self.stage = stage }
     @objc func tick(_ link: CADisplayLink) {
-        MainActor.assumeIsolated { stage?.tick(link.targetTimestamp) }
+        MainActor.assumeIsolated {
+            // The stage has gone: so does the link.
+            guard let stage else { link.invalidate(); return }
+            stage.tick(link.targetTimestamp)
+        }
     }
 }
 

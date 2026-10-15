@@ -27,6 +27,9 @@ struct SeasonScreen: View {
             }
         }
         .task(id: shownYear) {
+            // Back from a box score or another tab: the week and view stay.
+            // A store that failed is read again.
+            if let store, store.year == shownYear, store.engine === session.engine, store.error == nil { return }
             let s = SeasonStore(engine: session.engine, year: shownYear)
             store = s
             await s.load(initialWeek: initialWeek)

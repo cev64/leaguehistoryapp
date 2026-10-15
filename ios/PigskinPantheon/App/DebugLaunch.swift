@@ -5,7 +5,8 @@ import Foundation
 ///
 ///   SIMCTL_CHILD_PP_LEAGUE=demo            open a league
 ///   SIMCTL_CHILD_PP_TAB=records            season | records | office | trophy | search
-///   SIMCTL_CHILD_PP_ROUTE=player:4046      pushed onto that tab's stack; also
+///   SIMCTL_CHILD_PP_ROUTE=player:4046      pushed onto that tab's stack (on an
+///                                          iPad, name the season: PP_TAB=2025); also
 ///                                          team:<year>:<teamId>, manager:<ownerId>,
 ///                                          box:<year>:<week>:<a>:<b>, season:<year>:<week>
 ///   SIMCTL_CHILD_PP_WEEK=9                 the season screen's week

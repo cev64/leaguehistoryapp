@@ -45,6 +45,7 @@ struct RecordBookScreen: View {
             do {
                 let b = try await session.engine.call(RecordBook.self, "Bridge.records.book()")
                 withAnimation(.smooth) {
+                    error = nil
                     book = b
                     sort = b.start
                 }

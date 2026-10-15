@@ -255,10 +255,13 @@ private struct SchedulePanel: View {
     let info: SeasonInfo
     let season: Season
     @State private var weeks: [ScheduleWeek]?
+    @State private var error: String?
 
     var body: some View {
         Group {
-            if let weeks {
+            if let error {
+                EmptyCard(title: "The schedule couldn't be read", detail: error, symbol: "exclamationmark.triangle")
+            } else if let weeks {
                 if weeks.isEmpty {
                     EmptyCard(title: season.unplayed == true ? "This season wasn't played" : "No schedule yet",
                               detail: season.unplayed == true
@@ -301,7 +304,12 @@ private struct SchedulePanel: View {
             }
         }
         .task {
-            weeks = (try? await session.engine.call([ScheduleWeek].self, "Bridge.season.schedule(year)", ["year": season.year])) ?? []
+            do {
+                weeks = try await session.engine.call([ScheduleWeek].self, "Bridge.season.schedule(year)", ["year": season.year])
+                error = nil
+            } catch {
+                self.error = error.localizedDescription
+            }
         }
     }
 }
