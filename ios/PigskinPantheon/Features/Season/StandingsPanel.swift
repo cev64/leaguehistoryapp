@@ -116,10 +116,11 @@ private struct StandingsTableCard: View {
     }
 
     private var compact: some View {
-        VStack(spacing: 0) {
+        let recordWidth = StandingsStatStrip.recordWidth(table.rows.map(\.record))
+        return VStack(spacing: 0) {
             ForEach(Array(table.rows.enumerated()), id: \.element.id) { index, row in
                 if index > 0 { Divider().overlay(Theme.line) }
-                StandingsPhoneRow(season: season, row: row, hasDivisions: hasDivisions)
+                StandingsPhoneRow(season: season, row: row, hasDivisions: hasDivisions, recordWidth: recordWidth)
             }
         }
     }
@@ -141,6 +142,8 @@ private struct StandingsPhoneRow: View {
     let season: Season
     let row: StandingsData.Row
     let hasDivisions: Bool
+    /// The table's widest record (StandingsStatStrip.recordWidth).
+    let recordWidth: CGFloat
 
     var body: some View {
         let team = season.team(row.id)
@@ -180,7 +183,7 @@ private struct StandingsPhoneRow: View {
 
     private var cells: [StandingsStatStrip.Cell] {
         var out: [StandingsStatStrip.Cell] = [
-            .init(label: "W–L", value: row.record, weight: 0.8, strong: true),
+            .init(label: "W–L", value: row.record, weight: 0.8, strong: true, minWidth: recordWidth),
             .init(label: "GB", value: row.gb, weight: 0.55),
             .init(label: "PF", value: row.pf, weight: 1.2),
             .init(label: "PA", value: row.pa, weight: 1.2),
@@ -199,16 +202,26 @@ struct StandingsStatStrip: View {
         var weight: CGFloat = 1
         var strong: Bool = false
         var tint: Color? = nil
+        /// At least this wide, whatever its weight: the W–L cell when a
+        /// record in the table has a tie (`recordWidth`). The same for every
+        /// row of a table, so the columns still line up.
+        var minWidth: CGFloat = 0
     }
     let cells: [Cell]
 
+    /// What the W–L cells of a table need: their records ("10–3–1" with a
+    /// tie) in the strip's bold type.
+    static func recordWidth(_ records: some Sequence<String>) -> CGFloat {
+        RecordColumn.width(records, size: 12.5, weight: .bold)
+    }
+
     var body: some View {
-        let total = cells.reduce(0) { $0 + $1.weight }
         GeometryReader { geo in
             let gap: CGFloat = 6
             let room = max(0, min(geo.size.width, 440) - gap * CGFloat(cells.count - 1))
+            let widths = widths(in: room)
             HStack(alignment: .top, spacing: gap) {
-                ForEach(cells, id: \.self) { cell in
+                ForEach(Array(cells.enumerated()), id: \.element) { index, cell in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(cell.label)
                             .font(.system(size: 9.5, weight: .semibold))
@@ -222,12 +235,23 @@ struct StandingsStatStrip: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                     }
-                    .frame(width: room * cell.weight / total, alignment: .leading)
+                    .frame(width: widths[index], alignment: .leading)
                 }
             }
         }
         .frame(height: 28)
         .accessibilityElement(children: .combine)
+    }
+
+    /// Each cell's share of the room by weight. A cell whose share is less
+    /// than its `minWidth` gets its minWidth, and the others share the rest.
+    private func widths(in room: CGFloat) -> [CGFloat] {
+        let total = cells.reduce(0) { $0 + $1.weight }
+        let pinned = cells.map { $0.minWidth > room * $0.weight / total }
+        guard pinned.contains(true) else { return cells.map { room * $0.weight / total } }
+        let left = max(0, room - zip(cells, pinned).reduce(0) { $0 + ($1.1 ? $1.0.minWidth : 0) })
+        let rest = zip(cells, pinned).reduce(0) { $0 + ($1.1 ? 0 : $1.0.weight) }
+        return zip(cells, pinned).map { cell, pin in pin ? cell.minWidth : (rest > 0 ? left * cell.weight / rest : 0) }
     }
 }
 
@@ -483,10 +507,11 @@ private struct FinalStandingsCard: View {
     }
 
     private var compact: some View {
-        VStack(spacing: 0) {
+        let recordWidth = StandingsStatStrip.recordWidth(sorted.map(\.record))
+        return VStack(spacing: 0) {
             ForEach(Array(sorted.enumerated()), id: \.element.id) { index, row in
                 if index > 0 { Divider().overlay(Theme.line) }
-                FinalPhoneRow(season: season, row: row)
+                FinalPhoneRow(season: season, row: row, recordWidth: recordWidth)
             }
         }
     }
@@ -539,6 +564,8 @@ private let placeMedals = ["🏆", "🥈", "🥉"]
 private struct FinalPhoneRow: View {
     let season: Season
     let row: FinalRow
+    /// The table's widest record (StandingsStatStrip.recordWidth).
+    let recordWidth: CGFloat
 
     var body: some View {
         let team = season.team(row.id)
@@ -564,7 +591,7 @@ private struct FinalPhoneRow: View {
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         StandingsStatStrip(cells: [
-                            .init(label: "W–L", value: row.record, weight: 0.8, strong: true),
+                            .init(label: "W–L", value: row.record, weight: 0.8, strong: true, minWidth: recordWidth),
                             .init(label: "PF", value: row.pfText, weight: 1.2),
                             .init(label: "PA", value: row.paText, weight: 1.2),
                             .init(label: "PF/G", value: row.pfgText, weight: 0.85),

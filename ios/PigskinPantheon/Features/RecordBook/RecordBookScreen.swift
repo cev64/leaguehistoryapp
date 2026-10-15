@@ -202,6 +202,11 @@ private struct BookAllTimeStandingsCard: View {
         (book.orders[sort.id] ?? book.managers.map(\.ownerId)).compactMap(book.manager)
     }
 
+    /// The table's Record column: 64, or the widest all-time record with ties.
+    private var recordWidth: CGFloat {
+        RecordColumn.width(book.managers.map(\.record), size: 13, weight: .bold, atLeast: 64)
+    }
+
     var body: some View {
         Card {
             BookCardHead(title: "Standings", symbol: CardIcon.standings) {
@@ -263,7 +268,7 @@ private struct BookAllTimeStandingsCard: View {
                 .font(.system(size: 10.5, weight: .bold)).foregroundStyle(Theme.ink3)
             BookSortHeader(title: "Team", key: "team", state: $sort, defaults: book.defaults, alignment: .leading)
                 .frame(maxWidth: .infinity)
-            BookSortHeader(title: "Record", key: "wins", state: $sort, defaults: book.defaults).frame(width: 64)
+            BookSortHeader(title: "Record", key: "wins", state: $sort, defaults: book.defaults).frame(width: recordWidth)
             BookSortHeader(title: "PCT", key: "pct", state: $sort, defaults: book.defaults).frame(width: 50)
             BookSortHeader(title: "PF", key: "pf", state: $sort, defaults: book.defaults).frame(width: 82)
             BookSortHeader(title: "PA", key: "pa", state: $sort, defaults: book.defaults).frame(width: 82)
@@ -281,7 +286,7 @@ private struct BookAllTimeStandingsCard: View {
             rank(n)
             BookManagerLabel(face: row).frame(maxWidth: .infinity, alignment: .leading)
             Group {
-                Text(row.record).fontWeight(.bold).frame(width: 64, alignment: .trailing)
+                Text(row.record).fontWeight(.bold).frame(width: recordWidth, alignment: .trailing)
                 Text(row.pct).frame(width: 50, alignment: .trailing)
                 Text(row.pfText).frame(width: 82, alignment: .trailing)
                 Text(row.paText).frame(width: 82, alignment: .trailing)

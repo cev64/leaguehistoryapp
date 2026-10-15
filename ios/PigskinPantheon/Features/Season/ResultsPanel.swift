@@ -142,7 +142,8 @@ private struct UpcomingGame: View {
                     TeamBadge(team: team, size: 26, corner: 8)
                     Text(team.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink).lineLimit(1)
                     Spacer()
-                    Text(record).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Theme.ink2)
+                    // The record whole ("10–3–1" with a tie): the name gives way.
+                    Text(record).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Theme.ink2).fixedSize()
                 }
                 .contentShape(Rectangle())
             }

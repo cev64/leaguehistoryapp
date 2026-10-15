@@ -461,7 +461,7 @@ private struct RecapRaceCard: View {
                     RecapTeamLink(season: season, teamId: s.id, size: 20)
                     Spacer(minLength: 6)
                     if !s.flag.isEmpty { RecapFlag(flag: s.flag) }
-                    Text(s.record).fontWeight(.bold).monospacedDigit().frame(minWidth: 48, alignment: .trailing)
+                    Text(s.record).fontWeight(.bold).monospacedDigit().fixedSize().frame(minWidth: 48, alignment: .trailing)
                 }
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.ink)
