@@ -485,9 +485,18 @@
   }
 
   /* Over once ESPN has moved on to a later season, or has given every team
-     its final place and played its last week. */
-  const isComplete = (core, gs) => core.year < gs.season ||
-    (core.teams.length > 0 && core.teams.every((t) => t.rank > 0) && core.status.latest >= core.status.final);
+     its final place and decided every game of its last matchup period (the
+     championship, where there are playoffs). Its places and its latest
+     scoring period alone aren't enough: during the season's last week ESPN
+     already reports that week as the latest, the final one, and can rank
+     every team on the standings so far. */
+  const isComplete = (core, gs) => {
+    if (core.year < gs.season) return true;
+    if (!core.teams.length || !core.teams.every((t) => t.rank > 0)) return false;
+    const last = Math.max(0, ...core.games.map((g) => g.mp));
+    const games = core.games.filter((g) => g.mp === last && g.home && g.away);
+    return games.length > 0 && games.every((g) => g.winner === "HOME" || g.winner === "AWAY" || g.winner === "TIE");
+  };
 
   /* One week's lineups: { teamId: { e: [[pid, slot], ...], p: { pid: pts } } },
      the players met registered as a side effect. */
