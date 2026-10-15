@@ -153,7 +153,7 @@ private struct SeasonHero: View {
 
     var body: some View {
         if season.finished {
-            AdaptiveGrid(minWidth: 300) {
+            PairRow(minWidth: 300) {
                 if let champ = season.champion, let team = season.team(champ) {
                     OutcomeCard(kind: .champion, season: season, teamId: champ, team: team, game: season.titleGame)
                 }

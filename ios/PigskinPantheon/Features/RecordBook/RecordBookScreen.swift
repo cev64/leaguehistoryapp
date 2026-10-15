@@ -24,7 +24,7 @@ struct RecordBookScreen: View {
                 RecordBookHero(badge: book.badge)
                 PageTitle(text: "Record Book")
                     .padding(.top, 4)
-                AdaptiveGrid(minWidth: 320) {
+                PairRow(minWidth: 320) {
                     BookTitlesCard(title: "Champions", symbol: "trophy", countHeader: "Titles", rows: book.champions, book: book)
                     BookTitlesCard(title: "Last Places", symbol: CardIcon.toilet, countHeader: "Last", rows: book.lastPlaces, book: book)
                 }
