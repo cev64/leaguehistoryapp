@@ -66,7 +66,9 @@
   const clubOf = (proTeamId) => CLUB[proTeamId] || "FA";
 
   /* ESPN's lineup slots, as the Sleeper slot each one plays like. ESPN's
-     DT, DE and DL slots all read as DL, CB, S and DB as DB. */
+     DT, DE and DL slots all read as DL, CB, S and DB as DB. Two have no
+     Sleeper slot and keep ESPN's own name: TQB, a team quarterback (an NFL
+     club's quarterbacks scored as one), and ER, an edge rusher (IDP). */
   const SLOT_NAME = {
     0: "QB", 1: "TQB", 2: "RB", 3: "WRRB_FLEX", 4: "WR", 5: "REC_FLEX", 6: "TE", 7: "SUPER_FLEX",
     8: "DL", 9: "DL", 10: "LB", 11: "DL", 12: "DB", 13: "DB", 14: "DB", 15: "IDP_FLEX", 16: "DEF",
@@ -76,9 +78,10 @@
   const SLOT_ORDER = [0, 1, 2, 3, 4, 5, 6, 23, 7, 8, 9, 11, 24, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
   const BENCH = 20, IR = 21;
   // The positions a player may fill, from the slots ESPN lets him into.
+  // TQB and ER name themselves: only a player ESPN lets into one fills it.
   const ELIGIBLE = {
-    0: "QB", 2: "RB", 4: "WR", 6: "TE", 8: "DL", 9: "DL", 11: "DL", 10: "LB", 12: "DB", 13: "DB", 14: "DB",
-    16: "DEF", 17: "K", 18: "P", 19: "HC",
+    0: "QB", 1: "TQB", 2: "RB", 4: "WR", 6: "TE", 8: "DL", 9: "DL", 11: "DL", 10: "LB", 12: "DB", 13: "DB", 14: "DB",
+    16: "DEF", 17: "K", 18: "P", 19: "HC", 24: "ER",
   };
   const POSITION = { 1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 7: "P", 9: "DT", 10: "DE", 11: "LB", 12: "CB", 13: "S", 14: "HC", 16: "DST" };
 
@@ -96,9 +99,13 @@
     if (!p || p.id == null) return null;
     const pid = pidOf(p.id);
     const club = clubOf(p.proTeamId);
-    if (Number(p.id) < 0) return [pid, [`${String(p.fullName || `${pid} D/ST`).trim()}`, "DST", pid]];
-    const elig = [...new Set((p.eligibleSlots || []).map((s) => ELIGIBLE[s]).filter(Boolean))];
-    const pos = POSITION[p.defaultPositionId] || elig[0] || "?";
+    const slots = p.eligibleSlots || [];
+    // A team defence is a club. Any other club-wide player ESPN keeps (a
+    // team quarterback) is a player like the rest, under its own slots.
+    const teamQb = slots.includes(1) && !slots.includes(16);
+    if (Number(p.id) < 0 && !teamQb) return [pid, [`${String(p.fullName || `${pid} D/ST`).trim()}`, "DST", pid]];
+    const elig = [...new Set(slots.map((s) => ELIGIBLE[s]).filter(Boolean))];
+    const pos = teamQb && !slots.includes(0) ? "TQB" : POSITION[p.defaultPositionId] || elig[0] || "?";
     const name = String(p.fullName || `${p.firstName || ""} ${p.lastName || ""}`).trim() || `Player ${p.id}`;
     return [pid, elig.length ? [name, pos, club, elig] : [name, pos, club]];
   }

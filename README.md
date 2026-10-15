@@ -141,7 +141,9 @@ How ESPN's data maps onto the site:
   isn't loaded for an ESPN league.
 - **Lineup slots** map to Sleeper's (RB/WR is `WRRB_FLEX`, OP is
   `SUPER_FLEX`, ESPN's DT/DE/DL slots read as DL and CB/S/DB as DB), so the
-  lineup tools work unchanged.
+  lineup tools work unchanged. ESPN's team quarterback (TQB) and edge
+  rusher (ER) slots, which Sleeper doesn't have, keep their names and take
+  the players ESPN lets into them.
 - **Trades** come from the league's activity feed (2019 on), because ESPN's
   transaction list leaves the players out of other teams' trades. Waivers,
   pickups and FAAB bids come from the transaction list.

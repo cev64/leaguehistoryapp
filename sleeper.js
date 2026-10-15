@@ -1293,7 +1293,8 @@
               wk[b] = [a, bs, as, label(b, a)];
               [[a, ea], [b, eb]].forEach(([teamId, entry]) => {
                 lineup(season, entry, db).forEach((p) => {
-                  if (!byId.has(p.id)) byId.set(p.id, { id: p.id, n: p.name, p: p.pos, h: p.pos === "DST" ? null : p.id, r: [] });
+                  // A defence or a team quarterback is a club, with no photo.
+                  if (!byId.has(p.id)) byId.set(p.id, { id: p.id, n: p.name, p: p.pos, h: p.pos === "DST" || p.pos === "TQB" ? null : p.id, r: [] });
                   byId.get(p.id).r.push([season.year, week, teamId, p.slot, p.pts, null, p.nfl]);
                 });
               });
