@@ -521,7 +521,13 @@ own domain.
   `league_changes` tables with row-level security, and `sync_league()` /
   `unsync_league()`, which enforce the free plan's one league and 30-day
   swap on the server; `has_pro()` and `app_settings` decide who counts as
-  Pro (everyone, for now).
+  Pro (everyone, for now). `20261016000000_league_limit.sql` makes the one
+  league hold: a per-member lock (no racing two syncs), a free row never
+  gains new league ids (a renewal still matches by the ids it has), and a
+  trigger on `synced_leagues` that holds both for any writer. The gate
+  itself runs in the browser over Sleeper's public data, so the limit
+  keeps honest accounts to one league; it can't hide a league's history
+  from someone who edits the page's script.
 - `supabase/functions/stripe-webhook/` — keeps Pro subscriptions and
   League Passes in step with Stripe's events, then works out the plans.
   Nothing else can write a plan.
