@@ -113,7 +113,9 @@ private struct BookProfileHero: View {
                                 .tracking(0.5)
                                 .foregroundStyle(.white.opacity(0.72))
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.8)
+                                // "Last places" on a phone's quarter width.
+                                .minimumScaleFactor(0.6)
+                                .allowsTightening(true)
                             Text(stat.value)
                                 .font(.system(size: 19, weight: .heavy))
                                 .foregroundStyle(.white)
@@ -122,7 +124,7 @@ private struct BookProfileHero: View {
                                 .minimumScaleFactor(0.7)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, 8)
                         .padding(.vertical, 8)
                         .frosted(RoundedRectangle(cornerRadius: 12, style: .continuous), opacity: 0.10)
                     }
