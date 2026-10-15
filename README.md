@@ -129,6 +129,10 @@ How ESPN's data maps onto the site:
   ESPN's games. Seasons from before ESPN tagged its games are sorted by
   who is still alive. ESPN's consolation ladder is winners-move-on, never a
   toilet bowl. One- and two-week rounds are both handled.
+- **Two-week matchups**: a regular-season matchup period two weeks long is
+  one game, as ESPN counts it, decided by both weeks' points and counted in
+  the week it ends. Each week keeps its own box scores; the two-week totals
+  stay out of one-week records (highest week, blowouts).
 - **Final places** are ESPN's own (`rankCalculatedFinal`), so the
   champion, last place and the trophy room match what ESPN shows.
 - **Players** come from ESPN's own data (name, position, club, eligible

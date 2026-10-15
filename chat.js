@@ -67,11 +67,13 @@
     model.seasons.forEach((s) => {
       s.playedWeeks.forEach((w) => (s.results[w] || []).forEach(([a, aScore, b, bScore]) => {
         if (!s.teams[a] || !s.teams[b]) return;
-        out.push({ year: s.year, week: w, a, b, aScore, bScore, aOwner: s.teams[a].ownerId, bOwner: s.teams[b].ownerId, label: null, bracket: null });
+        out.push({ year: s.year, week: w, a, b, aScore, bScore, aOwner: s.teams[a].ownerId, bOwner: s.teams[b].ownerId, label: null, bracket: null,
+          multi: Boolean(s.multiWeeks && s.multiWeeks[w]) });
       }));
       s.postseason.filter((g) => g.played && g.a && g.b && s.teams[g.a] && s.teams[g.b]).forEach((g) => {
         out.push({ year: s.year, week: g.week, a: g.a, b: g.b, aScore: g.aScore, bScore: g.bScore,
-          aOwner: s.teams[g.a].ownerId, bOwner: s.teams[g.b].ownerId, label: g.label, bracket: g.bracket, titlePath: g.titlePath, p: g.p });
+          aOwner: s.teams[g.a].ownerId, bOwner: s.teams[g.b].ownerId, label: g.label, bracket: g.bracket, titlePath: g.titlePath, p: g.p,
+          multi: g.weeks.length > 1 });
       });
     });
     return out.sort((x, y) => x.year - y.year || x.week - y.week);
@@ -157,6 +159,8 @@
         // playoff wins: the winners bracket on the road to the title only,
         // never a placement game (3rd, 5th...) or the consolation bracket
         if (g.titlePath) { if (mine > theirs) r.pw++; else if (mine < theirs) r.pl++; }
+        // A game over two weeks isn't a week's score.
+        if (g.multi) return;
         if (!r.high || mine > r.high.pts) r.high = { pts: mine, year: g.year, week: g.week };
         if (mine > 0 && (!r.low || mine < r.low.pts)) r.low = { pts: mine, year: g.year, week: g.week };
       });
@@ -195,9 +199,10 @@
       L.push(`- ${name(r.x)} ${r.xw}-${r.yw}${r.t ? `-${r.t}` : ""} ${name(r.y)}${playoff}; points ${f2(r.xpf)}–${f2(r.ypf)}; last: ${r.last}`);
     });
 
-    /* records */
+    /* records: one week's games (a two-week game's scores are both weeks') */
+    const weekGames = games.filter((g) => !g.multi);
     const sides = [];
-    games.forEach((g) => {
+    weekGames.forEach((g) => {
       sides.push({ oid: g.aOwner, pts: g.aScore, opp: g.bOwner, oppPts: g.bScore, g });
       sides.push({ oid: g.bOwner, pts: g.bScore, opp: g.aOwner, oppPts: g.aScore, g });
     });
@@ -207,9 +212,9 @@
     L.push("", "## League records (every game, playoffs included)");
     L.push("Highest scores:", ...sides.slice().sort((p, q) => q.pts - p.pts).slice(0, 12).map((x, i) => `${i + 1}. ${sideLine(x)}`));
     L.push("Lowest scores:", ...sides.filter((x) => x.pts > 0).sort((p, q) => p.pts - q.pts).slice(0, 10).map((x, i) => `${i + 1}. ${sideLine(x)}`));
-    L.push("Biggest blowouts:", ...games.slice().sort((p, q) => Math.abs(q.aScore - q.bScore) - Math.abs(p.aScore - p.bScore)).slice(0, 10).map((g, i) => `${i + 1}. ${gameLine(g)}`));
-    L.push("Closest games:", ...games.slice().sort((p, q) => Math.abs(p.aScore - p.bScore) - Math.abs(q.aScore - q.bScore)).slice(0, 10).map((g, i) => `${i + 1}. ${gameLine(g)}`));
-    L.push("Highest combined:", ...games.slice().sort((p, q) => (q.aScore + q.bScore) - (p.aScore + p.bScore)).slice(0, 5).map((g, i) => `${i + 1}. ${gameLine(g)} = ${f2(g.aScore + g.bScore)}`));
+    L.push("Biggest blowouts:", ...weekGames.slice().sort((p, q) => Math.abs(q.aScore - q.bScore) - Math.abs(p.aScore - p.bScore)).slice(0, 10).map((g, i) => `${i + 1}. ${gameLine(g)}`));
+    L.push("Closest games:", ...weekGames.slice().sort((p, q) => Math.abs(p.aScore - p.bScore) - Math.abs(q.aScore - q.bScore)).slice(0, 10).map((g, i) => `${i + 1}. ${gameLine(g)}`));
+    L.push("Highest combined:", ...weekGames.slice().sort((p, q) => (q.aScore + q.bScore) - (p.aScore + p.bScore)).slice(0, 5).map((g, i) => `${i + 1}. ${gameLine(g)} = ${f2(g.aScore + g.bScore)}`));
     L.push("Highest scores in a loss:", ...sides.filter((x) => x.pts < x.oppPts).sort((p, q) => q.pts - p.pts).slice(0, 5).map((x, i) => `${i + 1}. ${sideLine(x)}`));
     L.push("Lowest scores in a win:", ...sides.filter((x) => x.pts > x.oppPts).sort((p, q) => p.pts - q.pts).slice(0, 5).map((x, i) => `${i + 1}. ${sideLine(x)}`));
 

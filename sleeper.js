@@ -17,6 +17,8 @@
          teams                 { teamId: { name, owner, ownerId, division, icon, color,
                                            wins, losses, ties, pf, pa, finalRank?, seed? } }
          schedule / results    { week: [[a, b]] } / { week: [[a, aScore, b, bScore]] }
+         multiWeeks            { end week: [weeks] }, a game played over several
+                               weeks, its result in the week it ends
          postseason            every bracket game, labelled
        model.leagueData()      the record-book shape (owners + seasons with
                                regularGames / postseasonGames) that the all-time
@@ -496,6 +498,22 @@
       entries.forEach((m, i) => { m.reserve = out[i]; });
     });
 
+    /* A regular-season matchup can run over more than one week (an ESPN
+       matchup period of two): `raw.spans`, each its weeks in order. Its
+       pairing is on every one of its weeks' schedules, but it is one game,
+       decided by the points of all its weeks together, and it counts in
+       the week it ends, once every one of its weeks is final, as a
+       two-week playoff round does. Each week's matchups (box scores,
+       player points) stay as they are. `multiWeeks` is { end week: its
+       weeks }, for the pages to keep those totals apart from one week's. */
+    const spanOf = {}, multiWeeks = {};
+    (raw.spans || []).forEach((list) => {
+      const weeks = (list || []).map(Number).filter((w) => w >= 1).sort((a, b) => a - b);
+      if (weeks.length < 2 || weeks[weeks.length - 1] > settings.regularWeeks) return;
+      weeks.forEach((w) => { spanOf[w] = weeks; });
+      multiWeeks[weeks[weeks.length - 1]] = weeks;
+    });
+
     /* Every week's pairings, from the matchup ids. Weeks not yet final
        are only a schedule; a week that is final also has scores. */
     const schedule = {}, results = {}, medianResults = {};
@@ -513,13 +531,21 @@
       const pairs = [...groups.entries()].sort((a, b) => a[0] - b[0]).map(([, g]) => g).filter((g) => g.length === 2);
       if (!pairs.length) return;
       schedule[w] = pairs.map(([a, b]) => [idOf(a.roster_id), idOf(b.roster_id)]);
-      const scored = w <= raw.final && entries.some((m) => pointsOf(m) > 0);
+      const span = spanOf[w] || [w];
+      if (w !== span[span.length - 1]) return; // scored with the span's last week
+      // A team's points for the game: its week's, or every week's of a span.
+      const ptsOf = (m) => (span.length === 1 ? pointsOf(m) : round2(span.reduce((sum, x) => {
+        const e = byWeek[x] && byWeek[x].get(m.roster_id);
+        return sum + (e ? pointsOf(e) : 0);
+      }, 0)));
+      const scored = span.every((x) => x <= raw.final) &&
+        span.some((x) => (matchups[x] || []).some((m) => pointsOf(m) > 0));
       if (scored) {
-        results[w] = pairs.map(([a, b]) => [idOf(a.roster_id), pointsOf(a), idOf(b.roster_id), pointsOf(b)]);
+        results[w] = pairs.map(([a, b]) => [idOf(a.roster_id), ptsOf(a), idOf(b.roster_id), ptsOf(b)]);
         if (settings.median) {
           // Against the league median: the top half of the week's scores
           // take an extra win, the bottom half an extra loss.
-          const all = entries.filter((m) => known(m.roster_id)).map((m) => ({ id: idOf(m.roster_id), pts: pointsOf(m) }))
+          const all = entries.filter((m) => known(m.roster_id)).map((m) => ({ id: idOf(m.roster_id), pts: ptsOf(m) }))
             .sort((x, y) => y.pts - x.pts);
           const half = Math.floor(all.length / 2);
           const cut = all.length % 2 ? null : (all[half - 1].pts + all[half].pts) / 2;
@@ -558,7 +584,7 @@
     settings.startWeek = firstWeek;
     // Box scores and player histories read the matchups too, so the weeks
     // that never counted go from there as well.
-    [schedule, results, medianResults, matchups].forEach((byWk) => {
+    [schedule, results, medianResults, matchups, multiWeeks].forEach((byWk) => {
       Object.keys(byWk).map(Number).filter((w) => w < firstWeek).forEach((w) => { delete byWk[w]; });
     });
 
@@ -718,6 +744,7 @@
       schedule,
       results,
       medianResults,
+      multiWeeks,
       playedWeeks,
       lastFinal: raw.final,
       postseason,
@@ -980,12 +1007,14 @@
      the season being played carries its regular season so far. */
   function toLeagueData(model) {
     const seasons = model.seasons.filter(hasGames).map((season) => {
+      // `multi`: a game over more than one week, whose scores are its weeks
+      // together, kept out of one-week marks (highest week, blowouts).
       const regularGames = [];
       season.playedWeeks.forEach((w) => season.results[w].forEach(([a, aScore, b, bScore]) =>
-        regularGames.push({ week: w, a, aScore, b, bScore })));
+        regularGames.push({ week: w, a, aScore, b, bScore, multi: Boolean(season.multiWeeks && season.multiWeeks[w]) })));
       const postseasonGames = season.postseason.filter((g) => g.played && g.a && g.b).map((g) => ({
         week: g.week, a: g.a, aScore: g.aScore, b: g.b, bScore: g.bScore, label: g.label,
-        bracket: g.bracket, titlePath: g.titlePath, p: g.p, r: g.r,
+        bracket: g.bracket, titlePath: g.titlePath, p: g.p, r: g.r, multi: g.weeks.length > 1,
       }));
       const teams = {};
       Object.entries(season.teams).forEach(([id, t]) => {

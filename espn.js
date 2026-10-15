@@ -894,18 +894,21 @@
        as they stand, so it is seeded in that same order (record, then points
        for, division leaders first). Once the playoffs begin, ESPN's own
        seeds are the truth. */
-    // The regular season as scored so far, counted the way the pages count it.
+    // The regular season as scored so far, counted the way the pages count
+    // it: a two-week matchup is one game, on both weeks' points, once both
+    // are final.
     const table = Object.fromEntries(core.teams.map((t) => [t.id, { wins: 0, losses: 0, ties: 0, pf: 0 }]));
     core.games.forEach((g) => {
       if (g.mp > core.mpc || !g.home || !g.away || !table[g.home.id] || !table[g.away.id]) return;
-      spOf(g.mp).filter((w) => w <= final).forEach((w) => {
-        const a = Number(g.home.pts[w]) || 0, b = Number(g.away.pts[w]) || 0;
-        if (!a && !b) return;
-        [[g.home.id, a, b], [g.away.id, b, a]].forEach(([id, own, opp]) => {
-          const t = table[id];
-          t.pf += own;
-          if (own > opp) t.wins++; else if (own < opp) t.losses++; else t.ties++;
-        });
+      const sps = spOf(g.mp);
+      if (!sps.every((w) => w <= final)) return;
+      const sum = (side) => sps.reduce((n, w) => n + (Number(side.pts[w]) || 0), 0);
+      const a = sum(g.home), b = sum(g.away);
+      if (!a && !b) return;
+      [[g.home.id, a, b], [g.away.id, b, a]].forEach(([id, own, opp]) => {
+        const t = table[id];
+        t.pf += own;
+        if (own > opp) t.wins++; else if (own < opp) t.losses++; else t.ties++;
       });
     });
     const started = core.games.some((g) => g.mp > core.mpc && (g.winner === "HOME" || g.winner === "AWAY"));
@@ -917,10 +920,19 @@
       : L.seedOrder(core.teams.map((t) => t.id), table, (id) => divisionOf[id], divisions.length > 1 ? divisions.length : 0);
     const { winners, losers } = brackets(core, { R, playoffTeams, seeds, final, spOf, complete });
 
+    // Regular-season matchup periods longer than a week: one game each,
+    // scored in its last week (buildSeason).
+    const spans = [];
+    for (let mp = 1; mp <= core.mpc; mp++) {
+      const sps = spOf(mp);
+      if (sps.length > 1) spans.push(sps);
+    }
+
     return {
       league, users, rosters, winners, losers, matchups, final,
       // ESPN's first week is its own, not a setting edited after the fact.
       startWeek: core.status.first || 1, fixedStart: true, lastWeek,
+      ...(spans.length ? { spans } : {}),
       finalRanks: complete ? Object.fromEntries(core.teams.map((t) => [t.id, t.rank])) : null,
     };
   }

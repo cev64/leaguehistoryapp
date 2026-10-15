@@ -35,6 +35,9 @@ function flattenGames(data) {
         week: game.week,
         stage,
         label: game.label || "Regular Season",
+        // Its weeks together, when it ran over more than one: kept out of
+        // the one-week marks (best week, margins).
+        multi: Boolean(game.multi),
         winner: game.aScore >= game.bScore ? a : b,
         loser: game.aScore >= game.bScore ? b : a,
         winScore: Math.max(game.aScore, game.bScore),
@@ -101,7 +104,7 @@ function careerTotals(data) {
     });
   });
 
-  flattenGames(data).filter((row) => row.sides.every((side) => inTheHall(side.team))).forEach((row) => {
+  flattenGames(data).filter((row) => !row.multi && row.sides.every((side) => inTheHall(side.team))).forEach((row) => {
     row.sides.forEach((side) => {
       const career = careers[side.team.ownerId];
       if (!career) return;
@@ -324,7 +327,7 @@ function hallOfFameExhibits(careers) {
    mark here is therefore between teams the hall recognises, and falls to the
    next one that qualifies. */
 function marks(data, careers) {
-  const games = flattenGames(data).filter((row) => row.sides.every((side) => inTheHall(side.team)));
+  const games = flattenGames(data).filter((row) => !row.multi && row.sides.every((side) => inTheHall(side.team)));
   return {
     games,
     // One row per team per game, which is what a "best/worst week" is about.
@@ -820,7 +823,7 @@ function seasonHonours(data) {
 function biggestWin(data, ownerId) {
   let best = null;
   flattenGames(data)
-    .filter((row) => row.sides.every((side) => inTheHall(side.team)))
+    .filter((row) => !row.multi && row.sides.every((side) => inTheHall(side.team)))
     .forEach((row) => {
       if (row.winner.ownerId !== ownerId) return;
       const margin = row.winScore - row.loseScore;

@@ -166,10 +166,12 @@
     if (s.lostGames.length) {
       cards.push(card("Games lost to the lineup", "lineup", `${s.lostGames.length}`, "items", {
         items: s.lostGames.slice().sort((a, b) => a.week - b.week).map((g) => {
-          const opp = (model.season(y).results[g.week] || []).map(([a, as, b, bs]) => (a === g.teamId ? [b, bs] : b === g.teamId ? [a, as] : null)).find(Boolean) || [null, 0];
+          const opp = (model.season(y).results[g.week] || []).map(([a, as, b, bs]) => (a === g.teamId ? [b, bs, as] : b === g.teamId ? [a, as, bs] : null)).find(Boolean) || [null, 0, g.actual];
+          // A two-week game: its score and both weeks' best lineups.
+          const two = g.gameBest != null;
           return {
             title: `${teamName(model, y, g.teamId)} · Week ${g.week}`, tag: null, tagSoft: false,
-            line: [seg(`Lost ${fmt(g.actual)}–${fmt(opp[1])} to ${opp[0] ? teamName(model, y, opp[0]) : "their opponent"}. The best lineup scored `), seg(fmt(g.optimal), { em: true }), seg(".")],
+            line: [seg(`Lost ${fmt(two ? opp[2] : g.actual)}–${fmt(opp[1])} to ${opp[0] ? teamName(model, y, opp[0]) : "their opponent"}. The best lineup${two ? "s" : ""} scored `), seg(fmt(two ? g.gameBest : g.optimal), { em: true }), seg(".")],
             big: fmt(g.left), bigSub: "on the bench", tone: null,
             pid: null, team: seasonTeam(model, y, g.teamId), week: g.week, opponent: opp[0],
           };
