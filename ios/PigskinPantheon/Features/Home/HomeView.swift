@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// The front page (index.html): the pitch and the two ways forward (open
-/// your league, explore the demo), the league finder, the headline
-/// features, how it works, and a few questions. A signed-in member's
-/// leagues are one tap away in the hero and in the finder.
+/// The home screen: the member's leagues, the leagues opened before, the
+/// way to open one (Sleeper or ESPN) and the demo, as grouped sections
+/// under a large title. First time in, a welcome card says what the app is;
+/// the site's longer pitch and questions are in About.
 struct HomeView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -14,59 +14,39 @@ struct HomeView: View {
         case auth(AuthView.Mode)
         case gate(AccountStore.PendingLeague)
         case account
+        case about
 
         var id: String {
             switch self {
             case .auth: return "auth"
             case .gate(let p): return "gate-\(p.id)"
             case .account: return "account"
+            case .about: return "about"
             }
         }
     }
 
     private var wide: Bool { sizeClass == .regular }
 
+    /// The demo's own section, until it's among the leagues opened before.
+    private var showDemo: Bool { !app.recents.contains { $0.id == "demo" } }
+
+    /// No leagues of their own and none opened yet: the welcome card leads.
+    private var firstTime: Bool {
+        app.recents.isEmpty && !(app.account.isSignedIn && !app.account.leagues.isEmpty)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 0) {
-                        if wide {
-                            HStack(alignment: .top, spacing: 32) {
-                                HomeHero(find: { scrollToFinder(proxy) }, wide: true)
-                                    .frame(maxWidth: .infinity)
-                                finderSection
-                                    .frame(width: 440)
-                                    .padding(.top, 20)
-                            }
-                            .padding(.horizontal, 32)
-                            .padding(.bottom, 36)
-                            .frame(maxWidth: 1180)
-                            .frame(maxWidth: .infinity)
-                            .background(HeroBackground().ignoresSafeArea(edges: .top))
-                        } else {
-                            HomeHero(find: { scrollToFinder(proxy) }, wide: false)
-                                .padding(.horizontal, Theme.gutter)
-                                .padding(.bottom, 32)
-                                .frame(maxWidth: .infinity)
-                                .background(HeroBackground().ignoresSafeArea(edges: .top))
-                            finderSection
-                                .padding(.horizontal, Theme.gutter)
-                                .padding(.top, 24)
-                        }
-
-                        VStack(spacing: 36) {
-                            FeaturesSection(wide: wide)
-                            HowSection(wide: wide)
-                            FAQSection()
-                            FinalSection(find: { scrollToFinder(proxy) })
-                        }
-                        .padding(.horizontal, wide ? 32 : Theme.gutter)
-                        .padding(.top, 36)
-                        .padding(.bottom, 28)
-                        .frame(maxWidth: 1180)
-                        .frame(maxWidth: .infinity)
-                    }
+                    content
+                    .padding(.horizontal, wide ? 28 : Theme.gutter)
+                    .padding(.top, 8)
+                    .padding(.bottom, 32)
+                    .frame(maxWidth: .infinity)
+                    .animation(.smooth(duration: 0.3), value: app.account.isSignedIn)
+                    .animation(.smooth(duration: 0.3), value: app.recents)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .background(Theme.page)
@@ -89,14 +69,10 @@ struct HomeView: View {
                     #endif
                 }
             }
+            .navigationTitle("Pigskin Pantheon")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) { accountButton }
             }
-            // The site's bar along the top (landing.css .lp-nav): navy, over
-            // the navy hero, with light words and a light status bar.
-            .toolbarBackground(Color(hex: 0x071827), for: .navigationBar)
-            .toolbarBackgroundVisibility(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .accountToast()
         .sheet(item: $sheet, onDismiss: {
@@ -114,6 +90,11 @@ struct HomeView: View {
             case .account:
                 AccountScreen()
                     .environment(app)
+            case .about:
+                AboutSheet(openDemo: {
+                    self.sheet = nil
+                    app.open("demo")
+                })
             }
         }
         .onChange(of: app.account.pending) { _, new in
@@ -136,6 +117,7 @@ struct HomeView: View {
             case "signin": sheet = .auth(.signin)
             case "signup": sheet = .auth(.signup)
             case "account": sheet = .account
+            case "about": sheet = .about
             case "gate": app.open("1312115646644912128", name: "D201: History of a Decade of Dynasty!", avatar: nil)
             case "espn", "espnkeys":
                 finder.platform = .espn
@@ -166,28 +148,55 @@ struct HomeView: View {
         #endif
     }
 
-    private var finderSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Kicker(text: "Get started")
-                Text("Open your league")
-                    .displayStyle(32)
-                    .foregroundStyle(Theme.ink)
-                Text("Free, and it takes about a minute. Sleeper needs only your username; ESPN needs your league's ID or link.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button {
-                    app.open("demo")
-                } label: {
-                    Text("Not ready? Look around the demo league \(Image(systemName: "arrow.right"))")
-                        .font(.subheadline.weight(.semibold))
+    /// The sections: one column on a phone; on a wide screen the leagues on
+    /// the left and the finder on the right.
+    @ViewBuilder
+    private var content: some View {
+        if wide {
+            HStack(alignment: .top, spacing: 28) {
+                VStack(spacing: 28) {
+                    if firstTime { WelcomeCard() }
+                    leagueSections
+                    if showDemo { DemoSection() }
+                    HomeAboutSection(about: { sheet = .about })
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(Theme.accentInk)
-                .padding(.top, 2)
+                .frame(maxWidth: .infinity)
+                findSections
+                    .frame(width: 420)
             }
-            FinderStack(finder: finder, signIn: { sheet = .auth(.signin) })
+            .frame(maxWidth: 1100)
+        } else {
+            VStack(spacing: 28) {
+                if firstTime { WelcomeCard() }
+                leagueSections
+                findSections
+                if showDemo { DemoSection() }
+                HomeAboutSection(about: { sheet = .about })
+            }
+        }
+    }
+
+    /// The member's leagues and the ones opened before.
+    @ViewBuilder
+    private var leagueSections: some View {
+        if app.account.isSignedIn {
+            MyLeaguesSection()
+                .transition(.opacity.combined(with: .move(edge: .top)))
+        }
+        if !app.recents.isEmpty {
+            RecentSection()
+                .transition(.opacity)
+        }
+    }
+
+    /// Open a league, and what it found.
+    private var findSections: some View {
+        VStack(spacing: 28) {
+            FindSection(finder: finder, signIn: { sheet = .auth(.signin) })
+            if finder.hasListing {
+                FoundSection(finder: finder)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
         }
         .id("find")
     }
@@ -230,220 +239,223 @@ struct HomeView: View {
             .accessibilityLabel("Account: \(account.displayName)")
         } else {
             // Signed out: "Sign in", in words, where the site has its account button.
-            Button {
+            Button("Sign In") {
                 sheet = .auth(.signin)
-            } label: {
-                Text("Sign in")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.navy)
             }
-            .buttonStyle(.glassProminent)
-            .tint(Theme.gold)
+            .fontWeight(.semibold)
             .accessibilityHint("Sign in or create a free account")
         }
     }
 }
 
-// MARK: Hero
+// MARK: Welcome
 
-/// The navy hero (landing.css .lp-hero): yard lines, a blue glow and a gold
-/// one, and the red line along its foot.
+/// The navy of the site's hero (landing.css .lp-hero): yard lines, a blue
+/// glow and a gold one.
 private struct HeroBackground: View {
     var body: some View {
         ZStack {
             LinearGradient(colors: [Color(hex: 0x071827), Color(hex: 0x0D2238)], startPoint: .top, endPoint: .bottom)
-            RadialGradient(colors: [Color(hex: 0x1769E0, alpha: 0.30), .clear], center: UnitPoint(x: 0.85, y: 0.12), startRadius: 0, endRadius: 420)
-            RadialGradient(colors: [Color(hex: 0xF6B73C, alpha: 0.13), .clear], center: UnitPoint(x: 0.1, y: 1), startRadius: 0, endRadius: 360)
+            RadialGradient(colors: [Color(hex: 0x1769E0, alpha: 0.30), .clear], center: UnitPoint(x: 0.9, y: 0.05), startRadius: 0, endRadius: 320)
+            RadialGradient(colors: [Color(hex: 0xF6B73C, alpha: 0.12), .clear], center: UnitPoint(x: 0.05, y: 1), startRadius: 0, endRadius: 280)
             Canvas { context, size in
-                var x: CGFloat = 74
+                var x: CGFloat = 52
                 while x < size.width {
-                    context.fill(Path(CGRect(x: x, y: 0, width: 1, height: size.height)), with: .color(.white.opacity(0.045)))
-                    x += 75
+                    context.fill(Path(CGRect(x: x, y: 0, width: 1, height: size.height)), with: .color(.white.opacity(0.04)))
+                    x += 53
                 }
             }
         }
-        .overlay(alignment: .bottom) { Rectangle().fill(Color(hex: 0xD71920)).frame(height: 4) }
     }
 }
 
-private struct HomeHero: View {
+/// First time in: what the app is, in a card, and the demo a tap away.
+private struct WelcomeCard: View {
     @Environment(AppModel.self) private var app
-    let find: () -> Void
-    let wide: Bool
+
+    private let features: [(String, String)] = [
+        ("trophy.fill", "3D trophy room"),
+        ("sparkles", "AI historian"),
+        ("newspaper.fill", "Weekly recaps"),
+        ("books.vertical.fill", "Record book"),
+    ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
-                Image("Crest").resizable().scaledToFit().frame(width: 40, height: 40)
-                BrandWordmark(size: 24)
+                Image("Crest").resizable().scaledToFit().frame(width: 34, height: 34)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Welcome to the Pantheon")
+                        .font(.headline)
+                    Text("For Sleeper and ESPN leagues")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
             }
             .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
 
-            HStack(spacing: 8) {
-                Circle().fill(Theme.green).frame(width: 7, height: 7)
-                Text("Free for Sleeper and ESPN leagues")
-                    .font(.caption.weight(.bold))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .glassEffect(.regular, in: Capsule())
-
-            Text("Your league has stories. \(Text("Give them a home.").foregroundStyle(Theme.gold))")
-                .font(.display(wide ? 54 : 42, weight: .heavy))
-                .textCase(.uppercase)
-                .lineSpacing(-4)
+            Text("Every season your league has played, in one place.")
+                .font(.title2.weight(.bold))
                 .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Pigskin Pantheon turns your fantasy league's whole history into:")
-                    .font(.body)
-                    .foregroundStyle(.white.opacity(0.8))
-                feature("🏆", "A walk-through 3D trophy room")
-                feature("✨", "An AI historian")
-                feature("📰", "Weekly recaps")
-                feature("📚", "An all-time record book")
-            }
-
-            VStack(spacing: 10) {
-                Button(action: find) {
-                    Text("Open your league, free")
-                        .font(.headline)
-                        .foregroundStyle(Theme.navy)
-                        .frame(maxWidth: .infinity)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                ForEach(features, id: \.1) { f in
+                    HStack(spacing: 8) {
+                        Image(systemName: f.0)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Theme.gold)
+                            .frame(width: 18)
+                        Text(f.1)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 9)
+                    .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                .buttonStyle(.glassProminent)
-                .tint(Theme.gold)
-                .controlSize(.large)
-
-                Button {
-                    app.open("demo")
-                } label: {
-                    Label("Explore the demo league", systemImage: "arrow.right")
-                        .labelStyle(TrailingIconLabel())
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glass)
-                .controlSize(.large)
             }
-            .frame(maxWidth: wide ? 380 : .infinity)
 
-            welcome
-
-            VStack(alignment: .leading, spacing: 6) {
-                proof("Sleeper: just your username")
-                proof("Public and private ESPN leagues")
-                proof("Every season, back to year one")
+            Button {
+                app.open("demo")
+            } label: {
+                Label("Explore the Demo League", systemImage: "play.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.glass)
+            .controlSize(.large)
         }
         .foregroundStyle(.white)
         .environment(\.colorScheme, .dark)
-        .padding(.top, 8)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// "Jump back in:" a signed-in member's leagues, one tap away.
-    @ViewBuilder
-    private var welcome: some View {
-        let leagues = app.account.isSignedIn ? Array(app.account.leagues.prefix(4)) : []
-        if !leagues.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Jump back in:")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.75))
-                ScrollView(.horizontal, showsIndicators: false) {
-                    GlassEffectContainer(spacing: 8) {
-                        HStack(spacing: 8) {
-                            ForEach(leagues) { l in
-                                Button {
-                                    app.open(l.league_id, name: l.name, avatar: l.avatar)
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        LeagueMark(name: l.title, avatar: l.avatar, size: 24)
-                                        Text(l.name ?? "Your league")
-                                            .font(.subheadline.weight(.semibold))
-                                            .lineLimit(1)
-                                    }
-                                }
-                                .buttonStyle(.glass)
-                            }
-                        }
-                    }
-                }
-                .scrollClipDisabled()
-            }
-            .transition(.opacity)
-        }
-    }
-
-    private func feature(_ emoji: String, _ text: String) -> some View {
-        HStack(spacing: 10) {
-            Text(emoji).font(.system(size: 17))
-            Text(text).font(.body.weight(.semibold))
-        }
-    }
-
-    private func proof(_ text: String) -> some View {
-        Label {
-            Text(text).font(.footnote.weight(.medium)).foregroundStyle(.white.opacity(0.78))
-        } icon: {
-            Image(systemName: "checkmark").font(.caption.weight(.heavy)).foregroundStyle(Theme.gold)
-        }
+        .background(HeroBackground())
+        .clipShape(RoundedRectangle(cornerRadius: HomeSection<EmptyView>.radius, style: .continuous))
     }
 }
 
-/// Text first, then the icon ("Explore the demo league →").
-private struct TrailingIconLabel: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 6) {
-            configuration.title
-            configuration.icon
-        }
-    }
-}
+// MARK: Demo and About
 
-// MARK: Sections
-
-private struct Kicker: View {
-    let text: String
+/// A small coloured tile with a symbol, like the Settings app's rows.
+private struct IconTile: View {
+    let symbol: String
+    let color: Color
     var body: some View {
-        Text(text)
-            .font(.system(size: 12, weight: .heavy))
-            .tracking(1.4)
-            .textCase(.uppercase)
-            .foregroundStyle(Theme.accentInk)
+        Image(systemName: symbol)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 30, height: 30)
+            .background(color.gradient, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
-private struct SectionHead: View {
-    let kicker: String
+/// A plain row: a tile, a title and what's at the end of it.
+private struct MenuRow: View {
+    let symbol: String
+    let color: Color
     let title: String
-    var lede: String? = nil
+    var external = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Kicker(text: kicker)
+        HStack(spacing: 12) {
+            IconTile(symbol: symbol, color: color)
             Text(title)
-                .displayStyle(30)
+                .font(.body)
                 .foregroundStyle(Theme.ink)
-                .fixedSize(horizontal: false, vertical: true)
-            if let lede {
-                Text(lede)
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Spacer(minLength: 8)
+            Image(systemName: external ? "arrow.up.right" : "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.tertiary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
     }
 }
 
-/// "What's inside": the headline features, briefly.
-private struct FeaturesSection: View {
-    let wide: Bool
+/// The demo league, Sunday Scaries, always a tap away.
+private struct DemoSection: View {
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        HomeSection(title: "Demo League") {
+            Button {
+                app.open("demo")
+            } label: {
+                HStack(spacing: 12) {
+                    Image("Crest")
+                        .resizable()
+                        .scaledToFit()
+                        .padding(7)
+                        .frame(width: 40, height: 40)
+                        .background(Theme.navy, in: Circle())
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Sunday Scaries")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(Theme.ink)
+                        Text("A made-up dynasty league: five seasons to explore")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.ink3)
+                            .lineLimit(2)
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 11)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(RowPressStyle())
+        }
+    }
+}
+
+/// About the app, and the legal pages (reachable signed out too; they open
+/// in Safari).
+private struct HomeAboutSection: View {
+    let about: () -> Void
+
+    var body: some View {
+        HomeSection(footer: AnyView(
+            Text(Legal.disclaimer)
+                .font(.footnote)
+                .foregroundStyle(Theme.ink3)
+                .fixedSize(horizontal: false, vertical: true)
+        )) {
+            Button(action: about) {
+                MenuRow(symbol: "info", color: Theme.accent, title: "About Pigskin Pantheon")
+            }
+            .buttonStyle(RowPressStyle())
+            RowDivider(inset: 58)
+            Link(destination: Legal.privacy) {
+                MenuRow(symbol: "hand.raised.fill", color: Color(hex: 0x667085), title: "Privacy Policy", external: true)
+            }
+            .buttonStyle(RowPressStyle())
+            RowDivider(inset: 58)
+            Link(destination: Legal.terms) {
+                MenuRow(symbol: "doc.text.fill", color: Color(hex: 0x667085), title: "Terms of Use", external: true)
+            }
+            .buttonStyle(RowPressStyle())
+            RowDivider(inset: 58)
+            Link(destination: Legal.support) {
+                MenuRow(symbol: "questionmark", color: Theme.green, title: "Support", external: true)
+            }
+            .buttonStyle(RowPressStyle())
+        }
+    }
+}
+
+// MARK: About sheet
+
+/// The site's pitch (index.html): what's inside, how it works, and the
+/// questions people ask, as a grouped list.
+private struct AboutSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let openDemo: () -> Void
 
     private let features: [(String, Color, String, String)] = [
         ("sparkles", Theme.gold, "Ask anything. Get roasted with receipts.",
@@ -453,213 +465,100 @@ private struct FeaturesSection: View {
         ("newspaper.fill", Theme.accent, "The recap the group chat actually reads.",
          "Every week gets a headline and a story for every game: upsets, blowouts, streaks, the bench that cost someone the win. Power rankings and the playoff race come with it."),
         ("tablecells.fill", Theme.green, "Settle every argument, permanently.",
-         "All-time standings, titles, last places and playoff records, plus head-to-head against every manager in the league with points for, against and the margin."),
+         "All-time standings, titles, last places and playoff records, plus head-to-head against every manager in the league."),
         ("arrow.left.arrow.right", Color(hex: 0x7A5AF8), "Who won the trade? Now it's on the record.",
          "Every trade judged in hindsight, every waiver pickup and FAAB dollar, lineup efficiency and where every draft pick ended up."),
         ("person.text.rectangle.fill", Theme.red, "Every player's life in your league.",
          "Who rostered him and when, his best games, his record as a starter and the rings he won you."),
     ]
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SectionHead(kicker: "What's inside", title: "Your league's lore, finally in one place",
-                        lede: "Sleeper and ESPN show you this week. Pigskin Pantheon remembers everything else: who won, who choked, who got fleeced, and by how much.")
-            AdaptiveGrid(minWidth: 320, spacing: 12) {
-                ForEach(features, id: \.2) { f in
-                    Card(padding: 16) {
-                        HStack(alignment: .top, spacing: 14) {
-                            Image(systemName: f.0)
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(f.1)
-                                .frame(width: 40, height: 40)
-                                .background(f.1.opacity(0.13), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(f.2)
-                                    .font(.headline)
-                                    .foregroundStyle(Theme.ink)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                Text(f.3)
-                                    .font(.subheadline)
-                                    .foregroundStyle(Theme.ink2)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                    }
-                }
-            }
-            alsoInTheBox
-        }
-    }
-
-    private var alsoInTheBox: some View {
-        Card(padding: 16) {
-            Text("Also in the box")
-                .displayStyle(20)
-                .foregroundStyle(Theme.ink)
-                .padding(.bottom, 10)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14, alignment: .top)], alignment: .leading, spacing: 12) {
-                extra("Every season", "Week-by-week results, standings as they stood and every box score.")
-                extra("The playoff picture", "Seeds, clinches and the bracket, projected or as played.")
-                extra("Sleeper and ESPN", "Both in one list, private ESPN leagues and several ESPN accounts included.")
-                extra("Redraft, keeper, dynasty", "Divisions, medians, toilet bowls, traded picks: all of it.")
-                extra("Share cards", "Recaps as 1080 × 1350 pictures or text for the group chat.")
-            }
-        }
-    }
-
-    private func extra(_ title: String, _ text: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.subheadline.weight(.bold)).foregroundStyle(Theme.ink)
-            Text(text).font(.footnote).foregroundStyle(Theme.ink2).fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
-/// "How it works": three steps.
-private struct HowSection: View {
-    let wide: Bool
     private let steps = [
         ("Find your league", "Type your Sleeper username, or paste an ESPN league ID or link. Every season the league has played comes in at once."),
         ("Keep it on your account", "Make a free account and your leagues stay on it, on every device. Or skip it: any league opens without one."),
         ("Send it to the league", "Drop a recap, a head-to-head or the trophy room in the group chat and let the arguments begin."),
     ]
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SectionHead(kicker: "How it works", title: "Up and running before your next waiver run")
-            AdaptiveGrid(minWidth: 260, spacing: 12) {
-                ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
-                    Card(padding: 16) {
-                        HStack(alignment: .top, spacing: 14) {
-                            Text("\(i + 1)")
-                                .font(.display(22, weight: .heavy))
-                                .foregroundStyle(Theme.navy)
-                                .frame(width: 38, height: 38)
-                                .background(Theme.gold, in: Circle())
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(step.0).font(.headline).foregroundStyle(Theme.ink)
-                                Text(step.1).font(.subheadline).foregroundStyle(Theme.ink2)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// "The fine print, minus the fine print."
-private struct FAQSection: View {
     private let faq = [
-        ("Is it really free?", "Yes. Every league, every season, the trophy room and the League Historian AI are free. An account is only needed to keep your leagues on it and to ask the AI."),
-        ("Do you need my Sleeper or ESPN password?", "No. Sleeper's league data is public, so your username is enough. A public ESPN league needs only its ID. A private ESPN league needs two keys ESPN keeps in your web browser (the finder shows you where to find them), which are encrypted if you save them to your account."),
+        ("Do I need an account?", "No. Any league opens without one. An account keeps your leagues on every device you sign in on, saves private ESPN keys, and is needed to ask the AI."),
+        ("Do you need my Sleeper or ESPN password?", "No. Sleeper's league data is public, so your username is enough. A public ESPN league needs only its ID. A private ESPN league needs two keys ESPN keeps in your web browser, which are encrypted if you save them to your account."),
         ("Which leagues work?", "Sleeper and ESPN leagues: redraft, keeper and dynasty, with or without divisions, any scoring. The history goes back as far as each platform keeps it."),
         ("What does the AI know?", "Only your league: every score, standing, trade, waiver claim, draft and lineup the app has read. It quotes the numbers, and it can be wrong now and then, so the record book has the final word."),
         ("Is this made by Sleeper or ESPN?", "No. Pigskin Pantheon is independent and isn't affiliated with or endorsed by Sleeper or ESPN. It reads each platform's league data to build your history."),
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SectionHead(kicker: "Questions", title: "The fine print, minus the fine print")
-            Card {
-                ForEach(Array(faq.enumerated()), id: \.offset) { i, item in
-                    if i > 0 { Rectangle().fill(Theme.line).frame(height: 1) }
-                    FAQItem(question: item.0, answer: item.1)
-                }
-            }
-        }
-    }
-}
-
-private struct FAQItem: View {
-    let question: String
-    let answer: String
-    @State private var open = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.smooth(duration: 0.3)) { open.toggle() }
-            } label: {
-                HStack(spacing: 10) {
-                    Text(question)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.ink)
-                        .multilineTextAlignment(.leading)
-                    Spacer(minLength: 8)
-                    Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Theme.accent)
-                        .rotationEffect(.degrees(open ? 45 : 0))
-                }
-                .padding(14)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint(open ? "Hides the answer" : "Shows the answer")
-            if open {
-                Text(answer)
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 14)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .clipped()
-    }
-}
-
-/// "Every season. Every grudge. One hall of fame." and the footer.
-private struct FinalSection: View {
-    @Environment(AppModel.self) private var app
-    let find: () -> Void
-
-    var body: some View {
-        VStack(spacing: 22) {
-            VStack(spacing: 16) {
-                Image("Crest").resizable().scaledToFit().frame(width: 56, height: 56)
-                Text("Every season. Every grudge. \(Text("One hall of fame.").foregroundStyle(Theme.gold))")
-                    .font(.display(30, weight: .heavy))
-                    .textCase(.uppercase)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.white)
-                HStack(spacing: 10) {
-                    Button(action: find) {
-                        Text("Open your league, free").font(.subheadline.weight(.bold)).foregroundStyle(Theme.navy)
+        NavigationStack {
+            List {
+                Section {
+                    VStack(spacing: 10) {
+                        Image("Crest").resizable().scaledToFit().frame(width: 64, height: 64)
+                        BrandWordmark(size: 26)
+                        Text("Sleeper and ESPN show you this week. Pigskin Pantheon remembers everything else: who won, who choked, who got fleeced, and by how much.")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.ink2)
+                            .multilineTextAlignment(.center)
                     }
-                    .buttonStyle(.glassProminent)
-                    .tint(Theme.gold)
-                    Button("See the demo league") { app.open("demo") }
-                        .font(.subheadline.weight(.bold))
-                        .buttonStyle(.glass)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .listRowBackground(Color.clear)
                 }
-                .environment(\.colorScheme, .dark)
-            }
-            .padding(24)
-            .frame(maxWidth: .infinity)
-            .background(HeroBackground())
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
-            VStack(spacing: 6) {
-                BrandWordmark(size: 16)
-                Text("\(Legal.disclaimer) League data from the Sleeper API and ESPN Fantasy.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.ink3)
-                    .multilineTextAlignment(.center)
-                // The legal pages, reachable signed out too (they open in Safari).
-                HStack(spacing: 8) {
-                    Link("Privacy", destination: Legal.privacy)
-                    Text("·").foregroundStyle(Theme.ink3)
-                    Link("Terms", destination: Legal.terms)
-                    Text("·").foregroundStyle(Theme.ink3)
-                    Link("Support", destination: Legal.support)
+                Section("What's Inside") {
+                    ForEach(features, id: \.2) { f in
+                        HStack(alignment: .top, spacing: 12) {
+                            IconTile(symbol: f.0, color: f.1)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(f.2).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                                Text(f.3).font(.footnote).foregroundStyle(Theme.ink2)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
                 }
-                .font(.caption.weight(.semibold))
-                .tint(Theme.accentInk)
-                .padding(.top, 2)
+
+                Section("How It Works") {
+                    ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
+                        HStack(alignment: .top, spacing: 12) {
+                            Text("\(i + 1)")
+                                .font(.subheadline.weight(.heavy))
+                                .foregroundStyle(Theme.navy)
+                                .frame(width: 28, height: 28)
+                                .background(Theme.gold, in: Circle())
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(step.0).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                                Text(step.1).font(.footnote).foregroundStyle(Theme.ink2)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+
+                Section("Questions") {
+                    ForEach(faq, id: \.0) { item in
+                        DisclosureGroup {
+                            Text(item.1)
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.ink2)
+                        } label: {
+                            Text(item.0).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
+                        }
+                    }
+                }
+
+                Section {
+                    Button("Explore the Demo League", systemImage: "play.fill", action: openDemo)
+                        .fontWeight(.semibold)
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Theme.page)
+            .navigationTitle("About")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", systemImage: "checkmark") { dismiss() }
+                }
             }
         }
     }
