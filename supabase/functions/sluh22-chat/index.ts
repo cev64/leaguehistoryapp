@@ -36,11 +36,20 @@
 //     it once per device before it answers
 //   - daily allowances: SLUH22_DAILY_QUESTIONS new questions per visitor a
 //     day (30 unless set) and SLUH22_LEAGUE_DAILY for everyone together (300
-//     unless set). They are counted in public.sluh22_chat_usage
-//     (supabase/migrations/20261005000000_sluh22_chat.sql) under a hash of
-//     the visitor's address, never the address itself. Until that migration
-//     is applied the counts are kept in memory instead, which is looser.
-// Claude is billed per question; the daily allowances cap what a day can
+//     unless set); SLUH22_DAILY_REQUESTS requests to Claude per visitor a
+//     day, look-up rounds included (nine for every question unless set);
+//     and SLUH22_CLAUDE_DAILY_REQUESTS for everyone together (500 unless
+//     set), the hard cap on what a day can cost. A look-up round rides on
+//     its question only when it answers the look-ups this function asked
+//     for (each carries a stamp, `k`, bound to the visitor, the day and the
+//     question); any other round counts as a question. They are counted in
+//     public.sluh22_chat_usage (supabase/migrations/
+//     20261005150244_sluh22_chat.sql and 20261016010000_sluh22_requests.sql)
+//     under a hash of the visitor's address, never the address itself.
+//     Until those migrations are applied the counts are kept in memory
+//     instead, which is looser; once they are, a count that fails turns the
+//     question away rather than letting it through uncounted.
+// Claude is billed per request; the daily allowances cap what a day can
 // cost.
 //
 // Deploy on Supabase (the same project as Pigskin Pantheon is fine; every
@@ -50,7 +59,9 @@
 //     ANTHROPIC_API_KEY)
 //   supabase secrets set SLUH22_PASSCODE=…                   (optional)
 // Optional: SLUH22_ALLOWED_ORIGINS, SLUH22_DAILY_QUESTIONS,
-// SLUH22_LEAGUE_DAILY, SLUH22_CLAUDE_MODEL (default claude-haiku-5-5) and
+// SLUH22_LEAGUE_DAILY, SLUH22_DAILY_REQUESTS, SLUH22_CLAUDE_DAILY_REQUESTS
+// (0 turns the chat off for the day), SLUH22_CLAUDE_MODEL (default
+// claude-haiku-5-5) and
 // SLUH22_EFFORT (how hard it thinks: low, medium or high; default low, the
 // quickest).
 //
@@ -75,8 +86,6 @@ const PASSCODE = env("SLUH22_PASSCODE");
 const MODEL = env("SLUH22_CLAUDE_MODEL") || "claude-haiku-5-5";
 const EFFORT = (["low", "medium", "high"] as const).find((e) => e === env("SLUH22_EFFORT")) ?? "low";
 const claude = API_KEY ? new Anthropic({ apiKey: API_KEY, maxRetries: 2 }) : null;
-const DAILY = Math.max(1, Number(env("SLUH22_DAILY_QUESTIONS")) || 30);
-const LEAGUE_DAILY = Math.max(1, Number(env("SLUH22_LEAGUE_DAILY")) || 300);
 
 // What one request may carry: a league digest, a conversation of a sensible
 // length, and a handful of tool rounds per question.
@@ -85,6 +94,24 @@ const MAX_DIGEST = 600_000;
 const MAX_MESSAGES = 80;
 const MAX_QUESTION = 2_000;
 const MAX_TOOL_ROUNDS = 8;
+// One look-up's result: chat.js cuts its own here too. Longer is cut,
+// never turned down.
+const MAX_TOOL_RESULT = 40_000;
+// A tool call's input (a season, a week, a name).
+const MAX_TOOL_INPUT = 2_000;
+// The whole conversation, the league's data aside: about 100,000 tokens,
+// far past what chat.js's turns hold in practice.
+const MAX_CONVERSATION = 400_000;
+
+// The allowances. A question is one request plus one per round of
+// look-ups, so by default the requests allow every question its eight.
+const DAILY = Math.max(1, Number(env("SLUH22_DAILY_QUESTIONS")) || 30);
+const LEAGUE_DAILY = Math.max(1, Number(env("SLUH22_LEAGUE_DAILY")) || 300);
+const DAILY_REQUESTS = Math.max(1, Number(env("SLUH22_DAILY_REQUESTS")) || DAILY * (MAX_TOOL_ROUNDS + 1));
+// Every visitor's requests to Claude a day together: the hard cap on the
+// bill. 0 turns the chat off without removing its key.
+const CLAUDE_DAILY = env("SLUH22_CLAUDE_DAILY_REQUESTS") === ""
+  ? 500 : Math.max(0, Math.floor(Number(env("SLUH22_CLAUDE_DAILY_REQUESTS")) || 0));
 // Short answers are the brief; this is only the ceiling, thinking included.
 const MAX_OUTPUT = 16_000;
 
@@ -243,44 +270,60 @@ async function visitor(req: Request): Promise<string> {
   return [...bytes.slice(0, 12)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// One more question today, from this visitor: today's count for them and
-// for the whole league, this one included. Kept in the database
-// (count_sluh22_question) when it's there, otherwise in memory, which
-// resets whenever Supabase starts the function afresh.
+// The day's counts. Kept in the database (count_sluh22_request and
+// count_sluh22_question) when it's there, otherwise in memory, which resets
+// whenever Supabase starts the function afresh. Once the database has them,
+// a count that fails throws, and the request is turned away rather than
+// let through uncounted.
+const today = () => new Date().toISOString().slice(0, 10);
 const memoryCounts = new Map<string, { day: string; n: number }>();
-function countInMemory(who: string): { visitor: number; league: number } {
-  const day = new Date().toISOString().slice(0, 10);
-  const bump = (key: string) => {
-    const had = memoryCounts.get(key);
-    const next = had && had.day === day ? { day, n: had.n + 1 } : { day, n: 1 };
-    memoryCounts.set(key, next);
-    return next.n;
-  };
-  return { visitor: bump(who), league: bump("*") };
+function bump(key: string): number {
+  const day = today();
+  const had = memoryCounts.get(key);
+  const next = had && had.day === day ? { day, n: had.n + 1 } : { day, n: 1 };
+  memoryCounts.set(key, next);
+  return next.n;
 }
+const peek = (key: string) => {
+  const had = memoryCounts.get(key);
+  return had && had.day === today() ? had.n : 0;
+};
 let storeMissing = false;
-async function countQuestion(who: string): Promise<{ visitor: number; league: number }> {
-  if (!STORE || storeMissing) return countInMemory(who);
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/count_sluh22_question`, {
-      method: "POST",
-      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ p_visitor: who }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (res.status === 404) {
-      // The migration hasn't been applied: count in memory from here on.
-      storeMissing = true;
-      console.warn("sluh22-chat: count_sluh22_question is missing; counting in memory (apply the migration)");
-      return countInMemory(who);
-    }
-    if (!res.ok) throw new Error(`database answered ${res.status}`);
-    const row = await res.json();
-    return { visitor: Number(row.visitor) || 0, league: Number(row.league) || 0 };
-  } catch (err) {
-    console.error("sluh22-chat: counting failed,", err);
-    return countInMemory(who);
+async function rpc(name: string, who: string): Promise<Record<string, unknown> | null> {
+  if (!STORE || storeMissing) return null;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_visitor: who }),
+    signal: AbortSignal.timeout(8000),
+  });
+  if (res.status === 404) {
+    // The migrations haven't been applied: count in memory from here on.
+    storeMissing = true;
+    console.warn(`sluh22-chat: ${name} is missing; counting in memory (apply the migrations)`);
+    return null;
   }
+  if (!res.ok) throw new Error(`database answered ${res.status}`);
+  return await res.json();
+}
+
+// One more request today, from this visitor: today's date (UTC), their
+// counts (this request included; the questions as they stand, which
+// countQuestion adds to) and every visitor's requests together.
+async function countRequest(who: string): Promise<{ day: string; questions: number; requests: number; league: number }> {
+  const row = await rpc("count_sluh22_request", who);
+  if (row) {
+    return { day: String(row.day ?? ""), questions: Number(row.questions) || 0, requests: Number(row.requests) || 0, league: Number(row.league) || 0 };
+  }
+  return { day: today(), questions: peek(`q:${who}`), requests: bump(`r:${who}`), league: bump("r:*") };
+}
+
+// One more question today, from this visitor: today's count for them and
+// for the whole league, this one included.
+async function countQuestion(who: string): Promise<{ visitor: number; league: number }> {
+  const row = await rpc("count_sluh22_question", who);
+  if (row) return { visitor: Number(row.visitor) || 0, league: Number(row.league) || 0 };
+  return { visitor: bump(`q:${who}`), league: bump("q:*") };
 }
 
 // The passcode, compared without giving away how much of it matched.
@@ -308,6 +351,7 @@ type Block = {
   thinking?: string;
   signature?: string;
   data?: string;  // a redacted thinking block's
+  k?: string;     // this function's stamp on a tool call (see stamp())
 };
 type Message = { role: "user" | "assistant"; content: string | Block[] };
 
@@ -315,19 +359,46 @@ const blocksOf = (m: Message): Block[] =>
   typeof m.content === "string" ? [{ type: "text", text: m.content }] : m.content.filter((b) => b && typeof b === "object");
 const isToolResults = (m: Message) =>
   Array.isArray(m.content) && m.content.length > 0 && m.content.every((b) => b && b.type === "tool_result");
+const textOf = (content: unknown) => typeof content === "string" ? content
+  : Array.isArray(content) ? content.map((c) => (c && typeof c.text === "string" ? c.text : "")).join("") : "";
+const inputOf = (b: Block): Record<string, unknown> => {
+  const input = b.input && typeof b.input === "object" && !Array.isArray(b.input) ? b.input as Record<string, unknown> : {};
+  return JSON.stringify(input).length > MAX_TOOL_INPUT ? {} : input;
+};
+
+// How much a turn gives Claude to read (a tool result as it will be cut).
+const sizeOf = (blocks: Block[]) => blocks.reduce((n, b) =>
+  n + (typeof b.text === "string" ? b.text.length : 0) +
+  (typeof b.thinking === "string" ? b.thinking.length : 0) + (typeof b.data === "string" ? b.data.length : 0) +
+  (b.type === "tool_result" ? Math.min(textOf(b.content).length, MAX_TOOL_RESULT) : 0) +
+  (b.type === "tool_use" ? JSON.stringify(inputOf(b)).length : 0), 0);
 
 // The conversation, checked for shape: it alternates from a user turn, and
 // the newest turn is a user's: a question, or the results of the tools the
-// last answer called.
-function conversation(raw: unknown): { messages: Message[]; question: boolean; rounds: number } | null {
+// last answer called. A turn of tool results answers the calls of the
+// answer before it, each once. Returns it with whether the newest turn is a
+// question, the tool rounds since the question that started them, and how
+// big it is.
+function conversation(raw: unknown): { messages: Message[]; question: boolean; rounds: number; size: number } | null {
   if (!Array.isArray(raw) || !raw.length || raw.length > MAX_MESSAGES) return null;
   const messages: Message[] = [];
+  let size = 0;
   for (const [i, m] of raw.entries()) {
     if (!m || typeof m !== "object") return null;
     const { role, content } = m as { role?: unknown; content?: unknown };
     if (role !== (i % 2 === 0 ? "user" : "assistant")) return null;
     if (typeof content !== "string" && !Array.isArray(content)) return null;
-    messages.push({ role, content } as Message);
+    const message = { role, content } as Message;
+    const blocks = blocksOf(message);
+    if (role === "user" && blocks.some((b) => b.type === "tool_result")) {
+      if (!isToolResults(message)) return null; // results and a question in one turn
+      const calls = new Set(i > 0 ? blocksOf(messages[i - 1]).filter((b) => b.type === "tool_use").map((b) => b.id) : []);
+      for (const b of blocks) {
+        if (!calls.delete(b.tool_use_id)) return null; // not a call of the last answer, or answered twice
+      }
+    }
+    size += sizeOf(blocks);
+    messages.push(message);
   }
   const last = messages[messages.length - 1];
   if (last.role !== "user") return null;
@@ -339,7 +410,45 @@ function conversation(raw: unknown): { messages: Message[]; question: boolean; r
   // tool rounds since the question that started them
   let rounds = 0;
   for (let i = messages.length - 1; i >= 0 && isToolResults(messages[i]); i -= 2) rounds++;
-  return { messages, question, rounds };
+  return { messages, question, rounds, size };
+}
+
+/* ------------------------------------------------------------ stamps */
+
+// Each tool call this function passes on carries a stamp: an HMAC of the
+// visitor, the day and the number of the question it belongs to, keyed off
+// the service role key (which never leaves the server). A round of results
+// rides on its question only when the calls it answers carry good stamps
+// for the visitor's latest question today; a made-up answer, or one from an
+// earlier question, can't be used to ask Claude something for free. As in
+// league-chat.
+type Stamp = { visitor: string; day: string; question: number };
+const STAMP_KEY = SERVICE_KEY
+  ? crypto.subtle.importKey("raw", new TextEncoder().encode(`sluh22-chat stamps v1\n${SERVICE_KEY}`),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+  : null;
+async function stampOf(s: Stamp, b: Block): Promise<string> {
+  const mac = await crypto.subtle.sign("HMAC", await STAMP_KEY!,
+    new TextEncoder().encode(`${s.visitor}\n${s.day}\n${s.question}\n${b.id}\n${b.name}`));
+  return btoa(String.fromCharCode(...new Uint8Array(mac))).replace(/=+$/, "");
+}
+// Stamps the tool calls of an answer about to be sent.
+async function stamp(blocks: Block[], s: Stamp | null) {
+  if (!s || !STAMP_KEY) return;
+  for (const b of blocks) if (b.type === "tool_use") b.k = await stampOf(s, b);
+}
+// Whether every tool call of an answer carries a good stamp.
+async function stamped(m: Message | undefined, s: Stamp): Promise<boolean> {
+  const calls = m && m.role === "assistant" ? blocksOf(m).filter((b) => b.type === "tool_use") : [];
+  if (!calls.length || !STAMP_KEY) return false;
+  for (const b of calls) {
+    const want = await stampOf(s, b);
+    const got = typeof b.k === "string" ? b.k : "";
+    let diff = got.length ^ want.length;
+    for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ (got.charCodeAt(i) || 0);
+    if (diff) return false;
+  }
+  return true;
 }
 
 /* ------------------------------------------------------------ Claude */
@@ -371,11 +480,10 @@ function claudeMessages(messages: Message[]): Anthropic.MessageParam[] {
       } else if (b.type === "redacted_thinking" && m.role === "assistant" && i > asked && typeof b.data === "string") {
         content.push({ type: "redacted_thinking", data: b.data });
       } else if (b.type === "tool_use" && m.role === "assistant" && typeof b.name === "string") {
-        const input = b.input && typeof b.input === "object" && !Array.isArray(b.input) ? b.input as Record<string, unknown> : {};
-        content.push({ type: "tool_use", id: claudeId(b.id), name: b.name, input });
+        content.push({ type: "tool_use", id: claudeId(b.id), name: b.name, input: inputOf(b) });
       } else if (b.type === "tool_result" && m.role === "user") {
-        const text = typeof b.content === "string" ? b.content
-          : Array.isArray(b.content) ? b.content.map((c) => (c && typeof c.text === "string" ? c.text : "")).join("") : "";
+        const full = textOf(b.content);
+        const text = full.length > MAX_TOOL_RESULT ? `${full.slice(0, MAX_TOOL_RESULT)}\n…(cut short)` : full;
         content.push({ type: "tool_result", tool_use_id: claudeId(b.tool_use_id), content: text || "(nothing)", is_error: Boolean(b.is_error) });
       }
     }
@@ -389,8 +497,10 @@ function claudeMessages(messages: Message[]): Anthropic.MessageParam[] {
 /* Asking Claude, streaming the answer to the browser as it is written: text
    as it comes, a note when a tool is called, then the whole message as
    content blocks, which the browser sends back unchanged with the next turn.
-   The instructions and the league go first and are cached. */
-async function askClaude(messages: Message[], digest: string, send: (e: Record<string, unknown>) => void, signal: AbortSignal) {
+   The instructions and the league go first and are cached. The tool calls
+   are stamped (see stamp()). */
+async function askClaude(messages: Message[], digest: string, send: (e: Record<string, unknown>) => void, signal: AbortSignal,
+  stampFor: Stamp | null) {
   try {
     const stream = claude!.messages.stream({
       model: MODEL,
@@ -425,6 +535,7 @@ async function askClaude(messages: Message[], digest: string, send: (e: Record<s
       : final.stop_reason === "max_tokens" ? "max_tokens"
       : content.some((b) => b.type === "tool_use") ? "tool_use"
       : "end_turn";
+    await stamp(content, stampFor);
     send({ t: "done", stop, content });
   } catch (err) {
     if (signal.aborted) return;
@@ -476,12 +587,32 @@ async function handle(req: Request): Promise<Response> {
   const convo = conversation(body.messages);
   if (!convo) return fail(400, "bad_request", "that conversation isn't in a shape the chat can read", origin);
   if (convo.rounds > MAX_TOOL_ROUNDS) return fail(429, "too_many_steps", "that question took too many look-ups; try asking it more narrowly", origin);
+  if (convo.size > MAX_CONVERSATION) return fail(413, "too_big", "that conversation is too long; start a new one", origin);
 
-  // Today's allowances; tool rounds ride on the question that started them.
-  if (convo.question) {
-    const n = await countQuestion(await visitor(req));
-    if (n.visitor > DAILY) return fail(429, "daily_limit", `that's your ${DAILY} questions for today; the Historian is back tomorrow`, origin);
-    if (n.league > LEAGUE_DAILY) return fail(429, "daily_limit", "the league has used up today's questions; the Historian is back tomorrow", origin);
+  // Today's allowances. Every request counts against the visitor's requests
+  // and the whole league's (the cap on the bill); a question counts against
+  // the questions too, and so does a round of tool results that doesn't
+  // answer calls this function stamped for the visitor's latest question.
+  const leagueOut = "the league has used up today's questions; the Historian is back tomorrow";
+  let stampFor: Stamp;
+  try {
+    const who = await visitor(req);
+    const used = await countRequest(who);
+    if (used.league > CLAUDE_DAILY) return fail(429, "daily_limit", leagueOut, origin);
+    if (used.requests > DAILY_REQUESTS) return fail(429, "daily_limit", "that's all the Historian can do for you today; it's back tomorrow", origin);
+    let n = used.questions;
+    const question = convo.question ||
+      !(await stamped(convo.messages[convo.messages.length - 2], { visitor: who, day: used.day, question: n }));
+    if (question) {
+      const asked = await countQuestion(who);
+      if (asked.visitor > DAILY) return fail(429, "daily_limit", `that's your ${DAILY} questions for today; the Historian is back tomorrow`, origin);
+      if (asked.league > LEAGUE_DAILY) return fail(429, "daily_limit", leagueOut, origin);
+      n = asked.visitor;
+    }
+    stampFor = { visitor: who, day: used.day, question: n };
+  } catch (err) {
+    console.error("sluh22-chat: counting failed,", err);
+    return fail(503, "counter", "the league chat couldn't check today's allowance; try again in a minute", origin);
   }
 
   // The answer as server-sent events (see askClaude). The member pressing
@@ -495,7 +626,7 @@ async function handle(req: Request): Promise<Response> {
         if (!abort.signal.aborted) controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
       try {
-        await askClaude(convo.messages, digest, send, abort.signal);
+        await askClaude(convo.messages, digest, send, abort.signal, stampFor);
       } finally {
         if (!abort.signal.aborted) controller.close();
       }
