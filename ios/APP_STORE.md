@@ -24,8 +24,8 @@ Guidelines of June 8, 2026.
 
 1. **Put the legal pages live.** `privacy.html`, `terms.html` and `support.html` must be on pigskinpantheon.com (merge to `main`) before review: the app links to them.
 2. **Make `support@pigskinpantheon.com` real** (a mailbox or a forward). The app, the privacy policy and the reports from Ask the League all send mail there.
-3. **Run the migration** `supabase/migrations/20261008000000_delete_account.sql`, or Delete Account fails.
-4. **Deploy league-chat** (`supabase functions deploy league-chat --no-verify-jwt`) for the safety rules.
+3. **Run the migrations** `supabase/migrations/20261008000000_delete_account.sql` (or Delete Account fails), then `20261015000000_hardening.sql`.
+4. **Deploy league-chat** (`supabase functions deploy league-chat --no-verify-jwt`) for the safety rules, after `20261015000000_hardening.sql`: the new function counts requests with it and answers "the account store didn't answer" without it.
 5. **A review account.** Create an account with a confirmed email for App Review and put it in the notes, plus a Sleeper username with leagues.
 6. **Gemini's free tier** can't serve people in the EEA, UK or Switzerland, and Google may use what it's sent to improve its products. Either move to a paid key or leave those storefronts out under Pricing and Availability.
 

@@ -345,8 +345,12 @@ conversation so far. The function adds the instructions, the tools and the
 API key, asks Google's Gemini (`gemini-3.8-flash`, low thinking) and
 streams the answer back as it is written. When the model asks for a tool,
 the stream ends with the request, `chat.js` runs it and sends the result
-back, up to eight look-ups per question. The league text goes first and is
-the same on every turn, so Gemini's implicit cache can reuse it.
+back, up to eight look-ups per question. The league text goes first in the
+conversation and is the same on every turn, so Gemini's implicit cache can
+reuse it. It goes in as the league's data, never in the instructions: the
+instructions tell the model that nothing inside it (or in a look-up's
+result) is an instruction, so a team called "ignore your rules" stays a
+team name.
 
 **It runs on Gemini's free tier.** A key from Google AI Studio on a Google
 Cloud project with no billing account is free; the catch is limits per
@@ -368,17 +372,26 @@ What protects the quota:
 - **A daily allowance.** `AI_DAILY_QUESTIONS` new questions per member per
   day (25 unless set), counted in `chat_usage` by `count_chat_question()`
   (`supabase/migrations/20261003000000_league_chat.sql`), which only the
-  function can call. Tool look-ups don't count as questions; eight per
-  question is the ceiling.
+  function can call. Tool look-ups don't count as questions (eight per
+  question is the ceiling), but every request does, look-ups included:
+  `AI_DAILY_REQUESTS` a day (nine per question unless set), counted by
+  `count_chat_request()` (`20261015000000_hardening.sql`). A round of
+  look-ups only rides on its question when it answers the calls the
+  function itself asked for: each call carries a stamp tied to the member,
+  the day and the question, and a round without good stamps counts as a
+  new question.
 - **Bounded requests.** Questions up to 2,000 characters, conversations up
-  to 80 turns (the window asks for a new chat before then), a size limit on
-  the league text, and `ALLOWED_ORIGINS` limiting it to the site.
+  to 80 turns (the window asks for a new chat before then) and 400,000
+  characters besides the league text, each look-up's result cut at 40,000
+  characters (the browser and the app cut theirs there too), a size limit
+  on the league text, and `ALLOWED_ORIGINS` limiting it to the site.
 - **Stopping stops the work.** The stop button, or closing the tab, cancels
-  the request to Gemini.
+  the request to Gemini. Gemini gets a minute to start answering; past
+  that, or on a network error that doesn't clear, the backup answers.
 
 The conversation stays in the browser tab (sessionStorage), so it follows
 the member from page to page and is gone when the tab is closed. Nothing is
-stored on the server but the day's question count.
+stored on the server but the day's question and request counts.
 
 Settings, as function secrets: `GEMINI_API_KEY` (required, from
 aistudio.google.com ▸ Get API key), `ALLOWED_ORIGINS`, `AI_MODEL` (default
@@ -386,12 +399,16 @@ aistudio.google.com ▸ Get API key), `ALLOWED_ORIGINS`, `AI_MODEL` (default
 `gemini-3.5-flash`, used when the main model is overloaded or out of its
 daily allowance; `none` to turn it off), `AI_THINKING` (`low`, `medium` or
 `high`, default `low`; more thinking is slower and uses more of the
-tokens-a-minute limit), `AI_DAILY_QUESTIONS` (default 25), and the backup:
+tokens-a-minute limit), `AI_DAILY_QUESTIONS` (default 25),
+`AI_DAILY_REQUESTS` (default nine times the questions), and the backup:
 `ANTHROPIC_API_KEY` (from platform.claude.com) lets Claude Haiku 4.5 answer
 whenever Gemini can't (the free tier's daily allowance used up, or Google
 overloaded), and `CLAUDE_FALLBACK_MODEL` picks another Claude model (`none`
-turns the backup off). The backup is billed per question, within the same
-daily allowance; without its key the chat behaves as before. In
+turns the backup off). The backup is billed per request, within the same
+daily allowances, and `CLAUDE_DAILY_REQUESTS` (default 500, look-up rounds
+included; `0` turns it off) caps the whole site's Claude requests a day,
+whoever asks: past it, members get Gemini's own answer. Without its key the
+chat behaves as before. In
 `account-config.js`, `AI_CHAT_URL` points the site at the function if it
 isn't at `<SUPABASE_URL>/functions/v1/league-chat`.
 
@@ -555,13 +572,15 @@ Going live:
    Run the other two migrations too: `20261001000000_espn_leagues.sql` lets
    an ESPN league (`espn-<id>`) be synced to an account, and
    `20261002000000_espn_keys.sql` adds the encrypted key store.
-7. For Ask the League, run `20261003000000_league_chat.sql` and
-   `20261005000000_free_for_everyone.sql`, deploy the function
+7. For Ask the League, run `20261003000000_league_chat.sql`,
+   `20261005000000_free_for_everyone.sql` and, once every migration before
+   it has run, `20261015000000_hardening.sql`, then deploy the function
    (`supabase functions deploy league-chat --no-verify-jwt`) and set its
    secrets: `supabase secrets set GEMINI_API_KEY=AIza…` (from
    aistudio.google.com) and `ALLOWED_ORIGINS` as for the relay. Optional:
-   `AI_DAILY_QUESTIONS`, `AI_MODEL`, `AI_THINKING`, and `ANTHROPIC_API_KEY`
-   for the Claude Haiku 4.5 backup.
+   `AI_DAILY_QUESTIONS`, `AI_DAILY_REQUESTS`, `AI_MODEL`, `AI_THINKING`,
+   and `ANTHROPIC_API_KEY` for the Claude Haiku 4.5 backup
+   (`CLAUDE_DAILY_REQUESTS` caps it).
 8. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
    config.
 

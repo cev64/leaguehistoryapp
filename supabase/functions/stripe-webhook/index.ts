@@ -41,6 +41,33 @@ function periodEnd(sub: Stripe.Subscription) {
 }
 const check = ({ error }: { error: unknown }) => { if (error) throw error; };
 
+// The buyer's Stripe customer on their profile, so their later events find
+// them: only when the profile has none yet, never over another one. A
+// customer already on someone else's profile (stripe_customer_id is unique)
+// is logged and left: retrying the event would only fail the same way.
+async function linkCustomer(userId: string, customer: string) {
+  const { data, error } = await admin
+    .from("profiles")
+    .update({ stripe_customer_id: customer })
+    .eq("id", userId)
+    .is("stripe_customer_id", null)
+    .select("id");
+  if (error) {
+    if ((error as { code?: string }).code === "23505") {
+      console.error(`stripe-webhook: customer ${customer} is already on another profile; not linked to ${userId}`);
+      return;
+    }
+    throw error;
+  }
+  if (data?.length) return;
+  const { data: row, error: readError } = await admin
+    .from("profiles").select("stripe_customer_id").eq("id", userId).maybeSingle();
+  if (readError) throw readError;
+  if (row && row.stripe_customer_id !== customer) {
+    console.warn(`stripe-webhook: profile ${userId} already has customer ${row.stripe_customer_id}; checkout was by ${customer}`);
+  }
+}
+
 // A member's own Pro subscription.
 async function applySolo(sub: Stripe.Subscription) {
   const { data, error } = await admin
@@ -92,16 +119,12 @@ Deno.serve(async (req) => {
         const userId = session.client_reference_id;
         const customer = customerOf(session.customer);
         if (!userId || !customer) break;
-        // The buyer's Stripe customer, so their later events find them.
-        check(await admin.from("profiles").update({ stripe_customer_id: customer }).eq("id", userId).is("stripe_customer_id", null));
+        await linkCustomer(userId, customer);
         if (session.subscription) {
           const id = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
           const sub = await stripe.subscriptions.retrieve(id);
           if (isLeague(sub.metadata)) await applyLeague(sub);
-          else {
-            check(await admin.from("profiles").update({ stripe_customer_id: customer }).eq("id", userId));
-            await applySolo(sub);
-          }
+          else await applySolo(sub);
         }
         break;
       }
