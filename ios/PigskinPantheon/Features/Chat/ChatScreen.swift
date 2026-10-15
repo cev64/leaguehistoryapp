@@ -840,7 +840,7 @@ struct ChatConsentSheet: View {
             .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous).stroke(Theme.line, lineWidth: 1))
             .padding(.top, 16)
 
-            Text("It's used only to write the answer. Your email and account details aren't sent to the AI.")
+            Text("It's used to write the answer. \(Legal.aiTraining) Your email and account details aren't sent to the AI.")
                 .font(.footnote)
                 .foregroundStyle(Theme.ink2)
                 .multilineTextAlignment(.center)
