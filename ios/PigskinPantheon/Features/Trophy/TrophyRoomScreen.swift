@@ -52,6 +52,13 @@ private struct TrophyHallView: View {
     var body: some View {
         ZStack {
             RoomCanvas(stage: stage, room: .hall)
+            // A shade under the title and the chips, so the hall's beams and
+            // signs don't run through their words.
+            LinearGradient(colors: [.black.opacity(0.85), .black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom)
+                .frame(height: 210)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
             if ready, stage.showHint, !stage.focused {
                 VStack {
                     Spacer()
