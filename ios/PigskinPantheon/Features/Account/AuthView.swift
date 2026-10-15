@@ -85,6 +85,12 @@ struct AuthView: View {
             case .forgot: forgotFields
             case .sent(let note): sentView(note)
             }
+
+            // Signed out, the account screen is this form: the legal pages
+            // and support are still a tap away.
+            if embedded && (mode == .signin || mode == .signup) {
+                AboutSection()
+            }
         }
         .scrollContentBackground(.hidden)
         .background(Theme.page)
@@ -142,6 +148,9 @@ struct AuthView: View {
             }
             .frame(maxWidth: .infinity)
             .font(.subheadline)
+            if !embedded {
+                legalLine("[Terms of Service](\(Legal.terms.absoluteString)) · [Privacy Policy](\(Legal.privacy.absoluteString))")
+            }
         }
         .listRowBackground(Color.clear)
         .listRowInsets(EdgeInsets())
@@ -171,6 +180,7 @@ struct AuthView: View {
         .listRowBackground(Theme.card)
         Section {
             primaryButton("Create free account")
+            legalLine("By creating an account you agree to the [Terms of Service](\(Legal.terms.absoluteString)) and [Privacy Policy](\(Legal.privacy.absoluteString)).")
         }
         .listRowBackground(Color.clear)
         .listRowInsets(EdgeInsets())
@@ -246,6 +256,17 @@ struct AuthView: View {
                 .foregroundStyle(Theme.red)
                 .transition(.opacity.combined(with: .move(edge: .top)))
         }
+    }
+
+    /// Small print with links (Markdown), under the button.
+    private func legalLine(_ markdown: String) -> some View {
+        Text((try? AttributedString(markdown: markdown)) ?? AttributedString(markdown))
+            .font(.caption)
+            .foregroundStyle(Theme.ink3)
+            .tint(Theme.accentInk)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 4)
     }
 
     private func primaryButton(_ label: String) -> some View {

@@ -53,7 +53,16 @@
   const PRICING = CFG.PRICING === true;
   // Ads off: every slot stays in the pages, hidden, until ADS.enabled.
   const ADS_ON = Boolean(CFG.ADS && CFG.ADS.enabled);
-  const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+  // Supabase's browser client, pinned to one release and checked against its
+  // hash, so a changed file on the CDN is refused rather than run. To move to
+  // a newer 2.x: change the version and set the hash to
+  //   curl -sL <url> | openssl dgst -sha384 -binary | openssl base64 -A
+  // (dist/umd/supabase.js is the file as published to npm; jsDelivr builds
+  // supabase.min.js itself, so that one can't be pinned by hash.)
+  const SUPABASE_JS = {
+    src: "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js",
+    integrity: "sha384-iLddHTLokph6Omwoyid4XKxHaWa6w41BnoEj0q5oOrzmYPpHIKt1wyjReA7s//pP",
+  };
 
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -136,7 +145,7 @@
 
     return {
       async init(onAuth) {
-        await loadScript(SUPABASE_JS);
+        await loadScript(SUPABASE_JS.src, SUPABASE_JS.integrity);
         client = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
           auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
         });
@@ -474,9 +483,13 @@
     };
   }
 
-  function loadScript(src) {
+  function loadScript(src, integrity) {
     return new Promise((resolve, reject) => {
       const s = document.createElement("script");
+      if (integrity) {
+        s.integrity = integrity;
+        s.crossOrigin = "anonymous";
+      }
       s.src = src;
       s.async = true;
       s.onload = resolve;

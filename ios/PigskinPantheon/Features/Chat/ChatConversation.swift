@@ -12,6 +12,8 @@ struct ChatMessage: Identifiable, Hashable {
     var retry = false
     /// The function said the member isn't signed in: offer the way in.
     var signIn = false
+    /// The member reported this answer: it's hidden, with a thank-you.
+    var reported = false
 }
 
 /// The answer being written: its status line while it works, then the words.
@@ -31,9 +33,6 @@ struct ChatIntro: Decodable {
     let name: String
     let endpoint: String
     let anonKey: String?
-    let pricing: Bool
-    let proPrice: String
-    let passPrice: String
     let suggestions: [String]
 }
 
@@ -80,6 +79,12 @@ final class ChatConversation {
     ]
     static let workingStart = ["Reading the record book", "Flipping through old seasons", "Checking the standings"]
 
+    /// Where the member's yes to sharing with the AI providers is kept
+    /// (App Review 5.1.2: nothing goes to a third-party AI before it).
+    /// Bump the version when what's sent, or who it goes to, changes.
+    static let consentKey = "aiConsent.v1"
+    static var consented: Bool { UserDefaults.standard.bool(forKey: consentKey) }
+
     private static var all: [String: ChatConversation] = [:]
 
     /// The league's conversation, kept for the app session.
@@ -88,6 +93,13 @@ final class ChatConversation {
         let made = ChatConversation(leagueId: id)
         all[id] = made
         return made
+    }
+
+    /// Signed out (or the account deleted): every conversation goes, an
+    /// answer being written included.
+    static func forgetAll() {
+        all.values.forEach { $0.fresh() }
+        all = [:]
     }
 
     let leagueId: String
@@ -108,6 +120,10 @@ final class ChatConversation {
 
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var digestJob: Task<String, Error>?
+    /// The engine the digest is being written by: the league opened again
+    /// has a new one.
+    @ObservationIgnored private weak var digestEngine: LeagueEngine?
+    @ObservationIgnored private var digestTurn = 0
     /// Bumped by a new chat, so an answer cancelled by it doesn't write
     /// itself into the fresh conversation.
     @ObservationIgnored private var generation = 0
@@ -140,11 +156,20 @@ final class ChatConversation {
     }
 
     private func digest(engine: LeagueEngine) -> Task<String, Error> {
-        if let digestJob { return digestJob }
-        let job = Task { @MainActor in
-            try await engine.call(String.self, "Bridge.chat.digest()")
+        if let digestJob, digestEngine === engine { return digestJob }
+        digestTurn += 1
+        let turn = digestTurn
+        let job = Task { @MainActor [weak self] in
+            do {
+                return try await engine.call(String.self, "Bridge.chat.digest()")
+            } catch {
+                // Written out afresh for the next question.
+                if let self, self.digestTurn == turn { self.digestJob = nil }
+                throw error
+            }
         }
         digestJob = job
+        digestEngine = engine
         return job
     }
 
@@ -165,15 +190,20 @@ final class ChatConversation {
 
     /// The last question again, after an error (its bubble's "Try again").
     func retry(engine: LeagueEngine, token: @escaping ChatToken) {
-        guard shown.count >= 2, shown[shown.count - 2].role == .user else { return }
+        // With AI sharing off, ask() sends nothing: keep the question on screen.
+        guard Self.consented, shown.count >= 2, shown[shown.count - 2].role == .user else { return }
         let last = shown[shown.count - 2].text
         shown.removeLast(2)
         ask(last, engine: engine, token: token)
     }
 
-    func ask(_ question: String, engine: LeagueEngine, token: @escaping ChatToken) {
+    /// False when the question wasn't taken (no welcome read yet, say), so
+    /// the screen keeps it in the box.
+    @discardableResult
+    func ask(_ question: String, engine: LeagueEngine, token: @escaping ChatToken) -> Bool {
         let question = Self.clipped(question.trimmingCharacters(in: .whitespacesAndNewlines))
-        guard !question.isEmpty, !busy, !full, let intro else { return }
+        // Nothing leaves the phone until the member has said yes.
+        guard Self.consented, !question.isEmpty, !busy, !full, let intro else { return false }
         let mark = history.count
         let markShown = shown.count
         history.append(["role": "user", "content": question])
@@ -288,14 +318,20 @@ final class ChatConversation {
                     let failure = error as? ChatFailure
                     let code = failure?.code ?? ""
                     let message: String
-                    if code == "not_set_up" {
-                        message = "The league AI isn't switched on for this site yet."
+                    // The function's own words are the website's; these
+                    // read right in the app.
+                    if code == "not_set_up" || code == "not_set_up_upstream" {
+                        message = "Ask the League isn't available right now. Try again later."
+                    } else if code == "daily_limit" {
+                        message = "You've reached today's question limit. Try again tomorrow."
+                    } else if code == "pro_required" || code == "free_limit" {
+                        message = "Ask the League isn't available for this account right now."
                     } else if let failure, !failure.message.isEmpty {
                         message = failure.message
                     } else {
                         message = error.localizedDescription.isEmpty ? "Something went wrong. Try again." : error.localizedDescription
                     }
-                    let final = ["not_set_up", "not_set_up_upstream", "pro_required", "daily_limit"].contains(code)
+                    let final = ["not_set_up", "not_set_up_upstream", "pro_required", "free_limit", "daily_limit"].contains(code)
                     self.shown.append(ChatMessage(role: .assistant, text: message, error: true, retry: !final,
                                                   signIn: code == "not_signed_in"))
                     self.failedCount += 1
@@ -306,6 +342,16 @@ final class ChatConversation {
                 self.task = nil
             }
         }
+        return true
+    }
+
+    /// Hides an answer the member reported and returns it with the question
+    /// that led to it, for the report.
+    func report(_ id: ChatMessage.ID) -> (question: String, answer: String)? {
+        guard let i = shown.firstIndex(where: { $0.id == id }), shown[i].role == .assistant else { return nil }
+        shown[i].reported = true
+        let question = shown[..<i].last(where: { $0.role == .user })?.text ?? ""
+        return (question, shown[i].text)
     }
 
     /// Runs the tool calls in the engine (Bridge.chat.runTools: chat.js's own

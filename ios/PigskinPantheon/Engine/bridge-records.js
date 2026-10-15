@@ -15,10 +15,12 @@
   const B = window.Bridge;
 
   const fmt = (value) => Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const pct = (wins, losses) => {
-    const games = wins + losses;
-    return games ? (wins / games).toFixed(3).replace(/^0/, "") : ".000";
+  // A tie counts half a win, as in the standings.
+  const pct = (wins, losses, ties = 0) => {
+    const games = wins + losses + ties;
+    return games ? ((wins + ties / 2) / games).toFixed(3).replace(/^0/, "") : ".000";
   };
+  const record = (wins, losses, ties) => (ties ? `${wins}–${losses}–${ties}` : `${wins}–${losses}`);
   const ordinal = (n) => {
     const mod100 = n % 100;
     if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
@@ -42,6 +44,7 @@
         seasons: [],
         wins: 0,
         losses: 0,
+        ties: 0,
         pf: 0,
         pa: 0,
         championshipYears: [],
@@ -51,6 +54,7 @@
         bestSeason: null,
         playoffWins: 0,
         playoffLosses: 0,
+        playoffTies: 0,
         streak: { run: 0, best: null },
         biggestWin: null,
         h2h: {}
@@ -60,14 +64,15 @@
     const addH2H = (ownerId, opponentId, pfValue, paValue) => {
       if (!profiles[ownerId] || !profiles[opponentId]) return;
       if (!profiles[ownerId].h2h[opponentId]) {
-        profiles[ownerId].h2h[opponentId] = { opponentId, wins: 0, losses: 0, pf: 0, pa: 0, games: 0 };
+        profiles[ownerId].h2h[opponentId] = { opponentId, wins: 0, losses: 0, ties: 0, pf: 0, pa: 0, games: 0 };
       }
       const row = profiles[ownerId].h2h[opponentId];
       row.games += 1;
       row.pf += pfValue;
       row.pa += paValue;
       if (pfValue > paValue) row.wins += 1;
-      else row.losses += 1;
+      else if (pfValue < paValue) row.losses += 1;
+      else row.ties += 1;
     };
 
     const recordGame = (season, game, label = "Regular Season") => {
@@ -119,11 +124,12 @@
           if (!profile || team.excludeFromHome) return;
           profile.seasons.push({
             year: season.year, teamId, teamName: team.name,
-            wins: team.wins, losses: team.losses, pf: team.pf, pa: team.pa,
+            wins: team.wins, losses: team.losses, ties: team.ties || 0, pf: team.pf, pa: team.pa,
             finalRank: team.finalRank, live: Boolean(season.live)
           });
           profile.wins += team.wins;
           profile.losses += team.losses;
+          profile.ties += team.ties || 0;
           profile.pf += team.pf;
           profile.pa += team.pa;
           if (season.live) return;
@@ -147,9 +153,12 @@
             if (game.aScore > game.bScore) {
               if (profiles[aOwner]) profiles[aOwner].playoffWins += 1;
               if (profiles[bOwner]) profiles[bOwner].playoffLosses += 1;
-            } else {
+            } else if (game.bScore > game.aScore) {
               if (profiles[bOwner]) profiles[bOwner].playoffWins += 1;
               if (profiles[aOwner]) profiles[aOwner].playoffLosses += 1;
+            } else {
+              if (profiles[aOwner]) profiles[aOwner].playoffTies += 1;
+              if (profiles[bOwner]) profiles[bOwner].playoffTies += 1;
             }
           }
         });
@@ -158,15 +167,15 @@
     Object.values(profiles).forEach((profile) => {
       profile.seasons.sort((a, b) => a.year - b.year);
       profile.diff = profile.pf - profile.pa;
-      profile.games = profile.wins + profile.losses;
-      profile.pct = profile.games ? profile.wins / profile.games : 0;
+      profile.games = profile.wins + profile.losses + profile.ties;
+      profile.pct = profile.games ? (profile.wins + profile.ties / 2) / profile.games : 0;
       profile.pfg = profile.games ? profile.pf / profile.games : 0;
       const finishes = Object.values(profile.finishes).filter(Boolean);
       profile.bestFinish = finishes.length ? Math.min(...finishes) : null;
       profile.worstFinish = finishes.length ? Math.max(...finishes) : null;
       Object.values(profile.h2h).forEach((row) => {
         row.diff = row.pf - row.pa;
-        row.pct = row.games ? row.wins / row.games : 0;
+        row.pct = row.games ? (row.wins + row.ties / 2) / row.games : 0;
       });
     });
 
@@ -261,12 +270,13 @@
         ...who(p),
         wins: p.wins,
         losses: p.losses,
+        ties: p.ties,
         pf: p.pf,
         pa: p.pa,
         pfg: p.pfg,
         diff: p.diff,
-        record: `${p.wins}–${p.losses}`,
-        pct: pct(p.wins, p.losses),
+        record: record(p.wins, p.losses, p.ties),
+        pct: pct(p.wins, p.losses, p.ties),
         pfText: fmt(p.pf),
         paText: fmt(p.pa),
         pfgText: p.pfg.toFixed(1),
@@ -308,7 +318,7 @@
       week ? tile("fire", "🔥", "Biggest week", fmt(week.points), `Week ${week.week} · ${week.year}`) : null,
       win ? tile("blue", "💥", "Biggest win", `+${fmt(win.margin)}`, `vs ${profiles[win.opponentId] ? profiles[win.opponentId].currentTeam : ""} · ${win.year}`) : null,
       streak ? tile("purple", "📈", "Longest win streak", `${streak.length} straight`, streak.fromYear === streak.toYear ? streak.toYear : `${streak.fromYear}–${String(streak.toYear).slice(2)}`) : null,
-      best ? tile("navy", "⭐", "Best season", `${best.wins}–${best.losses}`, `${best.year} · ${fmt(best.pf)} pts`) : null,
+      best ? tile("navy", "⭐", "Best season", record(best.wins, best.losses, best.ties), `${best.year} · ${fmt(best.pf)} pts`) : null,
     ].filter(Boolean);
 
     // seasonRows, newest first
@@ -320,7 +330,7 @@
         : season.finalRank === size ? "last" : "mid";
       return {
         year: season.year, teamId: season.teamId, teamName: season.teamName,
-        record: `${season.wins}–${season.losses}`, finalRank: season.finalRank == null ? null : season.finalRank,
+        record: record(season.wins, season.losses, season.ties), finalRank: season.finalRank == null ? null : season.finalRank,
         live: season.live, place,
       };
     });
@@ -345,9 +355,9 @@
     };
     const h2h = h2hRows.map((row) => ({
       ...who(profiles[row.opponentId]),
-      wins: row.wins, losses: row.losses, games: row.games,
-      record: `${row.wins}–${row.losses}`,
-      pct: pct(row.wins, row.losses),
+      wins: row.wins, losses: row.losses, ties: row.ties, games: row.games,
+      record: record(row.wins, row.losses, row.ties),
+      pct: pct(row.wins, row.losses, row.ties),
       pf: fmt(row.pf), pa: fmt(row.pa),
       diff: row.diff, diffText: signed(row.diff),
     }));
@@ -356,8 +366,8 @@
       ...who(p),
       ownerLine: `${p.name} · ${p.seasons.length} season${p.seasons.length === 1 ? "" : "s"}`,
       stats: [
-        { label: "Record", value: `${p.wins}–${p.losses}` },
-        { label: "Playoffs", value: `${p.playoffWins}–${p.playoffLosses}` },
+        { label: "Record", value: record(p.wins, p.losses, p.ties) },
+        { label: "Playoffs", value: record(p.playoffWins, p.playoffLosses, p.playoffTies) },
         { label: "Titles", value: String(p.championshipYears.length) },
         { label: "Last Places", value: String(p.lastPlaceYears.length) },
       ],

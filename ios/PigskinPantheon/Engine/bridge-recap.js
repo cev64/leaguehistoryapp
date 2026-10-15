@@ -62,7 +62,7 @@
 
     /* power rankings */
     let power = null;
-    if (r.power) {
+    if (r.power && r.power.length) {   // nobody ranked before a team has played
       const top = r.power[0];
       const riser = r.power.slice().sort((a, b) => b.move - a.move)[0];
       const faller = r.power.slice().sort((a, b) => a.move - b.move)[0];

@@ -24,7 +24,7 @@ struct RecordBookScreen: View {
                 RecordBookHero(badge: book.badge)
                 PageTitle(text: "Record Book")
                     .padding(.top, 4)
-                AdaptiveGrid(minWidth: 320) {
+                PairRow(minWidth: 320) {
                     BookTitlesCard(title: "Champions", symbol: "trophy", countHeader: "Titles", rows: book.champions, book: book)
                     BookTitlesCard(title: "Last Places", symbol: CardIcon.toilet, countHeader: "Last", rows: book.lastPlaces, book: book)
                 }
@@ -45,6 +45,7 @@ struct RecordBookScreen: View {
             do {
                 let b = try await session.engine.call(RecordBook.self, "Bridge.records.book()")
                 withAnimation(.smooth) {
+                    error = nil
                     book = b
                     sort = b.start
                 }
@@ -160,7 +161,9 @@ private struct BookTitlesCard: View {
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundStyle(Theme.ink3)
                                 .frame(width: 22, alignment: .leading)
-                            BookManagerLabel(face: manager)
+                            // The count and years columns are fixed, so a long
+                            // team name wraps rather than being cut.
+                            BookManagerLabel(face: manager, teamLines: 2)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text(row.marks)
                                 .font(.system(size: 13, weight: .heavy))

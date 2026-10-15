@@ -52,6 +52,9 @@ struct ManagerProfileView: View {
         .navigationTitle(profile?.currentTeam ?? "Manager")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: ownerId) {
+            // Back from a season it opened: the head-to-head sort stays.
+            guard profile?.ownerId != ownerId else { return }
+            error = nil
             do {
                 let p = try await session.engine.call(BookProfile.self, "Bridge.records.profile(id)", ["id": ownerId])
                 withAnimation(.smooth) {
@@ -110,7 +113,9 @@ private struct BookProfileHero: View {
                                 .tracking(0.5)
                                 .foregroundStyle(.white.opacity(0.72))
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.8)
+                                // "Last places" on a phone's quarter width.
+                                .minimumScaleFactor(0.6)
+                                .allowsTightening(true)
                             Text(stat.value)
                                 .font(.system(size: 19, weight: .heavy))
                                 .foregroundStyle(.white)
@@ -119,7 +124,7 @@ private struct BookProfileHero: View {
                                 .minimumScaleFactor(0.7)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, 8)
                         .padding(.vertical, 8)
                         .frosted(RoundedRectangle(cornerRadius: 12, style: .continuous), opacity: 0.10)
                     }
@@ -420,7 +425,7 @@ private struct BookStartersCard: View {
                     }
                 }
                 .frame(width: yearsWidth(s.years.count))
-                Text("Starts").frame(width: 38, alignment: .trailing)
+                Text("Starts").lineLimit(1).fixedSize().frame(width: 44, alignment: .trailing)
             }
             .font(.system(size: 9.5, weight: .bold))
             .foregroundStyle(Theme.ink3)
@@ -456,7 +461,7 @@ private struct BookStartersCard: View {
                             .font(.system(size: 13, weight: .heavy))
                             .foregroundStyle(Theme.ink)
                             .monospacedDigit()
-                            .frame(width: 38, alignment: .trailing)
+                            .frame(width: 44, alignment: .trailing)
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)

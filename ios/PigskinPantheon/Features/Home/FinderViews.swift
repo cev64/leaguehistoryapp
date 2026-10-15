@@ -1,31 +1,42 @@
 import SwiftUI
 
-/// The league finder's cards (index.html #find): the member's own leagues,
-/// the leagues opened before, the Sleeper / ESPN form, and the leagues found.
-struct FinderStack: View {
-    @Environment(AppModel.self) private var app
-    @Bindable var finder: FinderModel
-    var signIn: () -> Void
+/// The home screen's grouped sections (index.html #find, drawn the iOS
+/// way): a title over a rounded panel, and a footnote under it.
+struct HomeSection<Content: View>: View {
+    var title: String? = nil
+    var meta: String? = nil
+    var footer: AnyView? = nil
+    @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(spacing: 14) {
-            if app.account.isSignedIn {
-                MyLeaguesCard()
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+        VStack(alignment: .leading, spacing: 8) {
+            if let title {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(title)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(Theme.ink)
+                        .accessibilityAddTraits(.isHeader)
+                    Spacer(minLength: 8)
+                    if let meta {
+                        Text(meta)
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.ink3)
+                    }
+                }
+                .padding(.horizontal, 6)
             }
-            if !app.recents.isEmpty {
-                RecentCard()
-                    .transition(.opacity)
-            }
-            FindCard(finder: finder, signIn: signIn)
-            if finder.hasListing {
-                FoundCard(finder: finder)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            VStack(alignment: .leading, spacing: 0) { content }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: HomeSection.radius, style: .continuous))
+            if let footer {
+                footer.padding(.horizontal, 6)
             }
         }
-        .animation(.smooth(duration: 0.3), value: app.account.isSignedIn)
-        .animation(.smooth(duration: 0.3), value: app.recents)
     }
+}
+
+extension HomeSection {
+    static var radius: CGFloat { 22 }
 }
 
 // MARK: Rows
@@ -41,11 +52,11 @@ struct LeagueRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                LeagueMark(name: name, avatar: avatar, size: 38)
+                LeagueMark(name: name, avatar: avatar, size: 40)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(name)
-                            .font(.system(size: 15.5, weight: .semibold))
+                            .font(.body.weight(.semibold))
                             .foregroundStyle(Theme.ink)
                             .lineLimit(1)
                         if live {
@@ -59,17 +70,17 @@ struct LeagueRow: View {
                         }
                     }
                     Text(detail)
-                        .font(.system(size: 12.5))
+                        .font(.subheadline)
                         .foregroundStyle(Theme.ink3)
                         .lineLimit(2)
                 }
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Theme.ink3)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.tertiary)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
             .contentShape(Rectangle())
         }
         .buttonStyle(RowPressStyle())
@@ -85,8 +96,10 @@ struct RowPressStyle: ButtonStyle {
     }
 }
 
-private struct RowDivider: View {
-    var body: some View { Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 64) }
+/// A list row's hairline, inset past the row's badge.
+struct RowDivider: View {
+    var inset: CGFloat = 68
+    var body: some View { Divider().padding(.leading, inset) }
 }
 
 private struct EmptyLine: View {
@@ -95,7 +108,7 @@ private struct EmptyLine: View {
         Text(text)
             .font(.subheadline)
             .foregroundStyle(Theme.ink2)
-            .padding(14)
+            .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -103,15 +116,14 @@ private struct EmptyLine: View {
 // MARK: My leagues
 
 /// A signed-in member's leagues (account.js drawSyncedCard).
-private struct MyLeaguesCard: View {
+struct MyLeaguesSection: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
         let leagues = app.account.leagues
-        Card {
-            CardHead(title: "My leagues", symbol: "star.fill", meta: Fmt.plural(leagues.count, "league"))
+        HomeSection(title: "My Leagues", meta: leagues.isEmpty ? nil : Fmt.plural(leagues.count, "league")) {
             if leagues.isEmpty {
-                EmptyLine(text: "Find your league below and open it to add it to your account.")
+                EmptyLine(text: "Open a league below to add it to your account.")
             }
             ForEach(Array(leagues.enumerated()), id: \.element.id) { i, l in
                 if i > 0 { RowDivider() }
@@ -125,127 +137,117 @@ private struct MyLeaguesCard: View {
 
 // MARK: Recently opened
 
-private struct RecentCard: View {
+struct RecentSection: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
-        Card {
-            CardHead(title: "Recently opened", symbol: "clock")
+        HomeSection(title: "Recently Opened") {
             ForEach(Array(app.recents.enumerated()), id: \.element.id) { i, l in
                 if i > 0 { RowDivider() }
-                HStack(spacing: 0) {
-                    LeagueRow(name: l.name, avatar: l.avatar, detail: detail(l)) {
-                        app.open(l.id, name: l.name, avatar: l.avatar)
-                    }
-                    Button {
-                        withAnimation(.smooth) { app.forget(l.id) }
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(Theme.ink3)
-                            .frame(width: 36, height: 36)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Forget \(l.name)")
-                    .padding(.trailing, 6)
+                LeagueRow(name: l.name, avatar: l.avatar, detail: detail(l)) {
+                    app.open(l.id, name: l.name, avatar: l.avatar)
                 }
+                .contextMenu {
+                    Button("Remove from Recents", systemImage: "minus.circle", role: .destructive) {
+                        withAnimation(.smooth) { app.forget(l.id) }
+                    }
+                }
+                .accessibilityAction(named: "Remove from Recents") { app.forget(l.id) }
             }
         }
     }
 
     private func detail(_ l: RecentLeague) -> String {
         let source = l.id.hasPrefix("espn-") || l.platform == "espn" ? "ESPN" : "Sleeper"
-        if let season = l.season { return "Latest season \(season) · \(source)" }
+        if let season = l.season { return "\(source) · \(season) season" }
         return "\(source) league"
     }
 }
 
-// MARK: Find your leagues
+// MARK: Open a league
 
-private struct FindCard: View {
-    @Environment(AppModel.self) private var app
+/// Sleeper or ESPN, the form for each, and (on ESPN) the private-league
+/// panel in a section of its own.
+struct FindSection: View {
     @Bindable var finder: FinderModel
     var signIn: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
-        Card {
-            HStack(spacing: 10) {
-                Image(systemName: "person.fill")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Theme.card)
-                    .frame(width: 24, height: 24)
-                    .background(Theme.ink, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                Text("Find your leagues")
-                    .displayStyle(20)
-                    .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer(minLength: 8)
-                Picker("Where your league is played", selection: $finder.platform.animation(.smooth(duration: 0.25))) {
-                    ForEach(FinderModel.Platform.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .fixedSize()
+        Group {
+            switch finder.platform {
+            case .sleeper: SleeperForm(finder: finder)
+            case .espn: EspnForm(finder: finder, signIn: signIn)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
-
-            Group {
-                switch finder.platform {
-                case .sleeper: sleeperForm
-                case .espn: EspnForm(finder: finder, signIn: signIn)
-                }
-            }
-            .padding(14)
         }
         .sensoryFeedback(.selection, trigger: finder.platform)
     }
+}
 
-    private var sleeperForm: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FieldBox(symbol: finder.byId ? "number" : "person") {
-                TextField(finder.sleeperPlaceholder, text: $finder.username)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(finder.byId ? .numberPad : .asciiCapable)
-                    .submitLabel(.search)
-                    .focused($focused)
-                    .onSubmit { finder.submitSleeper(app: app) }
-                    .accessibilityLabel(finder.byId ? "Sleeper league ID" : "Sleeper username")
-            }
-            Button {
-                focused = false
-                finder.submitSleeper(app: app)
-            } label: {
-                ZStack {
-                    Text(finder.sleeperButton).opacity(finder.looking ? 0 : 1)
-                    if finder.looking { ProgressView() }
+/// Sleeper or ESPN, across the top of the form.
+private struct PlatformPicker: View {
+    @Bindable var finder: FinderModel
+
+    var body: some View {
+        Picker("Where your league is played", selection: $finder.platform.animation(.smooth(duration: 0.25))) {
+            ForEach(FinderModel.Platform.allCases) { Text($0.label).tag($0) }
+        }
+        .pickerStyle(.segmented)
+    }
+}
+
+private struct SleeperForm: View {
+    @Environment(AppModel.self) private var app
+    @Bindable var finder: FinderModel
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HomeSection(title: "Open a League", footer: AnyView(note)) {
+            VStack(alignment: .leading, spacing: 12) {
+                PlatformPicker(finder: finder)
+                FieldBox(symbol: finder.byId ? "number" : "magnifyingglass") {
+                    TextField(finder.sleeperPlaceholder, text: $finder.username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(finder.byId ? .numberPad : .asciiCapable)
+                        .submitLabel(.search)
+                        .focused($focused)
+                        .onSubmit { finder.submitSleeper(app: app) }
+                        .accessibilityLabel(finder.byId ? "Sleeper league ID" : "Sleeper username")
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.glassProminent)
-            .controlSize(.large)
-            .disabled(finder.looking || finder.username.trimmingCharacters(in: .whitespaces).isEmpty)
-
-            noteView(finder.sleeperNote, standard: sleeperStandard)
-                .environment(\.openURL, OpenURLAction { url in
-                    if url.host == "byid" {
-                        withAnimation(.smooth) { finder.toggleById() }
-                        focused = true
-                        return .handled
+                Button {
+                    focused = false
+                    finder.submitSleeper(app: app)
+                } label: {
+                    ZStack {
+                        Text(finder.sleeperButton).opacity(finder.looking ? 0 : 1)
+                        if finder.looking { ProgressView() }
                     }
-                    return .systemAction
-                })
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
+                .controlSize(.large)
+                .disabled(finder.looking || finder.username.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(14)
         }
     }
 
-    private var sleeperStandard: AttributedString {
+    private var note: some View {
+        noteView(finder.sleeperNote, standard: standard)
+            .environment(\.openURL, OpenURLAction { url in
+                if url.host == "byid" {
+                    withAnimation(.smooth) { finder.toggleById() }
+                    focused = true
+                    return .handled
+                }
+                return .systemAction
+            })
+    }
+
+    private var standard: AttributedString {
         let link = finder.byId ? "username" : "league ID"
-        return (try? AttributedString(markdown: "Sleeper's league data is public, so your username is all it takes: no password, nothing to connect. Or paste a [\(link)](pp://byid).")) ?? AttributedString()
+        return (try? AttributedString(markdown: "Sleeper's league data is public, so your username is all it takes: no password, nothing to connect. Or use a [\(link)](pp://byid).")) ?? AttributedString()
     }
 }
 
@@ -271,7 +273,7 @@ func noteView(_ note: FinderModel.Note, standard: AttributedString) -> some View
     .contentTransition(.opacity)
 }
 
-/// The site's .signin-field: an icon and a text box on a soft panel.
+/// A text box with its icon, on a filled panel like the system's search field.
 struct FieldBox<Content: View>: View {
     let symbol: String
     @ViewBuilder var content: Content
@@ -286,9 +288,8 @@ struct FieldBox<Content: View>: View {
                 .font(.system(size: 16))
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: 48)
-        .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line))
+        .frame(minHeight: 46)
+        .background(Theme.surface3, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -301,43 +302,54 @@ private struct EspnForm: View {
     @FocusState private var focus: EspnFormFocus?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            FieldBox(symbol: "trophy") {
-                TextField("ESPN league ID or league link", text: $finder.espnInput)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                    .submitLabel(.go)
-                    .focused($focus, equals: .league)
-                    .onSubmit { finder.submitEspn(app: app) }
-            }
-            Button {
-                focus = nil
-                finder.submitEspn(app: app)
-            } label: {
-                Text("Open league").font(.headline).frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.glassProminent)
-            .controlSize(.large)
-            .disabled(finder.espnInput.trimmingCharacters(in: .whitespaces).isEmpty)
-
-            noteView(finder.espnNote, standard: standard)
-                .environment(\.openURL, OpenURLAction { url in
-                    if url.host == "private" {
-                        finder.setPrivateOpen(!finder.privateOpen)
-                        return .handled
+        VStack(alignment: .leading, spacing: 24) {
+            HomeSection(title: "Open a League", footer: AnyView(note)) {
+                VStack(alignment: .leading, spacing: 12) {
+                    PlatformPicker(finder: finder)
+                    FieldBox(symbol: "number") {
+                        TextField("ESPN league ID or league link", text: $finder.espnInput)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.URL)
+                            .submitLabel(.go)
+                            .focused($focus, equals: .league)
+                            .onSubmit { finder.submitEspn(app: app) }
                     }
-                    return .systemAction
-                })
-
-            privateToggle
-            if finder.privateOpen {
-                PrivatePanel(finder: finder, focus: $focus, signIn: signIn)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                    .id("espnPrivate")
+                    Button {
+                        focus = nil
+                        finder.submitEspn(app: app)
+                    } label: {
+                        Text("Open League").font(.headline).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glassProminent)
+                    .controlSize(.large)
+                    .disabled(finder.espnInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(14)
             }
+
+            HomeSection {
+                privateToggle
+                if finder.privateOpen {
+                    Divider().padding(.leading, 16)
+                    PrivatePanel(finder: finder, focus: $focus, signIn: signIn)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .id("espnPrivate")
         }
         .task { await finder.loadState() }
+    }
+
+    private var note: some View {
+        noteView(finder.espnNote, standard: standard)
+            .environment(\.openURL, OpenURLAction { url in
+                if url.host == "private" {
+                    finder.setPrivateOpen(!finder.privateOpen)
+                    return .handled
+                }
+                return .systemAction
+            })
     }
 
     private var standard: AttributedString {
@@ -353,31 +365,30 @@ private struct EspnForm: View {
                 Image(systemName: finder.isConnected ? "lock.open.fill" : "lock.fill")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(finder.isConnected ? Theme.green : Theme.accent)
-                    .frame(width: 36, height: 36)
-                    .background((finder.isConnected ? Theme.green : Theme.accent).opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .frame(width: 34, height: 34)
+                    .background((finder.isConnected ? Theme.green : Theme.accent).opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                     .contentTransition(.symbolEffect(.replace))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(finder.toggleTitle)
-                        .font(.subheadline.weight(.bold))
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(Theme.ink)
                     Text(finder.toggleSubtitle)
-                        .font(.caption)
-                        .foregroundStyle(Theme.ink2)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.ink3)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 6)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Theme.ink3)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.tertiary)
                     .rotationEffect(.degrees(finder.privateOpen ? 90 : 0))
             }
-            .padding(12)
-            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(RowPressStyle())
         .accessibilityHint(finder.privateOpen ? "Hides the private league steps" : "Shows how to open a private league")
     }
 }
@@ -397,7 +408,7 @@ private struct PrivatePanel: View {
                 .foregroundStyle(Theme.ink)
 
             if !finder.relay {
-                Text("This site isn't set up to open private ESPN leagues yet.")
+                Text("Private ESPN leagues can't be opened yet.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink2)
             } else {
@@ -421,15 +432,13 @@ private struct PrivatePanel: View {
                 }
             }
         }
-        .padding(14)
-        .background(Theme.surface2.opacity(0.6), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
+        .padding(16)
     }
 
     private var fine: AttributedString {
         let text = finder.accountsAvailable
-            ? "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay on this device. Either way they're only used to read your leagues, through this site's relay to ESPN. *Forget* removes an account's keys everywhere, and signing out of ESPN ends them."
-            : "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. They stay on this device, and are only used to read your leagues, through this site's relay to ESPN. *Forget* removes them, and signing out of ESPN ends them."
+            ? "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay on this device. Either way they're only used to read your leagues, through our secure relay to ESPN. *Forget* removes an account's keys everywhere, and signing out of ESPN ends them."
+            : "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. They stay on this device, and are only used to read your leagues, through our secure relay to ESPN. *Forget* removes them, and signing out of ESPN ends them."
         return (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 
@@ -575,8 +584,7 @@ private struct PrivatePanel: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line))
+                .background(Theme.surface3, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
             if !finder.adding {
                 Button {
@@ -598,13 +606,12 @@ enum EspnFormFocus: Hashable { case league, s2, swid }
 
 /// One list of the leagues found on both platforms: a Sleeper username's,
 /// and the member's own ESPN leagues from their keys.
-private struct FoundCard: View {
+struct FoundSection: View {
     @Environment(AppModel.self) private var app
     let finder: FinderModel
 
     var body: some View {
-        Card {
-            CardHead(title: "Leagues found", symbol: "trophy.fill", meta: finder.listingMeta.isEmpty ? nil : finder.listingMeta)
+        HomeSection(title: "Leagues Found", meta: finder.listingMeta.isEmpty ? nil : finder.listingMeta) {
             let sleeper = finder.sleeperLeagues ?? []
             let espn = finder.espnLeagues ?? []
             ForEach(Array(sleeper.enumerated()), id: \.element.id) { i, l in

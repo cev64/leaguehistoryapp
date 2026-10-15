@@ -14,6 +14,8 @@ struct PlayerSearchScreen: View {
     @State private var popular: [PlayerHit]?
     @State private var recents: [PlayerHit] = []
     @State private var failed: String?
+    /// Why the search couldn't be run (not the same as finding no one).
+    @State private var searchFailed: String?
     /// The first hit, opened by the keyboard's Search key (the site's Enter).
     @State private var submitted: String?
 
@@ -49,6 +51,8 @@ struct PlayerSearchScreen: View {
                 } else {
                     LoadingCard(title: "Loading players…")
                 }
+            } else if let searchFailed {
+                EmptyCard(title: "The search couldn't be run", detail: searchFailed, symbol: "exclamationmark.triangle")
             } else if let hits {
                 if hits.isEmpty {
                     Card {
@@ -85,17 +89,20 @@ struct PlayerSearchScreen: View {
 
     private func search() async {
         let q = trimmed
-        guard !q.isEmpty else { hits = nil; return }
+        guard !q.isEmpty else { hits = nil; searchFailed = nil; return }
         // Wait for a pause in the typing.
         try? await Task.sleep(for: .milliseconds(120))
         guard !Task.isCancelled else { return }
+        searchFailed = nil
         do {
             let found = try await session.engine.call([PlayerHit].self, "Bridge.player.search(q, 25)", ["q": q])
             guard !Task.isCancelled else { return }
             hits = found
+            searchFailed = nil
         } catch {
             guard !Task.isCancelled else { return }
-            hits = []
+            hits = nil
+            searchFailed = error.localizedDescription
         }
     }
 

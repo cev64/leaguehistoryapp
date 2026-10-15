@@ -35,6 +35,8 @@ struct LeagueRootView: View {
             }
         }
         .environment(session)
+        // "Couldn't add … to your account" shows over the league it's about
+        .accountToast()
         // the league is read and open; or it couldn't be
         .sensoryFeedback(trigger: session.phase) { _, phase in
             switch phase {
@@ -253,28 +255,44 @@ private struct WideLeagueLayout: View {
     @ViewBuilder private var detail: some View {
         switch tab {
         case .season, .year:
-            NavigationStack {
+            LaunchStack(tab: tab) {
                 SeasonScreen(year: tab.year ?? session.year)
                     .leagueDestinations()
             }
         case .records:
-            NavigationStack {
+            LaunchStack(tab: tab) {
                 RecordBookScreen()
                     .leagueDestinations()
             }
         case .office:
-            NavigationStack {
+            LaunchStack(tab: tab) {
                 FrontOfficeScreen()
                     .leagueDestinations()
             }
         case .trophy:
             TrophyRoomScreen()
         case .search:
-            NavigationStack {
+            LaunchStack(tab: tab) {
                 PlayerSearchScreen()
                     .leagueDestinations()
             }
         }
+    }
+}
+
+/// A wide layout's page in its stack, opened on the launch route when one
+/// is set for its tab (PP_ROUTE, debug builds), as the phone's tabs are.
+private struct LaunchStack<Content: View>: View {
+    @State private var path: NavigationPath
+    @ViewBuilder var content: Content
+
+    init(tab: LeagueTab, @ViewBuilder content: () -> Content) {
+        _path = State(initialValue: NavigationPath(DebugLaunch.routes(for: tab)))
+        self.content = content()
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) { content }
     }
 }
 
@@ -293,18 +311,10 @@ private struct LeagueSidebarHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // The names get the column's whole width, under the avatar and
+            // menu: beside them, both were cut short.
             HStack(spacing: 12) {
                 LeagueAvatar(summary: summary, size: 44)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(summary.name)
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(1.6)
-                        .textCase(.uppercase)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    BrandWordmark(size: 19)
-                        .minimumScaleFactor(0.7)
-                }
                 Spacer(minLength: 0)
                 Menu {
                     LeagueMenuItems()
@@ -315,6 +325,16 @@ private struct LeagueSidebarHeader: View {
                 .buttonStyle(.glass)
                 .buttonBorderShape(.circle)
                 .accessibilityLabel("League menu")
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(summary.name)
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                BrandWordmark(size: 19)
+                    .minimumScaleFactor(0.7)
             }
             Button {
                 session.sheet = .chat

@@ -21,12 +21,15 @@ struct SeasonScreen: View {
     var body: some View {
         Group {
             if let store, store.year == shownYear {
-                SeasonContent(store: store, showsSeasonMenu: year == nil)
+                SeasonContent(store: store, showsSeasonMenu: year == nil, isPushed: isPushed)
             } else {
                 PageScroll { LoadingCard(title: "Opening the \(String(shownYear)) season") }
             }
         }
         .task(id: shownYear) {
+            // Back from a box score or another tab: the week and view stay.
+            // A store that failed is read again.
+            if let store, store.year == shownYear, store.engine === session.engine, store.error == nil { return }
             let s = SeasonStore(engine: session.engine, year: shownYear)
             store = s
             await s.load(initialWeek: initialWeek)
@@ -39,6 +42,7 @@ private struct SeasonContent: View {
     @Environment(\.sideRail) private var sideRail
     @Bindable var store: SeasonStore
     let showsSeasonMenu: Bool
+    let isPushed: Bool
     @State private var scroll = ScrollMinimizer()
 
     /// "Week 8", "Season", "Preseason": the year is on the season button
@@ -84,7 +88,11 @@ private struct SeasonContent: View {
         .animation(.smooth(duration: 0.25), value: store.view)
         .navigationTitle(title)
         .navigationSubtitle(subtitle)
-        .toolbarTitleDisplayMode(.inlineLarge)
+        // A tab's (or sidebar entry's) own page wears the large title in
+        // the bar; pushed, it has a back button there, and an inline-large
+        // title drops to a row of its own under the bar, faded by the bar's
+        // edge effect. It's inline, like every other pushed page.
+        .toolbarTitleDisplayMode(isPushed ? .inline : .inlineLarge)
         .leagueToolbar()
         .toolbar {
             if showsSeasonMenu, let summary = session.summary, summary.seasons.count > 1 {
@@ -145,7 +153,7 @@ private struct SeasonHero: View {
 
     var body: some View {
         if season.finished {
-            AdaptiveGrid(minWidth: 300) {
+            PairRow(minWidth: 300) {
                 if let champ = season.champion, let team = season.team(champ) {
                     OutcomeCard(kind: .champion, season: season, teamId: champ, team: team, game: season.titleGame)
                 }

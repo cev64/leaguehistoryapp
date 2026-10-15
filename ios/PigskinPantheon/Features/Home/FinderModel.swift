@@ -158,7 +158,8 @@ final class FinderModel {
         let key = account.user.map { "\($0.id)|\(account.accessToken ?? "")" } ?? ""
         guard key != sentSession else { return }
         sentSession = key
-        try? await engine.run("Bridge.setSession(s)", ["s": account.engineSession ?? NSNull()])
+        // The engine keeps it, and hands it again to a page iOS restarts.
+        try? await engine.setSession(account.engineSession)
     }
 
     /// Signed in or out (or a fresh token): ESPN's keys may have changed hands.

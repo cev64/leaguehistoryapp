@@ -283,6 +283,27 @@ struct AdaptiveGrid<Content: View>: View {
     }
 }
 
+/// Two cards side by side, each half the width, where both fit at
+/// `minWidth`; one above the other where they don't. (An AdaptiveGrid
+/// would give a pair three columns on a wide screen and leave one empty.)
+struct PairRow<Content: View>: View {
+    var minWidth: CGFloat = 320
+    var spacing: CGFloat = 14
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: spacing) {
+                Group(subviews: content) { subviews in
+                    ForEach(subviews) { $0.frame(maxWidth: .infinity) }
+                }
+            }
+            .frame(minWidth: minWidth * 2 + spacing)
+            VStack(spacing: spacing) { content }
+        }
+    }
+}
+
 /// The page every league screen scrolls on: the site's soft grey, with the
 /// content held to a readable width on very wide screens.
 struct PageScroll<Content: View>: View {

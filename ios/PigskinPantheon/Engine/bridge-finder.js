@@ -76,7 +76,7 @@
     let accountError = null;
     if (toAccount && keys().signedIn()) {
       try { await keys().save(added && added.swid); }
-      catch (err) { accountError = `Your keys are saved in this browser, but your account couldn't save them: ${err.message}`; }
+      catch (err) { accountError = `Your keys are saved on this device, but your account couldn't save them: ${err.message}`; }
     }
     return { ok: true, swid: added ? added.swid : null, accountError };
   }
@@ -84,15 +84,15 @@
   async function espnToAccount(swid) {
     if (!keys().signedIn()) return { ok: false };
     try { await keys().save(swid); return { ok: true }; }
-    catch (err) { return { ok: false, error: `Your keys are saved in this browser, but your account couldn't save them: ${err.message}` }; }
+    catch (err) { return { ok: false, error: `Your keys are saved on this device, but your account couldn't save them: ${err.message}` }; }
   }
 
-  /* Forget: off this browser, and off the account if they're there. */
+  /* Forget: off this device, and off the account if they're there. */
   async function espnForget(swid, onAccount) {
     ESPN().clearAuth(swid);
     if (onAccount && keys().signedIn()) {
       try { await keys().forget(swid); }
-      catch (err) { return { ok: true, error: `Removed from this browser, but your account couldn't forget them: ${err.message}` }; }
+      catch (err) { return { ok: true, error: `Removed from this device, but your account couldn't forget them: ${err.message}` }; }
     }
     return { ok: true };
   }

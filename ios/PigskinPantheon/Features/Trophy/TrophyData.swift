@@ -270,7 +270,14 @@ extension UIColor {
 ///   SIMCTL_CHILD_PP_TROPHY=locker:<ownerId>:3    …and inspect its fourth piece
 ///   SIMCTL_CHILD_PP_TROPHY=locker:<ownerId>:back …and go back to the hall
 ///   SIMCTL_CHILD_PP_TROPHY_LAYOUT=corridor|shaft force the hall's shape
+///
+/// Debug builds only: a release build never reads them.
 enum TrophyLaunch {
+    #if DEBUG
     static var target: String? { ProcessInfo.processInfo.environment["PP_TROPHY"] }
     static var layout: String? { ProcessInfo.processInfo.environment["PP_TROPHY_LAYOUT"] }
+    #else
+    static let target: String? = nil
+    static let layout: String? = nil
+    #endif
 }

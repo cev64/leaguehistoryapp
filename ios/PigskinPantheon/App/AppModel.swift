@@ -11,15 +11,19 @@ final class AppModel {
     var recents: [RecentLeague] = RecentLeague.load()
     let account = AccountStore()
 
-    /// Opens a league by its id ("demo", a Sleeper id, "espn-<id>"). The
-    /// site's own rule: a league page is for signed-in members (the demo is
-    /// for everyone), so a real league waits on the account first.
+    /// Who was signed in when the open league last heard: signing in with
+    /// a league open adds it to the account.
+    @ObservationIgnored private var leagueUser: String?
+
+    /// Opens a league by its id ("demo", a Sleeper id, "espn-<id>"). Signed
+    /// in, a real league is added to the account once it loads; signed out,
+    /// it opens all the same, unsynced (`Supabase.requireAccount`).
     func open(_ id: String) {
         let id = id.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !id.isEmpty else { return }
         if let league, league.id == id { return }
-        // Signed out, a real league waits on the sign-in sheet (on the front
-        // page), and opens once they're in (account.js admit()).
+        // Only when the account is required (the site's rule): signed out, a
+        // real league waits on the sign-in sheet and opens once they're in.
         guard account.mayOpen(id) else {
             closeLeague()
             account.askToSignIn(for: id)
@@ -30,20 +34,25 @@ final class AppModel {
         league?.close()
         let session = LeagueSession(id: id, app: self)
         league = session
+        leagueUser = account.user?.id
         // A session that changes while the league is open (signed in later,
-        // a fresh token) goes to its engine too. Signed out (here, or turned
-        // away when the token was refreshed), a real league closes, as the
-        // site reloads into its gate (account.js relock).
+        // a fresh token) goes to its engine too. Signed in later, the league
+        // goes on the account; signed out, it stays open.
         account.observeSession("league") { [weak self] s in
             guard let self, let league = self.league else { return }
             if s == nil, !league.isDemo, Supabase.requireAccount {
                 self.closeLeague()
-            } else {
-                league.resendSession(s)
+                return
             }
+            league.resendSession(s)
+            let user = self.account.user?.id
+            if let user, user != self.leagueUser { Task { await self.admit(league) } }
+            self.leagueUser = user
         }
-        Task {
+        session.opening = Task {
             await account.freshen()
+            // Closed (or another league opened) while the token was freshened.
+            guard league === session else { return }
             await session.load()
             await admit(session)
         }
@@ -58,12 +67,17 @@ final class AppModel {
 
     /// The gate once the league has loaded: a real league is added to the
     /// member's account (sync_league), as account.js does. If it can't be,
-    /// the league closes and the front page says why ("Couldn't add …").
+    /// the account isn't needed to look at it, so it stays open and says
+    /// why; on the site's rule it closes and the front page says why.
     func admit(_ session: LeagueSession) async {
         guard league === session, !session.isDemo, session.phase == .ready, let summary = session.summary else { return }
         if let message = await account.admit(summary), league === session {
-            closeLeague()
-            account.gateFailure = AccountStore.GateFailure(id: session.id, name: summary.name, message: message)
+            if Supabase.requireAccount {
+                closeLeague()
+                account.gateFailure = AccountStore.GateFailure(id: session.id, name: summary.name, message: message)
+            } else {
+                account.say("Couldn't add \(summary.name) to your account. \(message)")
+            }
         }
     }
 
@@ -107,6 +121,9 @@ final class LeagueSession: Identifiable {
     var year: Int = Calendar.current.component(.year, from: Date())
     /// A sheet raised over the league (the league AI, the account).
     var sheet: LeagueSheet?
+    /// The first load, from `AppModel.open`: cancelled if the league closes first.
+    @ObservationIgnored var opening: Task<Void, Never>?
+    @ObservationIgnored private var closed = false
     private weak var app: AppModel?
 
     var isDemo: Bool { LeagueEngine.isDemo(id) }
@@ -118,20 +135,26 @@ final class LeagueSession: Identifiable {
     }
 
     func load() async {
+        guard !closed else { return }
         phase = .loading(done: 0, total: 0)
         engine.onProgress = { [weak self] done, total in
-            self?.phase = .loading(done: done, total: total)
+            // Not once the league shows: a page iOS restarted reads it again quietly.
+            guard let self, case .loading = self.phase else { return }
+            self.phase = .loading(done: done, total: total)
         }
         do {
             if let session = app?.account.engineSession {
-                try? await engine.run("Bridge.setSession(s)", ["s": session])
+                try? await engine.setSession(session)
             }
-            let summary = try await engine.call(LeagueSummary.self, "Bridge.load()")
+            let summary = try await engine.load(LeagueSummary.self)
+            // Closed while it loaded: not kept, nor added to the recents.
+            guard !closed else { return }
             self.summary = summary
             self.year = summary.opening?.year ?? summary.newest?.year ?? year
             app?.remember(summary)
             phase = .ready
         } catch {
+            guard !closed else { return }
             phase = .failed(error.localizedDescription)
         }
     }
@@ -148,11 +171,14 @@ final class LeagueSession: Identifiable {
     /// The member signed in or out, or their token was refreshed: the
     /// engine's `window.Account` stand-in hears it too.
     func resendSession(_ session: [String: Any]?) {
-        Task { try? await engine.run("Bridge.setSession(s)", ["s": session ?? NSNull()]) }
+        Task { try? await engine.setSession(session) }
     }
 
     func close() {
+        closed = true
+        opening?.cancel()
         engine.tearDown()
+        PanelCache.clear()
     }
 
     var season: Season? { summary?.season(year) }

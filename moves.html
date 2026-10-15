@@ -1751,7 +1751,8 @@
 
   <footer class="footer">
     <a class="footer-switch" href="index.html">Switch league</a>
-    Not affiliated with or endorsed by Sleeper. League data from the
+    <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="support.html">Support</a><br>
+    Not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA. League data from the
     <a href="https://docs.sleeper.com/" target="_blank" rel="noopener">Sleeper API</a>.
   </footer>
 
@@ -1807,9 +1808,12 @@
         </article>`;
 
       // A team as it was in a season, or a manager across all of them.
+      // The logo comes from the league, so only an http(s) or data:image
+      // address is used, escaped.
+      const safeLogo = (src) => (typeof src === "string" && /^(https?:\/\/|data:image\/)/i.test(src.trim()) ? src.trim() : "");
       const mark = (ownerId, icon) => {
-        const src = window.TEAM_LOGOS && window.TEAM_LOGOS[ownerId];
-        return src ? `<img class="team-logo" src="${src}" alt="">` : esc(icon || "");
+        const src = safeLogo(window.TEAM_LOGOS && window.TEAM_LOGOS[ownerId]);
+        return src ? `<img class="team-logo" src="${esc(src)}" alt="">` : esc(icon || "");
       };
       function seasonTeam(year, teamId) {
         const t = model.season(year).teams[teamId];

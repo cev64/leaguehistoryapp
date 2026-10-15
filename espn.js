@@ -484,7 +484,7 @@
 
   /* One week's lineups: { teamId: { e: [[pid, slot], ...], p: { pid: pts } } },
      the players met registered as a side effect. */
-  function compactBox(d, sp, mp) {
+  function compactBox(d, sp, mp, oneWeek) {
     const out = {};
     const seen = {};
     (d.schedule || []).forEach((g) => {
@@ -493,7 +493,7 @@
         const side = g[k];
         // Older seasons only have the matchup's roster, which is the week's
         // own when a matchup is one week long.
-        const roster = side && (side.rosterForCurrentScoringPeriod || (mp === sp ? side.rosterForMatchupPeriod : null));
+        const roster = side && (side.rosterForCurrentScoringPeriod || (oneWeek ? side.rosterForMatchupPeriod : null));
         if (!roster || !roster.entries) return;
         const team = { e: [], p: {} };
         roster.entries.forEach((entry) => {
@@ -515,11 +515,11 @@
     return { teams: out, players: seen };
   }
 
-  async function boxWeek(n, year, sp, mp, ttl) {
+  async function boxWeek(n, year, sp, mp, oneWeek, ttl) {
     const box = await cachedFn(`espn:box:${n}:${year}:${sp}`, ttl, async () => {
       const d = await leagueGet(n, year, `${views("mMatchupScore", "mScoreboard")}&scoringPeriodId=${sp}`,
         { schedule: { filterMatchupPeriodIds: { value: [mp] } } });
-      return d ? compactBox(d, sp, mp) : { teams: {}, players: {} };
+      return d ? compactBox(d, sp, mp, oneWeek) : { teams: {}, players: {} };
     });
     register(box.players || {});
     return box;
@@ -794,13 +794,14 @@
     const weeks = [];
     for (let w = core.status.first || 1; w <= final; w++) weeks.push(w);
     const boxes = {};
+    const getBox = (w) => boxWeek(n, year, w, mpOf[w] || w, spOf(mpOf[w] || w).length === 1, ttl).catch(() => null);
     if (weeks.length) {
       // The first week says whether ESPN kept lineups this far back.
-      const first = await boxWeek(n, year, weeks[0], mpOf[weeks[0]] || weeks[0], ttl).catch(() => null);
+      const first = await getBox(weeks[0]);
       boxes[weeks[0]] = first;
       if (first && Object.keys(first.teams).length) {
         await Promise.all(weeks.slice(1).map(async (w) => {
-          boxes[w] = await boxWeek(n, year, w, mpOf[w] || w, ttl).catch(() => null);
+          boxes[w] = await getBox(w);
         }));
       }
     }
@@ -918,7 +919,8 @@
 
     return {
       league, users, rosters, winners, losers, matchups, final,
-      startWeek: core.status.first || 1, lastWeek,
+      // ESPN's first week is its own, not a setting edited after the fact.
+      startWeek: core.status.first || 1, fixedStart: true, lastWeek,
       finalRanks: complete ? Object.fromEntries(core.teams.map((t) => [t.id, t.rank])) : null,
     };
   }

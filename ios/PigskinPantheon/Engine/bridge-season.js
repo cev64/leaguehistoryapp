@@ -144,12 +144,14 @@
     };
   }
 
-  /* The week's costliest benching (fillBlunder), or null when every lineup
-     was perfect. */
+  /* The week's costliest benching (fillBlunder), { perfect: true } when
+     every lineup was perfect, or { perfect: false } with no team when there
+     are no lineups to judge (no tile). */
   async function blunder(year, wk) {
     if (!window.Insights) return null;
     const [lw, db] = await Promise.all([Insights.lineupWeek(B.model(), Number(year), Number(wk)), League.players()]);
-    const worst = lw && lw.rows.filter((r) => r.blunder && r.blunder.cost > 0).sort((a, b) => b.blunder.cost - a.blunder.cost)[0];
+    if (!lw || !lw.rows.length) return { perfect: false, teamId: null, benched: null, started: null, costGame: false };
+    const worst = lw.rows.filter((r) => r.blunder && r.blunder.cost > 0).sort((a, b) => b.blunder.cost - a.blunder.cost)[0];
     if (!worst) return { perfect: true };
     const b = worst.blunder;
     const name = (pid) => (db[pid] ? db[pid][0] : `Player ${pid}`);
@@ -365,7 +367,7 @@
     const { REGULAR_WEEKS, PLAYOFF_TEAMS, WB_ROUNDS, LB_ROUNDS } = E;
     const buildPicture = E.buildPicture, asOfWeek = E.asOfWeek, postOf = E.postOf, weeksText = E.weeksText;
 
-    const bkRow = (seed, id, stats) => ({ seed, id, label: null, score: null, record: stats[id].record, winner: false, lastPlace: false, projected: true });
+    const bkRow = (seed, id, stats) => ({ seed, id, label: null, score: null, record: stats[id] ? stats[id].record : null, winner: false, lastPlace: false, projected: true });
     const bkTbd = (label) => ({ seed: "—", id: null, label, score: null, record: null, winner: false, lastPlace: false, projected: false });
     const bkGame = (rows, { kind = "", kicker = "", path = "", week = 0, stage = "" } = {}) => ({ rows, kind, kicker, path, week, stage });
 

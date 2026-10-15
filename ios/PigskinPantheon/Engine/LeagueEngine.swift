@@ -20,12 +20,24 @@ final class LeagueEngine: NSObject {
     static let siteURL = URL(string: "https://pigskinpantheon.com/")!
 
     let leagueId: String?
+    /// This engine, apart from any other (an address can be reused once one goes).
+    let instance = UUID()
     /// Seasons read so far while a league loads: (done, total).
     var onProgress: ((Int, Int) -> Void)?
 
     private var webView: WKWebView?
     private var ready: Task<Void, Error>?
     private var readyContinuation: CheckedContinuation<Void, Error>?
+    /// Which start the page coming up belongs to, so a late timeout or
+    /// failure from an earlier one is ignored.
+    private var attempt = 0
+    /// Closed with its league: it doesn't start again.
+    private var closed = false
+    /// What a fresh page is given before its first call, so a page iOS
+    /// killed comes back as it was: the member's session, and the league
+    /// loaded again once it has been.
+    private var session: [String: Any]?
+    private var loaded = false
 
     init(leagueId: String?) {
         self.leagueId = leagueId
@@ -37,27 +49,50 @@ final class LeagueEngine: NSObject {
     /// Builds the page and waits for every script to have run. Safe to call
     /// more than once; later calls wait on the first.
     func start() async throws {
+        if closed { throw EngineError.notRunning }
         if let ready { return try await ready.value }
+        // A page still coming up from before is given up on.
+        finishStart(.failure(EngineError.loadFailed("The league engine didn't start. Try again.")))
+        attempt += 1
+        let attempt = self.attempt
         let task = Task { @MainActor in
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 self.readyContinuation = continuation
                 self.makeWebView()
-                // A page that never comes up (its web process couldn't start,
-                // say) fails rather than leaving the league loading forever.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
-                    self?.finishStart(.failure(EngineError.loadFailed("The league engine didn't start. Try again.")))
-                }
             }
+            try await self.restore()
         }
         ready = task
+        // A page that never comes up (its web process couldn't start, say)
+        // fails rather than leaving the league loading forever.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
+            guard let self, self.attempt == attempt else { return }
+            self.finishStart(.failure(EngineError.loadFailed("The league engine didn't start. Try again.")))
+        }
         do {
             try await task.value
         } catch {
-            // Start over on the next call (a retry), with a fresh page.
-            ready = nil
-            tearDown()
+            // Start over on the next call (a retry), with a fresh page,
+            // unless a newer start has already taken over.
+            if self.attempt == attempt {
+                ready = nil
+                dropPage()
+            }
             throw error
         }
+    }
+
+    /// A page started again after iOS killed the last one: given the
+    /// session and the league again, so screens carry on as if nothing
+    /// happened.
+    private func restore() async throws {
+        if let session { try check(await evaluate("Bridge.setSession(s)", ["s": session])) }
+        if loaded { try check(await evaluate("Bridge.load()", [:])) }
+    }
+
+    private func check(_ data: Data) throws {
+        let envelope = try JSONDecoder().decode(Envelope<JSONValue>.self, from: data)
+        if let error = envelope.error { throw EngineError.script(error) }
     }
 
     private func makeWebView() {
@@ -137,13 +172,31 @@ final class LeagueEngine: NSObject {
 
     /// The same, for a call whose answer doesn't matter (or may be empty).
     func run(_ expression: String, _ arguments: [String: Any] = [:]) async throws {
-        let data = try await callData(expression, arguments)
-        let envelope = try JSONDecoder().decode(Envelope<JSONValue>.self, from: data)
-        if let error = envelope.error { throw EngineError.script(error) }
+        try check(await callData(expression, arguments))
+    }
+
+    /// Hands the page the member's session (`Bridge.setSession`), kept to
+    /// hand a restarted page too.
+    func setSession(_ session: [String: Any]?) async throws {
+        self.session = session
+        try await run("Bridge.setSession(s)", ["s": session ?? NSNull()])
+    }
+
+    /// Reads the league (`Bridge.load()`); a restarted page reads it again
+    /// before its first call.
+    func load<T: Decodable>(_ type: T.Type) async throws -> T {
+        let answer = try await call(type, "Bridge.load()")
+        loaded = true
+        return answer
     }
 
     func callData(_ expression: String, _ arguments: [String: Any] = [:]) async throws -> Data {
         try await start()
+        return try await evaluate(expression, arguments)
+    }
+
+    /// Runs `expression` on the page as it is, started or not.
+    private func evaluate(_ expression: String, _ arguments: [String: Any]) async throws -> Data {
         guard let webView else { throw EngineError.notRunning }
         let body = """
         try {
@@ -174,7 +227,15 @@ final class LeagueEngine: NSObject {
         let error: String?
     }
 
+    /// Closed with its league: the page goes, and the engine doesn't start again.
     func tearDown() {
+        closed = true
+        ready = nil
+        finishStart(.failure(EngineError.notRunning))
+        dropPage()
+    }
+
+    private func dropPage() {
         webView?.configuration.userContentController.removeAllScriptMessageHandlers()
         webView?.stopLoading()
         webView = nil
@@ -199,18 +260,27 @@ enum EngineError: LocalizedError {
 
 extension LeagueEngine: WKNavigationDelegate, WKScriptMessageHandler {
     nonisolated func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        Task { @MainActor in self.finishStart(.failure(error)) }
+        Task { @MainActor in
+            guard webView === self.webView else { return }
+            self.finishStart(.failure(error))
+        }
     }
 
     nonisolated func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        Task { @MainActor in self.finishStart(.failure(error)) }
+        Task { @MainActor in
+            guard webView === self.webView else { return }
+            self.finishStart(.failure(error))
+        }
     }
 
     nonisolated func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        // The page was killed (memory pressure): start over next call.
+        // The page was killed (memory pressure): a fresh one next call,
+        // given the session and the league again (`restore`).
         Task { @MainActor in
+            guard webView === self.webView else { return }
+            self.finishStart(.failure(EngineError.loadFailed("The league engine stopped. Try again.")))
             self.ready = nil
-            self.webView = nil
+            self.dropPage()
         }
     }
 

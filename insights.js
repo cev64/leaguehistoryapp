@@ -133,8 +133,10 @@
     const actual = round2(starters.reduce((s, pid) => s + (pid && pid !== "0" ? pts[pid] || 0 : 0), 0));
     const started = startedBy(season)[teamId] || new Set();
     const taxi = new Set((team.taxi || []).filter((pid) => !started.has(pid)));
+    // Nor can a player on injured reserve that week.
+    const ir = new Set(entry.reserve || []);
     const pool = [...new Set(entry.players || [])]
-      .filter((pid) => pid && pid !== "0" && !taxi.has(pid))
+      .filter((pid) => pid && pid !== "0" && !taxi.has(pid) && !ir.has(pid))
       .map((pid) => ({ pid, pts: round2(pts[pid] || 0), elig: eligibleOf(db, pid) }));
     const best = bestLineup(slots, pool);
     const optimal = Math.max(best.total, actual);
@@ -365,6 +367,7 @@
     const faab = season.settings.waiverType === 2;
     const seen = new Set();
     const pickups = [];
+    const spent = {};
     let failed = 0;
     txns.forEach((t) => {
       if (t.type !== "waiver" && t.type !== "free_agent") return;
@@ -372,12 +375,14 @@
       Object.entries(t.adds || {}).forEach(([pid, rid]) => {
         const team = season.teams[`r${rid}`];
         if (!team) return;
+        // Every claim is paid for, a player claimed back included.
+        const bid = t.type === "waiver" && t.settings && t.settings.waiver_bid != null ? Number(t.settings.waiver_bid) : null;
+        spent[`r${rid}`] = (spent[`r${rid}`] || 0) + (bid || 0);
         const key = `${team.ownerId}|${pid}`;
-        if (seen.has(key)) return; // the first time they got him covers the rest
+        if (seen.has(key)) return; // the first time they got him covers his points
         seen.add(key);
         const week = Math.max(1, Number(t.leg) || 1);
         const v = scoredFor(model, team.ownerId, pid, year, week, true);
-        const bid = t.type === "waiver" && t.settings && t.settings.waiver_bid != null ? Number(t.settings.waiver_bid) : null;
         pickups.push({
           teamId: `r${rid}`, ownerId: team.ownerId, pid, name: db[pid] ? db[pid][0] : `Player ${pid}`,
           pos: db[pid] ? db[pid][1] : "", week, kind: t.type, bid, pts: v.pts, starts: v.starts,
@@ -388,7 +393,7 @@
     pickups.forEach((p) => {
       const t = (teams[p.teamId] = teams[p.teamId] || { teamId: p.teamId, ownerId: p.ownerId, adds: 0, spent: 0, pts: 0, hits: 0 });
       t.adds++;
-      t.spent += p.bid || 0;
+      t.spent = spent[p.teamId];
       t.pts += p.pts;
       if (p.starts >= 3) t.hits++;
     });

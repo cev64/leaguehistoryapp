@@ -49,19 +49,37 @@
      blocked store) quietly falls back to memory for the visit. */
   const memory = new Map();
   let dbPromise = null;
+  let dbOpen = null;
+  /* Safari and the app's web view can drop the connection mid-visit (memory
+     pressure, the app going to the background): the next read or write
+     opens the store again rather than running from memory for good. */
+  function lostDb(d) {
+    if (d && d === dbOpen) { dbOpen = null; dbPromise = null; }
+  }
   function db() {
     if (!dbPromise) {
-      dbPromise = new Promise((resolve) => {
+      const opening = new Promise((resolve) => {
         try {
           const req = indexedDB.open("league-history", 1);
           req.onupgradeneeded = () => req.result.createObjectStore("kv");
-          req.onsuccess = () => resolve(req.result);
+          req.onsuccess = () => {
+            const d = req.result;
+            d.onclose = () => lostDb(d);
+            d.onversionchange = () => { d.close(); lostDb(d); };
+            dbOpen = d;
+            resolve(d);
+          };
           req.onerror = () => resolve(null);
           req.onblocked = () => resolve(null);
         } catch (err) {
           resolve(null);
         }
       });
+      // An open that hangs (it can in Safari) doesn't hold up the page: after
+      // a few seconds it goes on from memory, and takes the store if it comes.
+      const job = Promise.race([opening, new Promise((resolve) => setTimeout(() => resolve(null), 3000))]);
+      dbPromise = job;
+      opening.then((d) => { if (d && dbPromise === job) dbPromise = opening; });
     }
     return dbPromise;
   }
@@ -75,6 +93,7 @@
         req.onsuccess = () => { if (req.result) memory.set(key, req.result); resolve(req.result || null); };
         req.onerror = () => resolve(null);
       } catch (err) {
+        lostDb(d);
         resolve(null);
       }
     });
@@ -83,7 +102,7 @@
     memory.set(key, value);
     const d = await db();
     if (!d) return;
-    try { d.transaction("kv", "readwrite").objectStore("kv").put(value, key); } catch (err) { /* memory only */ }
+    try { d.transaction("kv", "readwrite").objectStore("kv").put(value, key); } catch (err) { lostDb(d); /* memory only */ }
   }
 
   /* ------------------------------------------------------------ network */
@@ -141,15 +160,20 @@
   /* Read through the store: a copy younger than `ttl` is used as it is.
      An older copy is still returned if the network fails, so a flaky
      connection shows the league as it was rather than nothing. `fetcher`
-     makes the value (a request, or a request and a reshaping of it). */
+     makes the value (a request, or a request and a reshaping of it).
+
+     A copy keeps the ttl it was saved under, and is never kept longer than
+     that: a week saved while it was still being played is good for minutes,
+     even once the week is final and its readers would keep a final copy for
+     a day or a month. A copy saved before copies carried one counts as live. */
   async function cachedFn(key, ttl, fetcher) {
     // The demo is made fresh on each visit, so it never goes in the store.
     if (/:demo\b/.test(key)) return fetcher();
     const hit = await storeGet(key);
-    if (hit && Date.now() - hit.t < ttl) return hit.v;
+    if (hit && Date.now() - hit.t < Math.min(ttl, hit.ttl || TTL.live)) return hit.v;
     try {
       const value = await fetcher();
-      await storeSet(key, { t: Date.now(), v: value });
+      await storeSet(key, { t: Date.now(), ttl, v: value });
       return value;
     } catch (err) {
       if (hit) return hit.v;
@@ -402,7 +426,12 @@
       waiverBudget: Number(s.waiver_budget) || 0,
       draftRounds: Number(s.draft_rounds) || 0,
     };
-    for (let d = 1; d <= divisionCount; d++) settings.divisions.push((meta[`division_${d}`] || `Division ${d}`).trim());
+    // A division is its number. Two given the same name are told apart by
+    // it, since the pages group teams by a division's name.
+    for (let d = 1; d <= divisionCount; d++) {
+      const name = (meta[`division_${d}`] || `Division ${d}`).trim();
+      settings.divisions.push(settings.divisions.includes(name) ? `${name} (${d})` : name);
+    }
     // Byes: the seeds left over once round 1's games are filled.
     const openers = winners.filter((m) => m.r === 1).length;
     settings.byes = rounds > 1 ? Math.max(0, settings.playoffTeams - openers * 2) : 0;
@@ -417,14 +446,15 @@
       // A source whose teams carry their own name, manager and logo (ESPN
       // names a team, not a member) sets them on the roster as lh_*.
       const name = String(r.lh_name || um.team_name || (user ? user.display_name : `Team ${r.roster_id}`)).replace(/\s+/g, " ").trim();
-      const division = divisionCount > 1 && r.settings && r.settings.division
-        ? settings.divisions[r.settings.division - 1] || null : null;
+      const divisionNo = divisionCount > 1 && r.settings && settings.divisions[r.settings.division - 1] ? r.settings.division : null;
+      const division = divisionNo ? settings.divisions[divisionNo - 1] : null;
       teams[idOf(r.roster_id)] = {
         rosterId: r.roster_id,
         name,
         ownerId: r.owner_id || `open-${league.league_id}-${r.roster_id}`,
         owner: r.lh_owner || (user ? user.display_name : "Open roster"),
         division,
+        divisionNo,
         logo: r.lh_logo || um.avatar || avatarUrl(user && user.avatar),
         icon: iconFor(name),
         wins: 0, losses: 0, ties: 0, pf: 0, pa: 0,
@@ -432,9 +462,33 @@
         // Who sat on the taxi squad as the season ended. Sleeper keeps no
         // week-by-week record of it, and a taxi player can't be started.
         taxi: (r.taxi || []).filter(Boolean),
+        // Who was on injured reserve then, the same way.
+        reserve: (r.reserve || []).filter(Boolean),
       };
     });
     const known = (rid) => teams[idOf(rid)] ? idOf(rid) : null;
+
+    /* Sleeper's weekly matchups list a team's IR players with its bench but
+       don't say which they are. A player on IR as the season ended counts
+       as on IR in every week after the last one he started or scored in;
+       before that he was on the bench. Written into the matchups (as
+       ESPN's already are), so box scores and the front office read it
+       from there. */
+    rosters.forEach((r) => {
+      const ir = teams[idOf(r.roster_id)].reserve;
+      if (!ir.length) return;
+      const entries = Object.keys(matchups).map(Number).sort((a, b) => a - b)
+        .map((w) => (matchups[w] || []).find((m) => m.roster_id === r.roster_id)).filter(Boolean);
+      if (entries.some((m) => m.reserve)) return; // already said
+      const out = entries.map(() => []);
+      ir.forEach((pid) => {
+        const played = (m) => (m.starters || []).includes(pid) || Number((m.players_points || {})[pid] || 0) !== 0;
+        let from = 0;
+        entries.forEach((m, i) => { if (played(m)) from = i + 1; });
+        for (let i = from; i < entries.length; i++) if ((entries[i].players || []).includes(pid)) out[i].push(pid);
+      });
+      entries.forEach((m, i) => { m.reserve = out[i]; });
+    });
 
     /* Every week's pairings, from the matchup ids. Weeks not yet final
        are only a schedule; a week that is final also has scores. */
@@ -479,7 +533,10 @@
        the one whose games add up to them: the configured week if it does,
        otherwise the nearest week that does, otherwise the configured week.
        Finished seasons only: mid-season, Sleeper's records can trail the
-       scores by a week, which would read as a later start. */
+       scores by a week, which would read as a later start. A source that
+       knows its own first week (`raw.fixedStart`, ESPN) is taken at its
+       word: a two-week ESPN matchup is one game in its records, which
+       would read as a later start too. */
     const officialGames = rosters.reduce((sum, r) => {
       const rs = r.settings || {};
       return sum + (rs.wins || 0) + (rs.losses || 0) + (rs.ties || 0);
@@ -487,7 +544,7 @@
     const gamesIn = (w) => (results[w] ? results[w].length * 2 : 0) + Object.keys(medianResults[w] || {}).length;
     const gamesFrom = (start) => Object.keys(results).map(Number).filter((w) => w >= start).reduce((sum, w) => sum + gamesIn(w), 0);
     let firstWeek = raw.startWeek;
-    if (league.status === "complete" && officialGames && gamesFrom(firstWeek) !== officialGames) {
+    if (!raw.fixedStart && league.status === "complete" && officialGames && gamesFrom(firstWeek) !== officialGames) {
       const fits = [];
       for (let w = 1; w <= Math.max(1, settings.regularWeeks); w++) if (gamesFrom(w) === officialGames) fits.push(w);
       if (fits.length) firstWeek = fits.sort((a, b) => Math.abs(a - raw.startWeek) - Math.abs(b - raw.startWeek) || a - b)[0];
@@ -612,7 +669,7 @@
         ids.forEach((id, i) => { place[id] = given[i]; });
       }
     }
-    const standing = seedOrder(ids, teams, (id) => teams[id].division, divisionCount);
+    const standing = seedOrder(ids, teams, (id) => teams[id].divisionNo, divisionCount);
     standing.forEach((id, i) => { teams[id].regularRank = i + 1; });
     // A league Sleeper calls complete that never scored a game was abandoned
     // before it started: nothing was settled, so nothing is ranked.
@@ -748,7 +805,13 @@
     let done = 0;
     if (onProgress) onProgress(0, chain.length);
     const raws = await Promise.all(chain.map(async (lid) => {
-      const raw = await loadSeasonRaw(lid, st);
+      let raw = null;
+      try {
+        raw = await loadSeasonRaw(lid, st);
+      } catch (err) {
+        // An old season Sleeper won't give up is left out; the newest can't be.
+        if (lid === chain[0]) throw err;
+      }
       done++;
       if (onProgress) onProgress(done, chain.length);
       return raw;
@@ -928,8 +991,8 @@
       });
       // Division winners: the regular-season leader of each division.
       if (season.settings.divisions.length > 1 && season.playedWeeks.length) {
-        season.settings.divisions.forEach((d) => {
-          const lead = season.standing.find((id) => season.teams[id].division === d);
+        season.settings.divisions.forEach((d, i) => {
+          const lead = season.standing.find((id) => season.teams[id].divisionNo === i + 1);
           if (lead && season.finished) teams[lead].divisionChamp = true;
         });
       }

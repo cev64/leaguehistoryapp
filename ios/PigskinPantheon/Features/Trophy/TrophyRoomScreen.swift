@@ -52,6 +52,13 @@ private struct TrophyHallView: View {
     var body: some View {
         ZStack {
             RoomCanvas(stage: stage, room: .hall)
+            // A shade under the title and the chips, so the hall's beams and
+            // signs don't run through their words.
+            LinearGradient(colors: [.black.opacity(0.85), .black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom)
+                .frame(height: 210)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
             if ready, stage.showHint, !stage.focused {
                 VStack {
                     Spacer()
@@ -67,7 +74,8 @@ private struct TrophyHallView: View {
             switch stage.phase {
             case .ready: EmptyView()
             case .loading: TrophyDoorway(note: nil)
-            case .failed(let message): TrophyDoorway(note: message)
+            case .failed(let message):
+                TrophyDoorway(note: message) { Task { await stage.load(session: session) } }
             }
         }
         .animation(.easeInOut(duration: 0.4), value: stage.showHint)
@@ -700,6 +708,8 @@ enum TrophyInk {
 /// The doorway the hall is built behind, and where a failure is explained.
 private struct TrophyDoorway: View {
     let note: String?
+    /// Offered with a note (the hall couldn't be read).
+    var retry: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -713,6 +723,11 @@ private struct TrophyDoorway: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 340)
                 if note == nil { ProgressView().tint(Theme.gold).padding(.top, 6) }
+                else if let retry {
+                    Button("Try again", action: retry)
+                        .buttonStyle(.glassProminent)
+                        .padding(.top, 6)
+                }
             }
             .padding(24)
         }

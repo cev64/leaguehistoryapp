@@ -429,7 +429,7 @@ private struct FinalStandingsCard: View {
         HStack(spacing: 10) {
             Image(systemName: CardIcon.standings)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.card)   // reads on the chip in light and dark
                 .frame(width: 24, height: 24)
                 .background(Theme.ink, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             Text("Final Standings")

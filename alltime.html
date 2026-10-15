@@ -1751,7 +1751,8 @@
 
   <footer class="footer">
     <a class="footer-switch" href="index.html">Switch league</a>
-    Not affiliated with or endorsed by Sleeper. League data from the
+    <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="support.html">Support</a><br>
+    Not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA. League data from the
     <a href="https://docs.sleeper.com/" target="_blank" rel="noopener">Sleeper API</a>.
   </footer>
 
@@ -1811,10 +1812,12 @@
       maximumFractionDigits: 2
     });
 
-    const pct = (wins, losses) => {
-      const games = wins + losses;
-      return games ? (wins / games).toFixed(3).replace(/^0/, "") : ".000";
+    // A tie counts half a win, as in the standings.
+    const pct = (wins, losses, ties = 0) => {
+      const games = wins + losses + ties;
+      return games ? ((wins + ties / 2) / games).toFixed(3).replace(/^0/, "") : ".000";
     };
+    const record = (wins, losses, ties) => (ties ? `${wins}–${losses}–${ties}` : `${wins}–${losses}`);
 
     const ordinal = (n) => {
       const mod100 = n % 100;
@@ -1826,10 +1829,13 @@
     };
 
     /* A team's mark for a badge: the manager's Sleeper avatar where there
-       is one, otherwise the first character of the team's name. */
+       is one, otherwise the first character of the team's name. The logo
+       comes from the league, so only an http(s) or data:image address is
+       used, escaped. */
+    const safeLogo = (src) => (typeof src === "string" && /^(https?:\/\/|data:image\/)/i.test(src.trim()) ? src.trim() : "");
     const teamMark = (team) => {
-      const src = team && team.ownerId && window.TEAM_LOGOS && window.TEAM_LOGOS[team.ownerId];
-      return src ? `<img class="team-logo" src="${src}" alt="">` : esc((team && team.icon) || "");
+      const src = safeLogo(team && team.ownerId && window.TEAM_LOGOS && window.TEAM_LOGOS[team.ownerId]);
+      return src ? `<img class="team-logo" src="${esc(src)}" alt="">` : esc((team && team.icon) || "");
     };
 
     /* `seasons` is every season the league has played; the one being played
@@ -1845,6 +1851,7 @@
           seasons: [],
           wins: 0,
           losses: 0,
+          ties: 0,
           pf: 0,
           pa: 0,
           championshipYears: [],
@@ -1854,6 +1861,7 @@
           bestSeason: null,
           playoffWins: 0,
           playoffLosses: 0,
+          playoffTies: 0,
           streak: { run: 0, best: null },
           biggestWin: null,
           h2h: {}
@@ -1867,6 +1875,7 @@
             opponentId,
             wins: 0,
             losses: 0,
+            ties: 0,
             pf: 0,
             pa: 0,
             games: 0
@@ -1878,7 +1887,8 @@
         row.pf += pfValue;
         row.pa += paValue;
         if (pfValue > paValue) row.wins += 1;
-        else row.losses += 1;
+        else if (pfValue < paValue) row.losses += 1;
+        else row.ties += 1;
       };
 
       const recordGame = (season, game, label = "Regular Season") => {
@@ -1940,6 +1950,7 @@
               teamName: team.name,
               wins: team.wins,
               losses: team.losses,
+              ties: team.ties || 0,
               pf: team.pf,
               pa: team.pa,
               finalRank: team.finalRank,
@@ -1947,6 +1958,7 @@
             });
             profile.wins += team.wins;
             profile.losses += team.losses;
+            profile.ties += team.ties || 0;
             profile.pf += team.pf;
             profile.pa += team.pa;
             if (season.live) return;
@@ -1980,9 +1992,12 @@
               if (game.aScore > game.bScore) {
                 if (profiles[aOwner]) profiles[aOwner].playoffWins += 1;
                 if (profiles[bOwner]) profiles[bOwner].playoffLosses += 1;
-              } else {
+              } else if (game.bScore > game.aScore) {
                 if (profiles[bOwner]) profiles[bOwner].playoffWins += 1;
                 if (profiles[aOwner]) profiles[aOwner].playoffLosses += 1;
+              } else {
+                if (profiles[aOwner]) profiles[aOwner].playoffTies += 1;
+                if (profiles[bOwner]) profiles[bOwner].playoffTies += 1;
               }
             }
           });
@@ -1991,8 +2006,8 @@
       Object.values(profiles).forEach((profile) => {
         profile.seasons.sort((a, b) => a.year - b.year);
         profile.diff = profile.pf - profile.pa;
-        profile.games = profile.wins + profile.losses;
-        profile.pct = profile.games ? profile.wins / profile.games : 0;
+        profile.games = profile.wins + profile.losses + profile.ties;
+        profile.pct = profile.games ? (profile.wins + profile.ties / 2) / profile.games : 0;
         profile.pfg = profile.games ? profile.pf / profile.games : 0;
         const finishes = Object.values(profile.finishes).filter(Boolean);
         profile.bestFinish = finishes.length ? Math.min(...finishes) : null;
@@ -2000,7 +2015,7 @@
 
         Object.values(profile.h2h).forEach((row) => {
           row.diff = row.pf - row.pa;
-          row.pct = row.games ? row.wins / row.games : 0;
+          row.pct = row.games ? (row.wins + row.ties / 2) / row.games : 0;
         });
       });
 
@@ -2092,16 +2107,16 @@
           <td class="rank">${index + 1}</td>
           <td class="team-cell">
             ${teamButton(profile)}
-            <div class="mobile-stat-strip" aria-label="${profile.currentTeam} all-time statistics">
-              <span class="mobile-stat"><small>W–L</small><strong>${profile.wins}–${profile.losses}</strong></span>
-              <span class="mobile-stat"><small>PCT</small><strong>${pct(profile.wins, profile.losses)}</strong></span>
+            <div class="mobile-stat-strip" aria-label="${esc(profile.currentTeam)} all-time statistics">
+              <span class="mobile-stat"><small>W–L</small><strong>${record(profile.wins, profile.losses, profile.ties)}</strong></span>
+              <span class="mobile-stat"><small>PCT</small><strong>${pct(profile.wins, profile.losses, profile.ties)}</strong></span>
               <span class="mobile-stat"><small>PF</small><strong>${fmt(profile.pf)}</strong></span>
               <span class="mobile-stat"><small>PA</small><strong>${fmt(profile.pa)}</strong></span>
               <span class="mobile-stat"><small>Diff</small><strong class="${profile.diff >= 0 ? "positive" : "negative"}">${signed(profile.diff)}</strong></span>
             </div>
           </td>
-          <td class="record">${profile.wins}–${profile.losses}</td>
-          <td>${pct(profile.wins, profile.losses)}</td>
+          <td class="record">${record(profile.wins, profile.losses, profile.ties)}</td>
+          <td>${pct(profile.wins, profile.losses, profile.ties)}</td>
           <td>${fmt(profile.pf)}</td>
           <td>${fmt(profile.pa)}</td>
           <td>${profile.pfg.toFixed(1)}</td>
@@ -2254,7 +2269,7 @@
         week ? tile("fire", "🔥", "Biggest week", fmt(week.points), `Week ${week.week} · ${week.year}`) : "",
         win ? tile("blue", "💥", "Biggest win", `+${fmt(win.margin)}`, `vs ${profiles[win.opponentId] ? esc(profiles[win.opponentId].currentTeam) : ""} · ${win.year}`) : "",
         streak ? tile("purple", "📈", "Longest win streak", `${streak.length} straight`, streak.fromYear === streak.toYear ? streak.toYear : `${streak.fromYear}–${String(streak.toYear).slice(2)}`) : "",
-        best ? tile("navy", "⭐", "Best season", `${best.wins}–${best.losses}`, `${best.year} · ${fmt(best.pf)} pts`) : ""
+        best ? tile("navy", "⭐", "Best season", record(best.wins, best.losses, best.ties), `${best.year} · ${fmt(best.pf)} pts`) : ""
       ].join("");
     }
 
@@ -2270,7 +2285,7 @@
           <span class="schedule-week">${season.year}</span>
           <span class="result-pill ${place}" ${season.live ? 'title="In progress"' : ""}>${season.live ? "" : season.finalRank}</span>
           <span class="schedule-opponent"><strong>${esc(season.teamName)}</strong></span>
-          <span class="schedule-score"><strong>${season.wins}–${season.losses}</strong></span>
+          <span class="schedule-score"><strong>${record(season.wins, season.losses, season.ties)}</strong></span>
         </a>`;
       }).join("");
     }
@@ -2284,15 +2299,15 @@
             <td class="team-cell">
               ${teamButton(opponent)}
               <div class="mobile-stat-strip">
-                <span class="mobile-stat"><small>W–L</small><strong>${row.wins}–${row.losses}</strong></span>
-                <span class="mobile-stat"><small>PCT</small><strong>${pct(row.wins, row.losses)}</strong></span>
+                <span class="mobile-stat"><small>W–L</small><strong>${record(row.wins, row.losses, row.ties)}</strong></span>
+                <span class="mobile-stat"><small>PCT</small><strong>${pct(row.wins, row.losses, row.ties)}</strong></span>
                 <span class="mobile-stat"><small>PF</small><strong>${fmt(row.pf)}</strong></span>
                 <span class="mobile-stat"><small>PA</small><strong>${fmt(row.pa)}</strong></span>
                 <span class="mobile-stat"><small>Diff</small><strong class="${row.diff >= 0 ? "positive" : "negative"}">${signed(row.diff)}</strong></span>
               </div>
             </td>
-            <td class="record">${row.wins}–${row.losses}</td>
-            <td>${pct(row.wins, row.losses)}</td>
+            <td class="record">${record(row.wins, row.losses, row.ties)}</td>
+            <td>${pct(row.wins, row.losses, row.ties)}</td>
             <td>${fmt(row.pf)}</td>
             <td>${fmt(row.pa)}</td>
             <td class="${row.diff >= 0 ? "positive" : "negative"}">${signed(row.diff)}</td>
@@ -2316,8 +2331,8 @@
       document.getElementById("profileOwner").textContent =
         `${profile.name} · ${profile.seasons.length} season${profile.seasons.length === 1 ? "" : "s"}`;
       document.getElementById("profileStats").innerHTML = `
-        <div class="drawer-stat"><small>Record</small><strong>${profile.wins}–${profile.losses}</strong></div>
-        <div class="drawer-stat"><small>Playoffs</small><strong>${profile.playoffWins}–${profile.playoffLosses}</strong></div>
+        <div class="drawer-stat"><small>Record</small><strong>${record(profile.wins, profile.losses, profile.ties)}</strong></div>
+        <div class="drawer-stat"><small>Playoffs</small><strong>${record(profile.playoffWins, profile.playoffLosses, profile.playoffTies)}</strong></div>
         <div class="drawer-stat"><small>Titles</small><strong>${profile.championshipYears.length}</strong></div>
         <div class="drawer-stat"><small>Last Places</small><strong>${profile.lastPlaceYears.length}</strong></div>`;
 
@@ -2453,7 +2468,9 @@
     function openFromHash() {
       const match = location.hash.match(/^#owner=(.+)$/);
       if (!match) return;
-      const ownerId = decodeURIComponent(match[1]);
+      // A hand-typed or truncated link can hold a bad escape (#owner=%E0).
+      let ownerId;
+      try { ownerId = decodeURIComponent(match[1]); } catch (err) { return; }
       if (profiles[ownerId]) openProfile(ownerId, { scrollToTop: true });
     }
     window.addEventListener("hashchange", openFromHash);
