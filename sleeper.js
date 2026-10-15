@@ -1259,18 +1259,38 @@
           out.teams[season.year] = Object.fromEntries(Object.entries(season.teams)
             .map(([id, t]) => [id, [t.name, t.ownerId, t.owner, t.color]]));
           const games = (out.games[season.year] = {});
+          const pair = (x, a, b) => (x.a === a && x.b === b) || (x.a === b && x.b === a);
+          // A regular-season game over several weeks, scored in its last.
+          const spanEnd = {};
+          Object.entries(season.multiWeeks || {}).forEach(([end, list]) => list.forEach((w) => { spanEnd[w] = Number(end); }));
           weeks.forEach((week) => {
             const wk = (games[week] = {});
+            const post = (a, b) => season.postseason.find((x) => x.weeks.includes(week) && pair(x, a, b)) || null;
             const label = (a, b) => {
               if (week <= season.settings.regularWeeks) return null;
-              const g = season.postseason.find((x) => x.weeks.includes(week) &&
-                ((x.a === a && x.b === b) || (x.a === b && x.b === a)));
+              const g = post(a, b);
               return g ? g.label : "Consolation";
+            };
+            /* The game's score for team a and b. A game over more than one
+               week (a two-week round, a two-week matchup) is one game, so
+               each of its weeks carries the whole game's score once it is
+               decided, and its result is the game's, not the week's. */
+            const scoreOf = (a, b, ea, eb) => {
+              if (week <= season.settings.regularWeeks) {
+                const end = spanEnd[week];
+                const row = end && (season.results[end] || []).find(([x, , y]) => (x === a && y === b) || (x === b && y === a));
+                if (row) return row[0] === a ? [row[1], row[3]] : [row[3], row[1]];
+              } else {
+                const g = post(a, b);
+                if (g && g.played && g.weeks.length > 1 && g.aScore != null) return g.a === a ? [g.aScore, g.bScore] : [g.bScore, g.aScore];
+              }
+              return [pointsOf(ea), pointsOf(eb)];
             };
             weekGames(season, week).forEach(([ea, eb]) => {
               const a = `r${ea.roster_id}`, b = `r${eb.roster_id}`;
-              wk[a] = [b, pointsOf(ea), pointsOf(eb), label(a, b)];
-              wk[b] = [a, pointsOf(eb), pointsOf(ea), label(b, a)];
+              const [as, bs] = scoreOf(a, b, ea, eb);
+              wk[a] = [b, as, bs, label(a, b)];
+              wk[b] = [a, bs, as, label(b, a)];
               [[a, ea], [b, eb]].forEach(([teamId, entry]) => {
                 lineup(season, entry, db).forEach((p) => {
                   if (!byId.has(p.id)) byId.set(p.id, { id: p.id, n: p.name, p: p.pos, h: p.pos === "DST" ? null : p.id, r: [] });
