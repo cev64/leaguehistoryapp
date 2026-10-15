@@ -42,7 +42,7 @@ Guidelines of June 8, 2026.
 - **Age rating**: no social media, no unrestricted web access, no gambling, no ads. Answer the chatbot / user-generated content questions honestly (the AI can be asked anything, filtered as above).
 - **Encryption**: answered by the Info.plist key (standard HTTPS only).
 - **DSA trader status**: declare it, or the EU storefronts drop the app.
-- **Screenshots**: iPhone 6.9" (1320 × 2868) and iPad 13" (2064 × 2752), from the demo league.
+- **Screenshots**: iPhone 6.9" (1320 × 2868) and iPad 13" landscape (2752 × 2064), from the demo league. Both sets are in `ios/store/screenshots`.
 
 ## Notes for App Review (paste and fill in)
 
