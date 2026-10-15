@@ -51,6 +51,11 @@ window.ACCOUNT_CONFIG = {
   // brings back the limits on the server.
   PRICING: false,
 
+  // --- site only: from here to "end site only", the plans, their prices
+  // and the payment links. The iPhone app bundles this file without these
+  // lines (ios/tools/app-account-config.sh): App Review wants no prices or
+  // ways to pay in an app that has no In-App Purchase. Keep anything about
+  // plans or payments in here.
   PLANS: {
     free: { name: "Free", price: "$0", leagues: 1, ads: true },
     pro: { name: "Pro", price: "$10/month", leagues: Infinity, ads: false },
@@ -75,6 +80,7 @@ window.ACCOUNT_CONFIG = {
   // is what the stripe-webhook function uses to find the account.
   STRIPE_PAYMENT_LINK: "",
   STRIPE_PORTAL_LINK: "",
+  // --- end site only
 
   // Visitor counts: Cloudflare Web Analytics, free and cookie-free (so no
   // cookie banner). Cloudflare ▸ Analytics & Logs ▸ Web Analytics ▸ Add a

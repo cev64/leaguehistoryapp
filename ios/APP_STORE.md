@@ -13,7 +13,7 @@ Guidelines of June 8, 2026.
 | 5.1.1(i) privacy policy | Privacy Policy, Terms of Service and Support in the Account screen's About section, under the sign-up button, and in the home screen's footer (`App/Legal.swift`) |
 | 5.1.2(i) third-party AI | Ask the League asks before the first question goes out, naming Google Gemini and Anthropic Claude and what is sent. The ⋯ menu turns it off again |
 | 1.2 / generative AI | Long-press an answer ▸ Report Answer: hides it and writes to support. Answers are labelled AI. The function's prompt and Gemini's safety settings rule out profanity, slurs and real-life insults |
-| 3.1.1 purchases | No prices, plans, "Go Pro" or links to buy anything in the app. No In-App Purchase, so none may be added until StoreKit is |
+| 3.1.1 purchases | No prices, plans, "Go Pro" or links to buy anything in the app. No In-App Purchase, so none may be added until StoreKit is. The bundled `account-config.js` is written without the site's plans, prices and payment links (`tools/app-account-config.sh`, a build phase) |
 | 5.1.1 privacy manifest | `PrivacyInfo.xcprivacy`: no tracking, UserDefaults (CA92.1), the data types below |
 | 2.5.2 code | The site's JavaScript is bundled in the app and injected from the bundle; only `data/players.json` (data) is fetched |
 | Info.plist | `ITSAppUsesNonExemptEncryption = NO`, `NSPhotoLibraryAddUsageDescription` for saving recap pictures |

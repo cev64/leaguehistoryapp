@@ -34,9 +34,11 @@
   const CFG = window.ACCOUNT_CONFIG || {};
   const ENDPOINT = CFG.AI_CHAT_URL ||
     (CFG.SUPABASE_URL ? `${String(CFG.SUPABASE_URL).replace(/\/+$/, "")}/functions/v1/league-chat` : "");
-  const PRO_PRICE = (CFG.PLANS && CFG.PLANS.pro && CFG.PLANS.pro.price) || "$10/month";
+  // The prices live only in account-config.js's PLANS, which the iPhone
+  // app's copy leaves out (it never shows them: PRICING is off there).
+  const PRO_PRICE = (CFG.PLANS && CFG.PLANS.pro && CFG.PLANS.pro.price) || "";
   const PRICING = CFG.PRICING === true;
-  const PASS_PRICE = `$${(CFG.PLANS && CFG.PLANS.league && CFG.PLANS.league.perMember) || 20}`;
+  const PASS_PRICE = CFG.PLANS && CFG.PLANS.league && CFG.PLANS.league.perMember ? `$${CFG.PLANS.league.perMember}` : "";
   const REDUCE = matchMedia("(prefers-reduced-motion: reduce)");
   const PHONE = matchMedia("(max-width: 640px)");
   // A conversation this long is closed for a fresh one: the AI reads all of
