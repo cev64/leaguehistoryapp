@@ -284,10 +284,18 @@ final class AccountStore {
     }
 
     func signOut() async {
-        if let token = accessToken {
-            _ = try? await GoTrue.post("logout?scope=global", [:], token: token)
+        if stored != nil {
+            // A token good for the calls below (a session that had run out
+            // is refreshed; offline, the old one is tried all the same).
+            _ = await freshen()
+            // This device's notifications were the member's. If the server
+            // can't be told, PushCenter stops the device taking them and the
+            // next account signed in here lets the token go.
+            await PushCenter.shared.unregister(accessToken: accessToken)
+            if let token = accessToken { _ = try? await GoTrue.post("logout?scope=global", [:], token: token) }
         }
         apply(nil)
+        PushCenter.shared.signedOut()
         profile = nil
         leagues = []
         pending = nil
@@ -306,7 +314,11 @@ final class AccountStore {
         guard await freshen(), let token = accessToken else { throw AccountError.offline }
         try await PostgREST.send("POST", "rpc/delete_my_account", [:], token: token)
         // The sessions went with the user, so there's nothing to log out of.
+        // Its devices went too (push_devices cascades); this one forgets it
+        // turned notifications on.
+        let user = stored?.user.id
         apply(nil)
+        PushCenter.shared.signedOut(forget: user)
         profile = nil
         leagues = []
         pending = nil

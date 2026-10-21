@@ -58,6 +58,10 @@ private struct RecapContent: View {
     var body: some View {
         RecapLead(recap: recap, season: season)
         RecapGamesCard(recap: recap, season: season)
+        if !season.results(week: recap.week).isEmpty {
+            // Share the week, and the week's awards (Clubhouse/AwardsCard.swift).
+            ClubhouseRecapSection(season: season, week: recap.week)
+        }
         if sizeClass == .regular {
             // The desktop page's cards, two to a row where there's room.
             AdaptiveGrid(minWidth: 440) { cards }
@@ -89,10 +93,17 @@ private struct RecapContent: View {
 // MARK: Lead
 
 private struct RecapLead: View {
+    @Environment(LeagueSession.self) private var session
     let recap: WeekRecap
     let season: Season
     @State private var bundle: RecapShareBundle?
     @State private var preparing = false
+    /// "Share the week", the one-picture card (Clubhouse/WeekShare.swift).
+    @State private var weekShare = WeekShare()
+    @State private var openedForDebug = false
+
+    /// A played week has both: the recap's pictures and the week in one.
+    private var hasWeekPicture: Bool { !season.results(week: recap.week).isEmpty }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -131,24 +142,14 @@ private struct RecapLead: View {
                 .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.12)).frame(height: 1) }
                 .padding(.top, 14)
             }
-            Button {
-                share()
-            } label: {
-                HStack(spacing: 7) {
-                    if preparing {
-                        ProgressView().controlSize(.small).tint(Theme.navy)
-                    } else {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    Text("Share the recap")
-                }
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(Theme.navy)
+            shareButton
+                .padding(.top, 16)
+            if weekShare.failed {
+                Text("The week's picture couldn't be drawn. Try again.")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .padding(.top, 8)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.white)
-            .disabled(preparing)
-            .padding(.top, 16)
         }
         .padding(.horizontal, 20)
         .padding(.top, 20)
@@ -162,7 +163,73 @@ private struct RecapLead: View {
         .sheet(item: $bundle) { bundle in
             RecapShareSheet(bundle: bundle)
         }
+        .sheet(item: $weekShare.picture) { pic in
+            WeekShareSheet(picture: pic, week: recap.week)
+        }
         .sensoryFeedback(.impact(weight: .light), trigger: bundle?.id)
+        .sensoryFeedback(.impact(weight: .light), trigger: weekShare.picture?.id)
+        .task {
+            // Debug builds: SIMCTL_CHILD_PP_SHARE=1 opens "Share the week" straight away.
+            if DebugLaunch.shareWeek, hasWeekPicture, !openedForDebug {
+                openedForDebug = true
+                try? await Task.sleep(for: .seconds(1.5))
+                weekShare.make(store: session.clubhouse, season: season, week: recap.week)
+            }
+        }
+    }
+
+    private var busy: Bool { preparing || weekShare.preparing }
+
+    /// One Share button: on a played week a menu of the two things to send
+    /// (the recap, a few pictures and its text; or the week in one picture
+    /// for the group chat), otherwise the recap straight away.
+    @ViewBuilder private var shareButton: some View {
+        let label = HStack(spacing: 7) {
+            if busy {
+                ProgressView().controlSize(.small).tint(Theme.navy)
+            } else {
+                Image(systemName: "square.and.arrow.up")
+            }
+            Text(hasWeekPicture ? "Share" : "Share the recap")
+            if hasWeekPicture {
+                Image(systemName: "chevron.down").font(.caption.weight(.bold))
+            }
+        }
+        .font(.subheadline.weight(.bold))
+        .foregroundStyle(Theme.navy)
+        if hasWeekPicture {
+            Menu {
+                Button {
+                    weekShare.make(store: session.clubhouse, season: season, week: recap.week)
+                } label: {
+                    Label("The Week Card", systemImage: "photo.on.rectangle.angled")
+                    Text("Week \(recap.week) in one picture, for the group chat")
+                }
+                Button {
+                    share()
+                } label: {
+                    Label("The Recap Story", systemImage: "text.bubble")
+                    Text("The headline, every game and the numbers")
+                }
+            } label: {
+                label
+            }
+            .menuStyle(.button)
+            .buttonStyle(.borderedProminent)
+            .tint(.white)
+            .disabled(busy)
+            .accessibilityLabel("Share")
+            .accessibilityHint("The recap, or the week in one picture")
+        } else {
+            Button {
+                share()
+            } label: {
+                label
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.white)
+            .disabled(busy)
+        }
     }
 
     private func share() {

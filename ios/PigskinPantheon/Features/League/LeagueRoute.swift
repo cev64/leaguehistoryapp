@@ -13,6 +13,9 @@ enum LeagueRoute: Hashable {
     case manager(ownerId: String)
     /// One game's box score, both lineups.
     case boxScore(year: Int, week: Int, a: String, b: String)
+    /// One game against the league's history: the two managers' series and
+    /// what the game can settle (season.html's rivalry preview).
+    case rivalry(year: Int, week: Int, a: String, b: String)
     /// A season, opened at a week (nil: where the season opens).
     case season(year: Int, week: Int?)
 }
@@ -39,6 +42,8 @@ struct LeagueRouteView: View {
             ManagerProfileView(ownerId: ownerId)
         case .boxScore(let year, let week, let a, let b):
             BoxScoreView(year: year, week: week, a: a, b: b)
+        case .rivalry(let year, let week, let a, let b):
+            RivalryView(year: year, week: week, a: a, b: b)
         case .season(let year, let week):
             SeasonScreen(year: year, initialWeek: week, isPushed: true)
         }
@@ -48,5 +53,8 @@ struct LeagueRouteView: View {
 /// The sheets a league screen can raise from anywhere.
 enum LeagueSheet: String, Identifiable {
     case chat, account
+    /// The clubhouse: the pick'em leaderboard, "Which team is yours?", and
+    /// signing in to join it.
+    case leaderboard, claim, clubhouseSignIn
     var id: String { rawValue }
 }

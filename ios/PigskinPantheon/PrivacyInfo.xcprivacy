@@ -44,6 +44,10 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
+		<!-- Other User Content: questions for Ask the League, and the
+		     clubhouse (the team a member claims in a league, their pick'em
+		     picks and award votes), all linked to the account, for the
+		     app's own features. -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
@@ -68,6 +72,9 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
+		<!-- Other Data: Sleeper username, league ids, ESPN keys saved to the
+		     account, and the device's push token (register_push_device) for
+		     the clubhouse notifications a member turns on. -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeOtherDataTypes</string>

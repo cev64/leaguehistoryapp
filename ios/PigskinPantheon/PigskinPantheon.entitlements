@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Push Notifications (the clubhouse's "Week 9 is final", "Picks lock
+	     tonight", "The awards are in") are off for now: a free (personal)
+	     Apple developer team can't sign an app that asks for them, so this
+	     would stop the app building for a device. Until then the app asks
+	     iOS for notifications, iOS says no, and the clubhouse's switches say
+	     this device can't get them; everything else works.
+
+	     To turn them on, once the Apple developer account is paid: turn on
+	     Push Notifications for com.pigskinpantheon.app (Certificates,
+	     Identifiers & Profiles), then put these two lines back in this
+	     dict (Xcode signs a distribution build with "production" itself):
+
+	<key>aps-environment</key>
+	<string>development</string>
+	-->
+</dict>
+</plist>

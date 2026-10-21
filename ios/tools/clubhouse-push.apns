@@ -1,0 +1,11 @@
+{
+  "Simulator Target Bundle": "com.pigskinpantheon.app",
+  "aps": {
+    "alert": { "title": "Week 8 is final", "body": "You beat Gibbs Me a Break 162.81–128.51 and you're 6–2." },
+    "sound": "default",
+    "thread-id": "demo"
+  },
+  "kind": "recap",
+  "url": "https://pigskinpantheon.com/season.html?league=demo&season=2026&week=8&view=panel-recap",
+  "link": { "league": "demo", "season": 2026, "week": 8, "view": "panel-recap" }
+}

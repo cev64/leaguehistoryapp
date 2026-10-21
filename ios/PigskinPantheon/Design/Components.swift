@@ -332,7 +332,12 @@ struct PageScroll<Content: View>: View {
                 .padding(.horizontal, Theme.gutter)
                 .padding(.vertical, 12)
                 .frame(maxWidth: maxWidth)
-                .frame(maxWidth: .infinity)
+                // Exactly the scroll view's width, whatever a card inside
+                // asks for. A card a hair too wide (a wrapped Text rounding up
+                // to the pixel) made the content wider than the page, the
+                // page then grew to fit, a pixel a pass, and the whole page
+                // could be dragged sideways.
+                .containerRelativeFrame(.horizontal)
         }
         .onScrollGeometryChange(for: CGFloat.self) { geo in
             let end = geo.contentSize.height + geo.contentInsets.bottom - geo.containerSize.height

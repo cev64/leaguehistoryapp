@@ -16,7 +16,7 @@ JavaScript and draws what it answers natively.
 - **The engine** (`PigskinPantheon/Engine/LeagueEngine.swift`) is a hidden
   `WKWebView` with the site's own address (`pigskinpantheon.com`), one per
   open league, like a browser tab. It loads `sleeper.js`, `espn.js`,
-  `demo.js`, `insights.js` and `chat.js` straight from the repository root,
+  `demo.js`, `insights.js`, `chat.js` and `clubhouse.js` straight from the repository root,
   unchanged, and `account-config.js` without its plans, prices and payment
   links (a build phase runs `tools/app-account-config.sh`; keep those
   between its "site only" lines). So the app reads Sleeper and ESPN
@@ -80,8 +80,45 @@ For screenshots and checks, launch settings open the app on a screen
 `PP_TAB` (season, records, office, trophy, search), `PP_ROUTE`
 (`player:<id>`, `team:<year>:<teamId>`, `manager:<ownerId>`,
 `box:<year>:<week>:<a>:<b>`), `PP_WEEK`, `PP_VIEW` (a panel id such as
-`panel-standings`), `PP_SHEET` (chat, account) and `PP_RAIL=1` (force the
-side rail).
+`panel-standings`), `PP_SHEET` (chat, account, leaderboard, claim) and
+`PP_RAIL=1` (force the side rail). For the demo's clubhouse:
+`PP_CLUBHOUSE_ME=<owner id>` claims a team (`none` lets it go),
+`PP_CLUBHOUSE_PICKS=r3*,r4` makes the pick week's picks (`*` the lock),
+`PP_SHARE=1` opens a Recap's "Share the week" (the picture is also
+written to the app's tmp folder as `week-share.png`), and `PP_PUSH=1`
+turns notifications on at launch (and shows them signed out).
+
+## The clubhouse
+
+League pick'em, the week's awards, "Share the week" and notifications
+(`Features/Clubhouse/`). The logic is the site's `clubhouse.js`, loaded
+by the engine and read through `Engine/bridge-clubhouse.js`; the boards
+come from Supabase's clubhouse functions (`ClubhouseAPI.swift`). The demo
+league runs on the device. To try a notification on a simulator, launch
+with `PP_PUSH=1` (allow it), then:
+
+    xcrun simctl push booted com.pigskinpantheon.app ios/tools/clubhouse-push.apns
+
+Tapping it opens the league at the week and view in its `link`.
+
+Notifications are opt-in per league and per account (`App/PushCenter.swift`):
+a league's switches are the account's `league_members.notify_*` for that
+league (off until the member turns one on), and the device's token goes
+to an account (`register_push_device`) only once that account has turned
+notifications on, on this device; the accounts that have are kept in
+UserDefaults (`pp-push-asked-users`). Signing out unregisters the token
+with a freshened session; if the server can't be reached the app stops
+taking notifications from APNs (`unregisterForRemoteNotifications`) and
+the next account to sign in hands the token over and lets it go
+(`pp-push-orphan`). Signed out, delivered notifications are cleared and
+new ones aren't shown or followed. The token's APNs environment comes
+from the embedded provisioning profile's `aps-environment` (development
+→ `sandbox`); App Store builds have no profile (`production`); the
+simulator is `sandbox`.
+
+The demo's clubhouse is never "over": an open demo week locks, and its
+awards close, at the next Thursday 8:15 PM ET from now (as the site's
+demo does), so App Review and screenshots always see a live week.
 
 ## The app icon
 

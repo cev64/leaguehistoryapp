@@ -54,6 +54,10 @@ struct LeagueRootView: View {
             case .account:
                 AccountScreen()
                     .environment(app)
+            case .leaderboard, .claim, .clubhouseSignIn:
+                ClubhouseSheet(kind: sheet)
+                    .environment(session)
+                    .environment(app)
             }
         }
     }
@@ -102,6 +106,8 @@ private struct LeagueTabs: View {
         .onChange(of: tab) { _, new in
             if case .year(let y) = new { session.year = y }
         }
+        // a tapped notification: its season, at the top of the stack
+        .clubhouseTabLinks(session: session, tab: $tab, seasonPath: $seasonPath)
     }
 
     /// A phone's tabs: a Liquid Glass tab bar, or a side rail when the

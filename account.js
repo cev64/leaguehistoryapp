@@ -26,6 +26,10 @@
      Account.accessToken()    the signed-in session's token (Supabase only),
                               for the ESPN relay's saved keys
      Account.openSignIn(), openPanel(), upgrade(), signOut()
+     Account.rpc(name, args)  a database function (the clubhouse's); rejects
+                              with the server's error, whose message starts
+                              with a stable code
+     Account.explain(err)     that code as a sentence
      Account.openLeaguePass() the League Pass checkout, for the league on screen
 
    Plain script, loaded in <head> after account-config.js, so the ad slots
@@ -118,6 +122,18 @@
     if (code === "not_owner") return "Only the person who bought the League Pass can do that.";
     if (code === "seats_in_use" || code === "bad_seats") return raw.slice(raw.indexOf(":") + 1).trim() || "That number of seats won't work.";
     if (code === "pass_not_set_up") return "League Pass payments aren't set up yet.";
+    // The clubhouse (clubhouse-ui.js): pick'em, the week's awards, notifications.
+    if (code === "taken") return "Someone in the league has already claimed that team.";
+    if (code === "bad_manager") return "That team can't be claimed.";
+    if (code === "not_a_member") return "Pick your team in this league first.";
+    if (code === "locked") return "Picks for this week are locked.";
+    if (code === "two_locks") return "Only one Lock of the Week per week.";
+    if (code === "bad_picks" || code === "bad_week") return "Those picks didn't add up. Reload the page and try again.";
+    if (code === "not_open") return "Voting for this week hasn't opened yet.";
+    if (code === "closed") return "Voting for this week has closed.";
+    if (code === "bad_award" || code === "bad_nominee") return "That vote didn't go through. Reload the page and try again.";
+    if (code === "unavailable") return "The clubhouse isn't connected on this copy of the site.";
+    if (code === "bad_device") return "This browser's notifications can't be used here. Try Chrome, Firefox, Edge or Safari.";
     if (/invalid login credentials/i.test(raw)) return "That email and password don't match an account.";
     if (/already registered|already been registered|user_already_exists/i.test(raw)) return "There's already an account with that email. Sign in instead.";
     if (/password should be at least|weak_password/i.test(raw)) return "Use a password of at least 8 characters.";
@@ -197,6 +213,13 @@
       },
       async unsync(leagueId) {
         check(await client.rpc("unsync_league", { p_league_id: leagueId }));
+      },
+      // Any database function (the clubhouse's: supabase/migrations/
+      // 20261021000000_league_clubhouse.sql). Its error is thrown as it
+      // comes, so the caller can read the stable code in its message.
+      async rpc(name, args) {
+        if (!client) throw new Error("unavailable");
+        return check(await client.rpc(name, args || {}));
       },
       // The signed-in session's token, for the ESPN relay (espn.js) to
       // know whose saved ESPN keys to use.
@@ -582,8 +605,27 @@
   // none is ever served behind the sign-in screen.
   const GATED_PAGE = REQUIRE && /[?&]league=/.test(location.search);
 
+  /* This browser's Web Push subscription (the clubhouse's notifications,
+     clubhouse-ui.js) belongs to the account that registered it: it's taken
+     off the account while the session can still say so, then dropped, so
+     whoever signs in next here gets none of this account's notifications. */
+  async function dropPushDevice() {
+    try {
+      if (!state.user || !backend.rpc || typeof navigator === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = reg && await reg.pushManager.getSubscription();
+      if (!sub) return;
+      await Promise.race([
+        backend.rpc("unregister_push_device", { p_token: sub.endpoint }).catch(() => { /* gone already */ }),
+        new Promise((resolve) => setTimeout(resolve, 4000)),
+      ]);
+      await sub.unsubscribe();
+    } catch (err) { console.warn("Account: this browser's notifications weren't let go.", err); }
+  }
+
   async function signOut() {
     closeMenu();
+    await dropPushDevice();
     try { await backend.signOut(); } catch (err) { toast(explain(err)); }
     state.user = null;
     await refresh();
@@ -1924,6 +1966,16 @@
     admit,
     on(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     accessToken: () => (state.user && backend.accessToken ? backend.accessToken() : Promise.resolve(null)),
+    // A database function, once the session is known. In preview mode there
+    // is no database: it fails with `unavailable` (signed in) or
+    // `not_signed_in`, and the clubhouse says so instead of acting.
+    rpc: (name, args) => ready.then(() => {
+      if (!state.user) throw new Error("not_signed_in");
+      if (!backend.rpc) throw new Error("unavailable");
+      return backend.rpc(name, args);
+    }),
+    // A failure's code as a sentence (the same words the account screens use).
+    explain,
     openSignIn: (opts) => openAuth("signin", opts),
     openSignUp: (opts) => openAuth("signup", opts),
     openPanel,

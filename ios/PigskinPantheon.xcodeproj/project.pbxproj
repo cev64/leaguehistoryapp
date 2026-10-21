@@ -13,6 +13,7 @@
 		AA0000000000000000000104 /* insights.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000204 /* insights.js */; };
 		AA0000000000000000000105 /* chat.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000205 /* chat.js */; };
 		AA0000000000000000000107 /* players.json in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000207 /* players.json */; };
+		AA0000000000000000000110 /* clubhouse.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000210 /* clubhouse.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 		AA0000000000000000000205 /* chat.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = chat.js; path = ../chat.js; sourceTree = SOURCE_ROOT; };
 		AA0000000000000000000206 /* account-config.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "account-config.js"; path = "../account-config.js"; sourceTree = SOURCE_ROOT; };
 		AA0000000000000000000207 /* players.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = players.json; path = ../data/players.json; sourceTree = SOURCE_ROOT; };
+		AA0000000000000000000210 /* clubhouse.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = clubhouse.js; path = ../clubhouse.js; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -62,6 +64,7 @@
 				AA0000000000000000000203 /* demo.js */,
 				AA0000000000000000000204 /* insights.js */,
 				AA0000000000000000000205 /* chat.js */,
+				AA0000000000000000000210 /* clubhouse.js */,
 				AA0000000000000000000206 /* account-config.js */,
 				AA0000000000000000000207 /* players.json */,
 			);
@@ -146,6 +149,7 @@
 				AA0000000000000000000103 /* demo.js in Resources */,
 				AA0000000000000000000104 /* insights.js in Resources */,
 				AA0000000000000000000105 /* chat.js in Resources */,
+				AA0000000000000000000110 /* clubhouse.js in Resources */,
 				AA0000000000000000000107 /* players.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -247,6 +251,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PigskinPantheon/PigskinPantheon.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8ZU74SXSMG;
@@ -280,6 +285,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PigskinPantheon/PigskinPantheon.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8ZU74SXSMG;

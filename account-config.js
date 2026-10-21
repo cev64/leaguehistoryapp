@@ -34,6 +34,12 @@ window.ACCOUNT_CONFIG = {
   // and put "http://localhost:8000" here.
   AI_CHAT_URL: "",
 
+  // Web Push for the clubhouse's notifications (the week is final, picks
+  // lock tonight, the awards are in): the VAPID key pair's PUBLIC key,
+  // base64url, as the push sender (supabase/functions) has it. Empty: the
+  // site offers no notifications.
+  VAPID_PUBLIC_KEY: "BJRs4Rw3-eYGjcqRczLDKXFNufeQIhcQmN0PLBZD5lwiMh5z6qQCbNS0ZWXAVdO9fj34hkfKe4csQHbF5vpn1h8",
+
   // Sign-in methods shown on the sign-in screen. Email + password is always
   // on; Google needs the Google provider switched on in Supabase ▸
   // Authentication ▸ Providers first.

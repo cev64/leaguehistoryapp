@@ -11,6 +11,12 @@ final class AppModel {
     var recents: [RecentLeague] = RecentLeague.load()
     let account = AccountStore()
 
+    init() {
+        // Notifications: a fresh device token for the account, if the
+        // member turned them on before. Nothing is asked here.
+        PushCenter.shared.start(account: account)
+    }
+
     /// Who was signed in when the open league last heard: signing in with
     /// a league open adds it to the account.
     @ObservationIgnored private var leagueUser: String?
@@ -115,6 +121,8 @@ final class LeagueSession: Identifiable {
 
     let id: String
     let engine: LeagueEngine
+    /// The league's clubhouse: pick'em and the week's awards.
+    let clubhouse: ClubhouseStore
     var phase: Phase = .loading(done: 0, total: 0)
     var summary: LeagueSummary?
     /// The season the season screens show.
@@ -132,6 +140,7 @@ final class LeagueSession: Identifiable {
         self.id = id
         self.app = app
         self.engine = LeagueEngine(leagueId: id)
+        self.clubhouse = ClubhouseStore(engine: engine, leagueId: id, account: app.account)
     }
 
     func load() async {

@@ -19,15 +19,19 @@ Guidelines of June 8, 2026.
 | Info.plist | `ITSAppUsesNonExemptEncryption = NO`, `NSPhotoLibraryAddUsageDescription` for saving recap pictures |
 | 5.2.1 | "Not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA" in the footer and the About section |
 | Debug | `DebugLaunch` and the `PP_HOME` launch settings only work in Debug builds |
+| 5.3 / 1.4 the clubhouse | League pick'em and the week's awards are free bragging rights inside a league: no entry fee, no prizes, no stakes, no odds, no betting language. Picks are graded from the league's own results |
+| 5.1.1(v) the clubhouse | Looking around never needs an account. Picking, voting and notifications ask the member to sign in and claim their team ("Which team is yours?"); the demo league shows the whole clubhouse without an account (picks and votes kept on the device) |
+| 4.5.4 push | Notifications are opt-in per league (Leaderboard ▸ Notify me): every league's are off until the member turns one on there (`set_league_notifications` for that league only), and a device is registered to an account only after that account turned notifications on, on it. iOS is asked for permission only when the member turns one on, never at launch. Signing out takes the device off the account (`unregister_push_device`; offline, the app stops taking notifications and the next account signed in lets the token go) and clears what was delivered; deleting the account deletes its devices |
 
 ## Before submitting (outside Xcode)
 
 1. **Put the legal pages live.** `privacy.html`, `terms.html` and `support.html` must be on pigskinpantheon.com (merge to `main`) before review: the app links to them.
 2. **Make `support@pigskinpantheon.com` real** (a mailbox or a forward). The app, the privacy policy and the reports from Ask the League all send mail there.
-3. **Run the migrations** `supabase/migrations/20261008000000_delete_account.sql` (or Delete Account fails), then `20261015000000_hardening.sql`.
+3. **Run the migrations** `supabase/migrations/20261008000000_delete_account.sql` (or Delete Account fails), then `20261015000000_hardening.sql`, then `20261021000000_league_clubhouse.sql` (pick'em, awards, notifications).
 4. **Deploy league-chat** (`supabase functions deploy league-chat --no-verify-jwt`) for the safety rules, after `20261015000000_hardening.sql`: the new function counts requests with it and answers "the account store didn't answer" without it.
 5. **A review account.** Create an account with a confirmed email for App Review and put it in the notes, plus a Sleeper username with leagues.
-6. **Gemini's free tier** can't serve people in the EEA, UK or Switzerland, and Google may use what it's sent to improve its products. Either move to a paid key or leave those storefronts out under Pricing and Availability.
+6. **Push Notifications.** In the Apple Developer portal (Certificates, Identifiers & Profiles ▸ Identifiers ▸ com.pigskinpantheon.app) turn on Push Notifications, then make an APNs key (Keys ▸ +, Apple Push Notifications service) and give the push sender its key id, team id (8ZU74SXSMG) and the .p8 file. Then put `aps-environment` (development) back in the app's `PigskinPantheon.entitlements`: it's commented out there for now, because a free (personal) developer team can't sign an app that asks for push (Xcode signs App Store and TestFlight builds for production on its own). The app registers its token for the APNs environment its provisioning profile names (`aps-environment` in `embedded.mobileprovision`: development → `sandbox`, so a Release build run from Xcode works too); App Store and TestFlight builds, which carry no profile, register as `production`.
+7. **Gemini's free tier** can't serve people in the EEA, UK or Switzerland, and Google may use what it's sent to improve its products. Either move to a paid key or leave those storefronts out under Pricing and Availability.
 
 ## App Store Connect
 
@@ -37,9 +41,9 @@ Guidelines of June 8, 2026.
 - **App Privacy**: no tracking. Collected, linked to the user, for App Functionality:
   - Contact Info ▸ Email Address, Name
   - Identifiers ▸ User ID
-  - User Content ▸ Other User Content (questions for Ask the League, sent to Google and Anthropic)
+  - User Content ▸ Other User Content (questions for Ask the League, sent to Google and Anthropic; the clubhouse: the team a member claims in a league, their pick'em picks and award votes, shown to the league's other members)
   - Usage Data ▸ Product Interaction (each day's count of Ask the League questions and requests, `chat_usage`, for its daily allowance)
-  - Other Data (Sleeper username, league ids, ESPN keys saved to the account)
+  - Other Data (Sleeper username, league ids, ESPN keys saved to the account, the device's push token once notifications are on)
 - **Age rating**: no social media, no unrestricted web access, no gambling, no ads. Answer the chatbot / user-generated content questions honestly (the AI can be asked anything, filtered as above).
 - **Encryption**: answered by the Info.plist key (standard HTTPS only).
 - **DSA trader status**: declare it, or the EU storefronts drop the app.
@@ -52,6 +56,8 @@ Guidelines of June 8, 2026.
 > No account is needed to look around: tap "Explore the demo league" on the first screen, or enter the Sleeper username ____ to open real leagues. An account is only needed to save leagues and to use Ask the League, the AI chat (league icon ✨ at the top of a league).
 >
 > Review account: ____ / ____
+>
+> The demo league also shows the clubhouse: on Week 9's Matchups, pick the winners (league pick'em, free bragging rights, no stakes or prizes); a played week's Recap has the league's weekly awards to vote on and "Share the week". Notifications are off until a member turns them on for one of their own leagues.
 >
 > Ask the League asks for permission before it shares anything with Google Gemini or Anthropic Claude. Answers can be reported by long-pressing them. Account ▸ Delete Account deletes the account and everything saved to it.
 >
