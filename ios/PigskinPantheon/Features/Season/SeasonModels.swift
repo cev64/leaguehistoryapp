@@ -17,6 +17,9 @@ struct SeasonInfo: Decodable {
     let lastWeek: Int
     let latestWeek: Int
     let lastPlayedWeek: Int
+    /// What If: the coming week whose winners can be picked (the next to
+    /// be played), nil once the regular season is over.
+    let pickWeek: Int?
     let priorYear: Int?
     let tieRule: String
     /// The views of week 0 (the season overview).

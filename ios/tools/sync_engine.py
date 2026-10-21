@@ -76,7 +76,7 @@ def main() -> None:
         "state", "computeStats", "buildPicture", "playoffScenarios", "gamesBack", "gamesLeft",
         "gamesOfWeek", "powerRankings", "allPlay", "weekRecap", "recapText", "strengthOfSchedule",
         "viewsFor", "asOfWeek", "isPlayed", "weekDone", "playoffWeekPlayed", "lastPlayoffWeek", "weeksText",
-        "boxWeek", "postOf",
+        "boxWeek", "postOf", "spanEnd", "withPicks", "pickWeek", "whatIfWeekFor", "picksOf", "whatIfState",
     ]
     missing = [name for name in exports if not re.search(rf"\b(const|let|function|async function)\s+{name}\b", body)]
     if missing:

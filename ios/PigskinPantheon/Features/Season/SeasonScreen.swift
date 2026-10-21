@@ -40,10 +40,13 @@ struct SeasonScreen: View {
 private struct SeasonContent: View {
     @Environment(LeagueSession.self) private var session
     @Environment(\.sideRail) private var sideRail
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @Bindable var store: SeasonStore
     let showsSeasonMenu: Bool
     let isPushed: Bool
     @State private var scroll = ScrollMinimizer()
+    @State private var position = ScrollPosition(edge: .top)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// "Week 8", "Season", "Preseason": the year is on the season button
     /// beside it (or in the sidebar), so the title doesn't repeat it.
@@ -53,6 +56,12 @@ private struct SeasonContent: View {
         let season = session.summary?.season(store.year)
         if season?.finished == true { return "Season" }
         return season?.unplayed == true ? "Not played" : "Preseason"
+    }
+
+    /// A wide screen (an iPad, the unfolded Duo) has the week's views in
+    /// the title's row, beside "Week 9", leaving the page the height.
+    private var viewsInBar: Bool {
+        sizeClass == .regular && (store.payload?.views.count ?? 0) > 1
     }
 
     /// The league, and the year where nothing else on screen shows it (a
@@ -85,14 +94,20 @@ private struct SeasonContent: View {
                 EmptyCard(title: "This season couldn't be read", detail: error, symbol: "exclamationmark.triangle")
             }
         }
+        .scrollPosition($position)
+        .onChange(of: store.scrollToTop) {
+            withAnimation(reduceMotion ? nil : .smooth(duration: 0.4)) { position.scrollTo(edge: .top) }
+        }
         .animation(.smooth(duration: 0.25), value: store.view)
         .navigationTitle(title)
-        .navigationSubtitle(subtitle)
+        // With the views in the title's row, the title block there carries it.
+        .navigationSubtitle(viewsInBar ? "" : subtitle)
         // A tab's (or sidebar entry's) own page wears the large title in
         // the bar; pushed, it has a back button there, and an inline-large
         // title drops to a row of its own under the bar, faded by the bar's
-        // edge effect. It's inline, like every other pushed page.
-        .toolbarTitleDisplayMode(isPushed ? .inline : .inlineLarge)
+        // edge effect. It's inline, like every other pushed page, and where
+        // the week's views share its row (viewsInBar), which draws its own.
+        .toolbarTitleDisplayMode(isPushed || viewsInBar ? .inline : .inlineLarge)
         .leagueToolbar()
         .toolbar {
             if showsSeasonMenu, let summary = session.summary, summary.seasons.count > 1 {
@@ -113,18 +128,34 @@ private struct SeasonContent: View {
                 }
             }
         }
-        .safeAreaBar(edge: .top) {
-            if let tabs = store.payload?.views, tabs.count > 1 {
-                Picker("View", selection: $store.view) {
-                    ForEach(tabs) { tab in
-                        Text(tabs.count > 3 ? tab.shortLabel : tab.label).tag(tab.id)
+        .toolbar {
+            // A wide screen has room beside the title, so the week's views
+            // move up into its row rather than taking one of their own. The
+            // title is drawn here then: the bar's own gives way to them.
+            if viewsInBar, let tabs = store.payload?.views {
+                ToolbarItem(placement: .topBarLeading) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(title).font(.title2.weight(.bold)).foregroundStyle(Theme.ink)
+                        Text(subtitle).font(.subheadline).foregroundStyle(Theme.ink3)
                     }
+                    .lineLimit(1)
+                    .fixedSize()
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isHeader)
                 }
-                .pickerStyle(.segmented)
-                .sensoryFeedback(.selection, trigger: store.view)
-                .padding(.horizontal, Theme.gutter)
-                .padding(.vertical, 6)
-                .frame(maxWidth: 640)
+                .sharedBackgroundVisibility(.hidden)
+                ToolbarItem(placement: .principal) {
+                    viewPicker(tabs)
+                        .frame(minWidth: 300, maxWidth: 460)
+                }
+            }
+        }
+        .safeAreaBar(edge: .top) {
+            if !viewsInBar, let tabs = store.payload?.views, tabs.count > 1 {
+                viewPicker(tabs)
+                    .padding(.horizontal, Theme.gutter)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: 640)
             }
         }
         .wheelBar(kind: .weeks, weeks: store.info?.weeks ?? [],
@@ -142,6 +173,19 @@ private struct SeasonContent: View {
                 .padding(.vertical, 6)
             }
         }
+    }
+}
+
+extension SeasonContent {
+    /// The week's views (Matchups, Standings, Playoffs …) as a segmented control.
+    func viewPicker(_ tabs: [SeasonViewTab]) -> some View {
+        Picker("View", selection: $store.view) {
+            ForEach(tabs) { tab in
+                Text(tabs.count > 3 ? tab.shortLabel : tab.label).tag(tab.id)
+            }
+        }
+        .pickerStyle(.segmented)
+        .sensoryFeedback(.selection, trigger: store.view)
     }
 }
 
@@ -287,11 +331,11 @@ private struct SeasonPanel: View {
         case "panel-results":
             ResultsPanel(store: store, info: info, season: season, payload: payload)
         case "panel-standings", "regular":
-            StandingsPanel(info: info, season: season, payload: payload)
+            StandingsPanel(info: info, season: season, payload: payload, whatIf: store.whatIf)
         case "final":
             FinalStandingsPanel(info: info, season: season)
         case "panel-picture":
-            PlayoffPicturePanel(info: info, season: season, payload: payload)
+            PlayoffPicturePanel(info: info, season: season, payload: payload, whatIf: store.whatIf)
         case "panel-playoffs", "bracket":
             BracketPanel(info: info, season: season, week: payload.week)
         case "panel-recap":
@@ -316,17 +360,25 @@ final class SeasonStore {
     var view: String = "panel-results"
     var payload: WeekPayload?
     var error: String?
+    /// The What If switch and its picks, one for the season, so they carry
+    /// between the Standings and Playoffs views.
+    let whatIf: WhatIfStore
+    /// Bumped to bring the page back to its top (the Matchups view's way
+    /// into What If opens the Playoffs view at its switch).
+    var scrollToTop = 0
     private var cache: [Int: WeekPayload] = [:]
 
     init(engine: LeagueEngine, year: Int) {
         self.engine = engine
         self.year = year
+        self.whatIf = WhatIfStore(league: engine.leagueId ?? "league", year: year)
     }
 
     func load(initialWeek: Int?) async {
         do {
             let info = try await engine.call(SeasonInfo.self, "Bridge.season.info(year)", ["year": year])
             self.info = info
+            whatIf.configure(pickWeek: info.pickWeek)
             let start = initialWeek ?? DebugLaunch.week ?? info.start.week
             view = DebugLaunch.view ?? (initialWeek == nil ? info.start.view : view)
             await show(week: start, keepView: initialWeek == nil || DebugLaunch.view != nil)

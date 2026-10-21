@@ -35,6 +35,27 @@ struct ResultsPanel: View {
                     }
                 }
                 .padding(12)
+                if payload.week == info.pickWeek, payload.views.contains(where: { $0.id == "panel-picture" }) {
+                    Divider().overlay(Theme.line)
+                    // The way into What If: the Playoffs view, switch on.
+                    Button {
+                        store.whatIf.setOn(true)
+                        withAnimation { store.view = "panel-picture" }
+                        store.scrollToTop += 1
+                    } label: {
+                        // The arrow keeps to the last word where the line wraps.
+                        Text("Pick the winners and watch the brackets move\u{00A0}\(Image(systemName: "arrow.right"))")
+                            .multilineTextAlignment(.center)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accentInk)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(Felt(.plain))
+                    .accessibilityHint("Opens the Playoffs view with the What If switch on")
+                }
             }
         } else {
             EmptyCard(title: "No games in Week \(payload.week)",

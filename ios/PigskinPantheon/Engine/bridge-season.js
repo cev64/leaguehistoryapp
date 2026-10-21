@@ -41,6 +41,8 @@
       lastWeek: E.LAST_WEEK,
       latestWeek: E.latestWeek,
       lastPlayedWeek: E.lastPlayedWeek,
+      // What If: the coming week whose winners can be picked, or null.
+      pickWeek: E.pickWeek(),
       priorYear: E.PRIOR ? E.PRIOR.year : null,
       tieRule: E.TIE_RULE,
       seasonViews: E.SEASON_VIEWS,
@@ -194,14 +196,26 @@
      (the regular season's last), or a finished season's "regular" view
      (renderDivisions). `live` is false before a week has been played,
      when every record is 0–0 and nobody is ranked. */
-  function standings(year, wk, view) {
+  function standings(year, wk, view, picks) {
     const E = B.seasonEngine(year);
+    const w = Number(wk);
+    // What If: from the latest results on, the tab can carry picks for the
+    // coming week, counted into every record as if they were posted.
+    const picked = view === "panel-standings" ? pickedFor(E, w, picks) : null;
+    if (picked) {
+      const { overlay, week: pick, count, total } = picked;
+      const out = E.withPicks(overlay, () => standingsAsOf(E, year, overlay.week));
+      out.note = `Records include your ${count === total ? "" : `${count} `}Week ${pick} pick${count === 1 ? "" : "s"}. Points for and against add each team's season scoring average for a picked game.`;
+      return out;
+    }
+    return standingsAsOf(E, year, E.asOfWeek(view === "regular" || w > E.REGULAR_WEEKS ? E.REGULAR_WEEKS : w));
+  }
+
+  function standingsAsOf(E, year, asOf) {
     const season = B.model().season(year);
     const teams = season.teams;
     const TEAM_IDS = Object.keys(teams);
     const LB = season.losersBracket || [];
-    const w = Number(wk);
-    const asOf = E.asOfWeek(view === "regular" || w > E.REGULAR_WEEKS ? E.REGULAR_WEEKS : w);
     const live = asOf > 0;
     const picture = E.buildPicture(asOf);
     const stats = picture.stats;
@@ -284,7 +298,79 @@
         if (anyWhy) legend.push({ kind: "why", cls: "", tag: "i", text: "Tap for the tiebreaker" });
       }
     }
-    return { asOf, live, hasDivisions: HAS_DIVISIONS, cards, legend };
+    return { asOf, live, hasDivisions: HAS_DIVISIONS, cards, legend, note: null };
+  }
+
+  /* ------------------------------------------------------------ what if
+
+     The coming week's winners, picked (season.html's What If switch). A
+     tab carries the switch only where it shows the latest results
+     (whatIfWeekFor). `picks` maps a game's place on that week's slate to
+     the team picked to win it: { "0": "r3", "2": "r8" }. */
+
+  // Picks the app sends as an object, or as JSON.
+  function picksIn(picks) {
+    if (typeof picks === "string") { try { picks = JSON.parse(picks); } catch (_) { return null; } }
+    return picks && typeof picks === "object" && Object.keys(picks).length ? picks : null;
+  }
+
+  // The picks as the engine's overlay, or null where they don't apply.
+  function pickedFor(E, w, picks) {
+    const pick = E.whatIfWeekFor(w);
+    const p = pick ? picksIn(picks) : null;
+    if (!p) return null;
+    const overlay = E.picksOf(pick, p);
+    const count = overlay.games.length;
+    if (!count) return null;
+    return { overlay, week: pick, count, total: (B.model().season(E.SEASON).schedule[pick] || []).length };
+  }
+
+  /* The switch's card for a week's tab (whatIfBar + syncWhatIfBar), or
+     null where the tab doesn't carry it: each game of the coming week with
+     both sides' records and seeds as the picks would leave them, and the
+     way a pick moved a seed. */
+  function whatIf(year, wk, picks) {
+    const E = B.seasonEngine(year);
+    const season = B.model().season(year);
+    const teams = season.teams;
+    const pick = E.whatIfWeekFor(Number(wk));
+    if (!pick) return null;
+    const p = picksIn(picks) || {};
+    const s = E.whatIfState(pick, p);
+    const { base, picture, count, total } = s;
+    const zero = picture ? null : E.computeStats(0);
+    const divisionOf = (id) => teams[id].division || "";
+    const side = (id) => {
+      const record = picture ? picture.stats[id].record : zero[id].record;
+      const seed = picture && E.HAS_PLAYOFFS ? (picture.seedLabels[id] || null) : null;
+      const was = base && E.HAS_PLAYOFFS ? (base.seedLabels[id] || null) : null;
+      let move = null;
+      if (seed && was && picture !== base && seed.chip !== was.chip) {
+        move = picture.seeds.indexOf(id) < base.seeds.indexOf(id) ? "up" : "down";
+      }
+      return {
+        id,
+        record,
+        recordMoved: Boolean(base) && picture !== base && base.stats[id].record !== record,
+        seed,
+        move,
+        was: move ? was.chip : null,
+      };
+    };
+    const games = (season.schedule[pick] || []).map(([a, b], i) => {
+      const kind = E.HAS_DIVISIONS
+        ? (divisionOf(a) && divisionOf(a) === divisionOf(b) ? divisionOf(a) : "Cross-division")
+        : `Game ${i + 1}`;
+      const won = p[i] === a || p[i] === b ? p[i] : null;
+      return { index: i, kind, pick: won, sides: [side(a), side(b)] };
+    });
+    return {
+      week: pick,
+      count,
+      total,
+      note: count ? `With your Week ${pick} pick${count === 1 ? "" : "s"}` : "",
+      games,
+    };
   }
 
   /* A finished season's final table (renderFinalStandings). The app sorts
@@ -685,12 +771,34 @@
     if (out.losers) out.losers.rounds.forEach((r) => r.games.forEach(mark));
   }
 
-  async function bracket(year, wk, view) {
+  async function bracket(year, wk, view, picks) {
+    // Made before any picks apply, so the bracket's entrants come from the
+    // real standings.
     const K = bracketMaker(year);
     const { E, season } = K;
     const w = Number(wk);
     const blank = { empty: null, format: null, scenarios: null, note: "", label: "", flips: [], winners: null, losers: null, projected: false };
     const source = League.sourceName();
+
+    // What If: both brackets drawn from the picked standings (drawWhatIfPicture).
+    const picked = view === "panel-picture" && E.HAS_PLAYOFFS ? pickedFor(E, w, picks) : null;
+    if (picked) {
+      const { overlay, week: pick } = picked;
+      return E.withPicks(overlay, () => {
+        const picture = E.buildPicture(overlay.week);
+        const ctx = K.bracketContext("projected", overlay.week);
+        return {
+          ...blank,
+          projected: true,
+          note: `With your Week ${pick} picks`,
+          label: "Projected winner's bracket",
+          // Before Week 1 nobody is level on anything yet.
+          flips: E.lastPlayedWeek ? picture.flips.map(([a, b]) => `Level on record and points · ${K.teams[a].name} / ${K.teams[b].name}`) : [],
+          winners: K.winners(ctx),
+          losers: K.losers(ctx),
+        };
+      });
+    }
 
     if (view === "panel-picture") {
       // renderPicturePanel
@@ -753,5 +861,5 @@
     return out;
   }
 
-  B.season = { info, week, blunder, schedule, standings, finalStandings, sos, bracket };
+  B.season = { info, week, blunder, schedule, standings, finalStandings, sos, bracket, whatIf };
 })();
