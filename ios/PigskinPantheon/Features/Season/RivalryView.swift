@@ -120,7 +120,6 @@ struct RivalryPreview: Decodable {
 /// the line going in, each marked with whether it happened.
 struct RivalryView: View {
     @Environment(LeagueSession.self) private var session
-    @Environment(\.horizontalSizeClass) private var sizeClass
     let year: Int
     let week: Int
     let a: String
@@ -128,6 +127,9 @@ struct RivalryView: View {
 
     @State private var preview: RivalryPreview?
     @State private var error: String?
+    /// The page has room for the cards in two columns of at least 320
+    /// points: an iPad, or the unfolded Duo with its sidebar folded away.
+    @State private var twoColumns = false
 
     var body: some View {
         PageScroll(maxWidth: 1040) {
@@ -158,7 +160,8 @@ struct RivalryView: View {
 
     @ViewBuilder private func content(_ p: RivalryPreview, season: Season) -> some View {
         RivalryHero(p: p, season: season)
-        if sizeClass == .regular {
+            .onGeometryChange(for: Bool.self) { $0.size.width >= 320 * 2 + 14 } action: { twoColumns = $0 }
+        if twoColumns {
             HStack(alignment: .top, spacing: 14) {
                 VStack(spacing: 14) {
                     StakesCard(p: p, season: season)
@@ -467,9 +470,8 @@ private struct TapeCard: View {
 }
 
 /// Every meeting, newest first and grouped by season, the first few
-/// showing: who won (the winner's badge and name), a W or L for the first
-/// team, both scores with the winner's in bold, the margin, and the week or
-/// the round (a playoff game in gold). A meeting with a box score opens it.
+/// showing: the week or the round (a playoff game in gold), then both teams
+/// with their scores, the winner in bold. A meeting with a box score opens it.
 private struct MeetingsCard: View {
     @Environment(LeagueSession.self) private var session
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -554,11 +556,10 @@ private struct MeetingsCard: View {
     }
 }
 
-/// One meeting: a W, L or T for the first team, both teams a line each (the
-/// first team on top) with badge, name and score, the winner in ink and
-/// bold, the loser grey with a dimmed badge; on the right the week (or the
-/// round on a chip, gold for the playoffs) and the margin. A tap opens its
-/// box score; a week without one says so.
+/// One meeting: the week (or the round on a chip, gold for the playoffs) on
+/// a line of its own, then both teams a line each (the first team on top)
+/// with badge, name and score, the winner in ink and bold, the loser grey
+/// with a dimmed badge. A tap opens its box score; a week without one says so.
 private struct MeetingRow: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     let p: RivalryPreview
@@ -582,9 +583,8 @@ private struct MeetingRow: View {
 
     private func content(link: Bool) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            pill
-            // The week (or the round) and the margin on a line of their own
-            // above the two teams, so the names have the row's width.
+            // The week (or the round) on a line of its own above the two
+            // teams, so the names have the row's width.
             VStack(alignment: .leading, spacing: 6) {
                 aside(link: link)
                 teams
@@ -605,20 +605,6 @@ private struct MeetingRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken)
         .accessibilityValue(link ? "" : "No box score")
-    }
-
-    /// W, L or T, for the first team.
-    private var pill: some View {
-        let (text, ink, soft): (String, Color, Color) = switch m.winner {
-        case "a": ("W", Theme.green, Theme.green.opacity(0.13))
-        case "b": ("L", Theme.red, Theme.redSoft)
-        default: ("T", Theme.ink2, Theme.surface3)
-        }
-        return Text(text)
-            .font(.system(size: 13, weight: .heavy))
-            .foregroundStyle(ink)
-            .frame(width: 28, height: 28)
-            .background(soft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     /// Both teams, the first team on top.
@@ -648,22 +634,22 @@ private struct MeetingRow: View {
         }
     }
 
-    /// "Week 14" (or the round's chip), "by 26.02", and "No box score"
-    /// where the week has none.
+    /// "Week 14" (or the round's chip), "Tie" for a tie (neither side is
+    /// bold), and "No box score" where the week has none.
     private func aside(link: Bool) -> some View {
         HStack(alignment: .center, spacing: 8) {
             when
+            if m.winner == nil {
+                Text("Tie")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.ink2)
+            }
             Spacer(minLength: 6)
             if !link {
                 Text("No box score")
                     .font(.caption2)
                     .foregroundStyle(Theme.ink3)
             }
-            Text(m.winner == nil ? "Tie" : "by \(Fmt.pts(abs(m.aScore - m.bScore)))")
-                .font(.caption.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(Theme.ink2)
-                .fixedSize()
         }
     }
 
@@ -696,11 +682,13 @@ private struct MeetingRow: View {
         }
     }
 
-    /// "2025 Week 14: Purdy Little Liars lost 88.79 to 152.92."
+    /// "2025 Week 6: Hamilton Administration 135.20, Roll Bill 116.88",
+    /// the winner first.
     private var spoken: String {
         let when = m.kind == "regular" ? "Week \(m.week)" : m.label
-        let verb = m.winner == "a" ? "won" : m.winner == "b" ? "lost" : "tied"
-        let line = "\(String(m.year)) \(when): \(m.teamA) \(verb) \(m.aText) to \(m.bText)"
+        let a = "\(m.teamA) \(m.aText)", b = "\(m.teamB) \(m.bText)"
+        var line = "\(String(m.year)) \(when): \(m.winner == "b" ? "\(b), \(a)" : "\(a), \(b)")"
+        if m.winner == nil { line += ", a tie" }
         return m.current ? "\(line). This game" : line
     }
 }
