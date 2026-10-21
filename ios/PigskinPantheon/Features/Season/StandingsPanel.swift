@@ -10,6 +10,8 @@ struct StandingsData: Decodable {
     let hasDivisions: Bool
     let cards: [Table]
     let legend: [LegendKey]
+    /// With What If picks in: what the records rest on.
+    let note: String?
 
     struct Table: Decodable, Identifiable {
         let title: String
@@ -77,23 +79,70 @@ struct StandingsPanel: View {
     let info: SeasonInfo
     let season: Season
     let payload: WeekPayload
+    /// The season's What If, for a week that carries the switch.
+    var whatIf: WhatIfStore? = nil
 
     private var view: String { payload.week == 0 && info.finished ? "regular" : "panel-standings" }
 
     var body: some View {
-        PanelLoader(expression: "Bridge.season.standings(year, week, view)",
-                    arguments: ["year": season.year, "week": payload.week, "view": view],
-                    loadingTitle: "Reading the standings",
-                    failureTitle: "The standings couldn't be read") { (data: StandingsData) in
-            VStack(alignment: .leading, spacing: 14) {
-                ForEach(data.cards) { table in
-                    StandingsTableCard(season: season, table: table, live: data.live, hasDivisions: data.hasDivisions)
-                }
-                if data.live && !data.legend.isEmpty {
-                    StandingsLegendView(keys: data.legend)
+        let call = whatIf?.call("Bridge.season.standings(year, week, view)", arguments)
+            ?? ("Bridge.season.standings(year, week, view)", arguments)
+        VStack(alignment: .leading, spacing: 0) {
+            if let whatIf, view == "panel-standings" {
+                WhatIfCard(season: season, week: payload.week, moves: "standings", whatIf: whatIf)
+            }
+            // A pick redraws the tables in place, each team sliding to its
+            // new place (the rows keep their identity by team).
+            PanelLoader(expression: call.0,
+                        arguments: call.1,
+                        loadingTitle: "Reading the standings",
+                        failureTitle: "The standings couldn't be read",
+                        refresh: .spring(response: 0.55, dampingFraction: 0.86)) { (data: StandingsData) in
+                VStack(alignment: .leading, spacing: 14) {
+                    if let note = data.note {
+                        Text(note)
+                            .font(.footnote)
+                            .foregroundStyle(Theme.ink2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 4)
+                            .transition(.opacity)
+                    }
+                    ForEach(data.cards) { table in
+                        StandingsTableCard(season: season, table: table, live: data.live, hasDivisions: data.hasDivisions)
+                    }
+                    if data.live && !data.legend.isEmpty {
+                        StandingsLegendView(keys: data.legend)
+                    }
                 }
             }
         }
+    }
+
+    private var arguments: [String: Any] { ["year": season.year, "week": payload.week, "view": view] }
+}
+
+/// A row that a pick (or an unpick) has moved washes green as it climbs
+/// and red as it drops, then settles back (the site's shuffleRows).
+private struct RankWash: ViewModifier {
+    let rank: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var tint = Theme.green
+    @State private var moves = 0
+
+    func body(content: Content) -> some View {
+        content
+            .keyframeAnimator(initialValue: 0.0, trigger: moves) { view, strength in
+                view.background(tint.opacity(strength))
+            } keyframes: { _ in
+                CubicKeyframe(0.16, duration: 0.12)
+                LinearKeyframe(0.16, duration: 0.35)
+                CubicKeyframe(0, duration: 1.0)
+            }
+            .onChange(of: rank) { old, new in
+                guard !reduceMotion, let was = Int(old), let now = Int(new), was != now else { return }
+                tint = now < was ? Theme.green : Theme.red
+                moves += 1
+            }
     }
 }
 
@@ -175,6 +224,7 @@ private struct StandingsPhoneRow: View {
         .padding(.leading, 8)
         .padding(.trailing, 10)
         .padding(.vertical, 11)
+        .modifier(RankWash(rank: row.rank))
         .overlay(alignment: .leading) {
             if let rule = row.rule { Rectangle().fill(rule).frame(width: 3) }
         }
@@ -340,6 +390,7 @@ private struct StandingsWideRow: View {
         }
         .padding(.trailing, 14)
         .padding(.vertical, 10)
+        .modifier(RankWash(rank: row.rank))
         .overlay(alignment: .leading) {
             if let rule = row.rule { Rectangle().fill(rule).frame(width: 3) }
         }

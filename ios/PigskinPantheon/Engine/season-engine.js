@@ -116,8 +116,32 @@
       playedWeeks.filter((w) => w <= week).forEach((w) => {
         results[w].forEach(([a, as, b, bs]) => out.push({ week: w, a, as, b, bs }));
       });
+      whatIf.games.forEach((g) => { if (g.week <= week) out.push(g); });
       return out;
     }
+
+    /* What if: a coming week with a winner picked for some of its games,
+       folded into every record while `withPicks` runs, so the standings,
+       seeds, clinch flags and brackets read a picked week as they would a
+       posted one. `open` is that week's games left unpicked, still to be
+       played. Empty the rest of the time; nothing else ever sees a pick. */
+    const NO_PICKS = { week: 0, games: [], open: [] };
+    let whatIf = NO_PICKS;
+    function withPicks(picked, fn) {
+      const saved = whatIf;
+      whatIf = picked;
+      try { return fn(); } finally { whatIf = saved; }
+    }
+    // Whether a picture as of the week has picks in it.
+    const picksBy = (week) => whatIf.week > 0 && whatIf.week <= week;
+    // Some of the picked week's games picked, and some not: those teams
+    // have played a game more than the rest.
+    const partlyPicked = () => whatIf.games.length > 0 && whatIf.open.length > 0;
+
+    /* Which side took a game: above zero for `a`, below for `b`. A picked
+       game names its winner outright, since its scores are each side's
+       season average, not a result. */
+    const edgeOf = (g) => (g.win ? (g.win === g.a ? 1 : -1) : g.as - g.bs);
 
     function blankLine(id) {
       return {
@@ -138,13 +162,14 @@
 
       gamesThrough(week).forEach((g) => {
         const sameDivision = HAS_DIVISIONS && divisionOf(g.a) === divisionOf(g.b);
-        [[g.a, g.as, g.b, g.bs], [g.b, g.bs, g.a, g.as]].forEach(([id, own, oppId, opp]) => {
+        const edge = edgeOf(g);
+        [[g.a, g.as, g.bs, edge], [g.b, g.bs, g.as, -edge]].forEach(([id, own, opp, won]) => {
           const line = stats[id];
           line.gp += 1;
           line.pf += own;
           line.pa += opp;
-          if (own > opp) { line.wins += 1; if (sameDivision) line.divWins += 1; line.form.push("W"); }
-          else if (own < opp) { line.losses += 1; if (sameDivision) line.divLosses += 1; line.form.push("L"); }
+          if (won > 0) { line.wins += 1; if (sameDivision) line.divWins += 1; line.form.push("W"); }
+          else if (won < 0) { line.losses += 1; if (sameDivision) line.divLosses += 1; line.form.push("L"); }
           else { line.ties += 1; if (sameDivision) line.divTies += 1; line.form.push("T"); }
         });
       });
@@ -187,11 +212,19 @@
     }
 
     /* Sleeper's order: record, then points for. Teams level on both are
-       left as Sleeper would leave them, in roster order, and flagged. */
+       left as Sleeper would leave them, in roster order, and flagged. With
+       a week only partly picked, winning percentage comes first, so a game
+       in hand isn't counted as a loss and a team picked to lose doesn't
+       climb on its extra game's points; with every team on the same games
+       that is the same order. */
     function rankIds(ids, stats) {
+      const partly = partlyPicked();
       return ids.slice().sort((a, b) =>
+        (partly ? stats[b].pct - stats[a].pct : 0) ||
         (stats[b].score - stats[a].score) || (stats[b].pf - stats[a].pf) || (teams[a].rosterId - teams[b].rosterId));
     }
+    // Two teams ranked on the tiebreaker: level on record.
+    const levelOn = (p, c) => p.score === c.score && (!partlyPicked() || p.pct === c.pct);
 
     /* Any run of teams level on record inside an ordered race was separated
        on points for, so each of them gets an explanation. */
@@ -202,7 +235,7 @@
       let i = 0;
       while (i < ordered.length) {
         let j = i;
-        while (j + 1 < ordered.length && stats[ordered[j + 1]].score === stats[ordered[i]].score) j += 1;
+        while (j + 1 < ordered.length && levelOn(stats[ordered[j + 1]], stats[ordered[i]])) j += 1;
         if (j > i) {
           const group = ordered.slice(i, j + 1);
           const ladder = group.map((id) => `${nameOf(id)} ${fmt(stats[id].pf)}`).join(", ");
@@ -239,8 +272,13 @@
       for (let w = week + 1; w <= REGULAR_WEEKS; w++) {
         if (startsGame(w) && (schedule[w] || []).some(([a, b]) => a === id || b === id)) n += 1;
       }
+      // A picked week's games left unpicked are still to come.
+      if (picksBy(week)) whatIf.open.forEach(([a, b]) => { if (a === id || b === id) n += 1; });
       return n;
     }
+
+    // A picked game names no median result, so that is still to come too.
+    const medianLeft = (id, week) => (MEDIAN && picksBy(week) && whatIf.games.some((g) => g.a === id || g.b === id) ? 1 : 0);
 
     /* Clinch and elimination flags. Every test here is a *sufficient*
        condition, so a badge is never shown unless it is mathematically
@@ -255,7 +293,8 @@
       const flags = {};
       if (!HAS_PLAYOFFS) return flags;
       const P = PLAYOFF_TEAMS;
-      const seasonOver = week >= REGULAR_WEEKS || TEAM_IDS.every((id) => !gamesLeft(id, week));
+      const seasonOver = (week >= REGULAR_WEEKS || TEAM_IDS.every((id) => !gamesLeft(id, week))) &&
+        TEAM_IDS.every((id) => !medianLeft(id, week) && !(picksBy(week) && gamesLeft(id, week)));
       if (seasonOver) {
         seeds.forEach((id, i) => {
           flags[id] = (BYES ? i < BYES : HAS_DIVISIONS && i < P && leaders.includes(id)) ? "z" : i < P ? "x" : "e";
@@ -266,7 +305,7 @@
       const unit = MEDIAN ? 2 : 1;
       return flagsFromBounds(
         (id) => stats[id].score,
-        (id) => stats[id].score + gamesLeft(id, week) * unit
+        (id) => stats[id].score + gamesLeft(id, week) * unit + medianLeft(id, week)
       );
     }
 
@@ -312,7 +351,9 @@
     /* The whole playoff picture as it stands after the given week. */
     const pictureCache = {};
     function buildPicture(week) {
-      if (pictureCache[week]) return pictureCache[week];
+      // A picture with picks in is worked out fresh: the picks change by the tap.
+      const cached = !picksBy(week);
+      if (cached && pictureCache[week]) return pictureCache[week];
       const stats = computeStats(week);
       const flips = [];
       const reasons = {};
@@ -349,7 +390,7 @@
         firstOut: seeds[PLAYOFF_TEAMS] || null
       };
       result.flags = clinchFlags(week, stats, seeds, leaders);
-      pictureCache[week] = result;
+      if (cached) pictureCache[week] = result;
       return result;
     }
 
@@ -1025,6 +1066,50 @@
     // Played, or part of a two-week game that has been (the week rail).
     const weekDone = (w) => isPlayed(spanEnd(w));
 
+    /* What if: pick the coming week's winners and see the standings and
+       the brackets as they would be. Only the next week to be played can be
+       picked, and only while the regular season lasts. */
+    function pickWeek() {
+      if (FINISHED || !TEAM_IDS.length) return null;
+      for (let w = lastPlayedWeek + 1; w <= REGULAR_WEEKS; w++) {
+        if (startsGame(w) && (schedule[w] || []).length) return w;
+      }
+      return null;
+    }
+    // The week a tab's switch picks: only where the tab is showing the
+    // latest results (a week behind them has its own picture).
+    const whatIfWeekFor = (week) => {
+      const w = pickWeek();
+      return w && week <= REGULAR_WEEKS && asOfWeek(week) === lastPlayedWeek ? w : null;
+    };
+
+    /* The picks as games, for withPicks. `picks` maps a game's place on the
+       week's slate to the team picked to win it. Each side scores its own
+       season average so far, its likeliest score, for the points-for
+       tiebreak; the game counts in the week it is scored. */
+    function picksOf(week, picks) {
+      const stats = computeStats(lastPlayedWeek);
+      const at = spanEnd(week);
+      const games = [], open = [];
+      (schedule[week] || []).forEach(([a, b], i) => {
+        const win = picks ? picks[i] : null;
+        if (win === a || win === b) games.push({ week: at, a, as: stats[a].pfg, b, bs: stats[b].pfg, win });
+        else open.push([a, b]);
+      });
+      return games.length ? { week: at, games, open } : NO_PICKS;
+    }
+
+    /* Everything the picks decide, worked out once per change: the picture
+       as it stands (`base`, null before Week 1) and as it would be with the
+       picks in (`picture`, the same object when nothing is picked). */
+    function whatIfState(week, picks) {
+      const picked = picksOf(week, picks);
+      const base = lastPlayedWeek ? buildPicture(lastPlayedWeek) : null;
+      const count = picked.games.length;
+      const picture = count ? withPicks(picked, () => buildPicture(picked.week)) : base;
+      return { week, asOf: lastPlayedWeek, through: count ? picked.week : lastPlayedWeek, picked, count, total: (schedule[week] || []).length, base, picture };
+    }
+
 
     const boxWeeks = () => model.boxWeeks(SEASON);
     const boxWeekCache = {};
@@ -1035,6 +1120,6 @@
 
     const weeksText = (weeks) => (weeks.length > 1 ? `NFL Weeks ${weeks[0]}–${weeks[weeks.length - 1]}` : `NFL Week ${weeks[0]}`);
 
-    return { SEASON, REGULAR_WEEKS, PLAYOFF_TEAMS, BYES, MEDIAN, HAS_PLAYOFFS, HAS_DIVISIONS, WB_ROUNDS, LB_ROUNDS, LAST_WEEK, DIVISION_NAMES, divisionOrder, latestWeek, lastPlayedWeek, CLINCH_KEY, TIE_RULE, PRIOR, HAS_BRACKET, SEASON_VIEWS, HOME_VIEW, state, computeStats, buildPicture, playoffScenarios, gamesBack, gamesLeft, gamesOfWeek, powerRankings, allPlay, weekRecap, recapText, strengthOfSchedule, viewsFor, asOfWeek, isPlayed, weekDone, playoffWeekPlayed, lastPlayoffWeek, weeksText, boxWeek, postOf };
+    return { SEASON, REGULAR_WEEKS, PLAYOFF_TEAMS, BYES, MEDIAN, HAS_PLAYOFFS, HAS_DIVISIONS, WB_ROUNDS, LB_ROUNDS, LAST_WEEK, DIVISION_NAMES, divisionOrder, latestWeek, lastPlayedWeek, CLINCH_KEY, TIE_RULE, PRIOR, HAS_BRACKET, SEASON_VIEWS, HOME_VIEW, state, computeStats, buildPicture, playoffScenarios, gamesBack, gamesLeft, gamesOfWeek, powerRankings, allPlay, weekRecap, recapText, strengthOfSchedule, viewsFor, asOfWeek, isPlayed, weekDone, playoffWeekPlayed, lastPlayoffWeek, weeksText, boxWeek, postOf, spanEnd, withPicks, pickWeek, whatIfWeekFor, picksOf, whatIfState };
   };
 })();

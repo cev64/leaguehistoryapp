@@ -115,13 +115,26 @@ struct PlayoffPicturePanel: View {
     let info: SeasonInfo
     let season: Season
     let payload: WeekPayload
+    /// The season's What If, for a week that carries the switch.
+    var whatIf: WhatIfStore? = nil
 
     var body: some View {
-        PanelLoader(expression: "Bridge.season.bracket(year, week, view)",
-                    arguments: ["year": season.year, "week": payload.week, "view": "panel-picture"],
-                    loadingTitle: "Drawing the playoff picture",
-                    failureTitle: "The playoff picture couldn't be drawn") { (data: BracketData) in
-            BracketStack(season: season, data: data, median: info.median)
+        let arguments: [String: Any] = ["year": season.year, "week": payload.week, "view": "panel-picture"]
+        let call = whatIf?.call("Bridge.season.bracket(year, week, view)", arguments)
+            ?? ("Bridge.season.bracket(year, week, view)", arguments)
+        VStack(alignment: .leading, spacing: 0) {
+            if let whatIf {
+                WhatIfCard(season: season, week: payload.week, moves: "brackets", whatIf: whatIf)
+            }
+            // A pick redraws both brackets in place: the teams cross-fade
+            // into their new slots rather than the panel reloading.
+            PanelLoader(expression: call.0,
+                        arguments: call.1,
+                        loadingTitle: "Drawing the playoff picture",
+                        failureTitle: "The playoff picture couldn't be drawn",
+                        refresh: .smooth(duration: 0.4)) { (data: BracketData) in
+                BracketStack(season: season, data: data, median: info.median)
+            }
         }
     }
 }

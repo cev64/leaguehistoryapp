@@ -4066,6 +4066,217 @@
       .rc-vs em { font-size: 11px; }
       .rc-foot, .rc-more { padding-left: 12px; padding-right: 12px; }
     }
+
+    /* ---- What If: pick the coming week's winners ----------------------
+       A slim card above the standings and the brackets with a switch; on,
+       it slides open the week's games. A pick is a matchup box like the
+       Matchups tab's: the side picked to win is tinted and ruled in blue,
+       the other side steps back. */
+    .wi-bar { touch-action: manipulation; }
+    .wi-bar-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 56px;
+      padding: 12px 16px;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wi-bar-head .division-chip { flex: 0 0 auto; background: var(--accent); }
+    .wi-bar-copy { flex: 1 1 auto; min-width: 0; display: grid; gap: 3px; }
+    .wi-bar-copy strong { font-family: var(--font-display); font-size: 20px; font-weight: 700; letter-spacing: .02em; line-height: 1; text-transform: uppercase; color: var(--ink); }
+    .wi-bar-copy span { color: var(--ink-3); font-size: 12px; font-weight: 500; line-height: 1.35; }
+
+    .wi-switch {
+      position: relative;
+      flex: 0 0 auto;
+      width: 46px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: var(--line-2);
+      transition: background .25s var(--ease);
+    }
+    .wi-knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(16, 24, 40, .22);
+      transition: transform .4s var(--spring), width .2s var(--ease);
+    }
+    .wi-bar.on .wi-switch { background: var(--accent); }
+    .wi-bar.on .wi-knob { transform: translateX(18px); }
+    .wi-switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .wi-bar-head:active .wi-knob { width: 25px; }
+    .wi-bar.on .wi-bar-head:active .wi-knob { transform: translateX(15px); }
+    @media (hover: hover) { .wi-bar-head:hover .wi-switch { box-shadow: 0 0 0 4px rgba(23, 105, 224, .1); } }
+
+    .wi-drawer { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .45s var(--ease); }
+    .wi-bar.on .wi-drawer { grid-template-rows: 1fr; }
+    .wi-drawer-inner { min-height: 0; min-width: 0; overflow: hidden; }
+    .wi-bar.on .wi-drawer-inner { border-top: 1px solid var(--line); }
+
+    /* Phones and narrow windows swipe through the games, the next card
+       peeking in; wide ones lay them all out (see fitWhatIfGames). */
+    .wi-games {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px 4px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding: 0 16px;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .wi-games::-webkit-scrollbar { display: none; }
+    .wi-game { flex: 0 0 min(236px, 78%); scroll-snap-align: start; }
+    @media (min-width: 701px) {
+      .wi-games {
+        display: grid;
+        grid-template-columns: repeat(var(--wi-cols, auto-fill), minmax(160px, 1fr));
+        overflow: visible;
+        scroll-snap-type: none;
+      }
+    }
+
+    .wi-game {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden;
+      container-type: inline-size;
+    }
+    .wi-game-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink-3);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .wi-kind { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wi-state { flex: 0 0 auto; font-weight: 600; letter-spacing: .06em; transition: color .2s ease; }
+    .wi-state.done { color: var(--accent-ink); }
+
+    .wi-side {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 52px;
+      padding: 7px 10px;
+      border: 0;
+      background: #fff;
+      color: var(--ink);
+      text-align: left;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .18s ease, box-shadow .25s var(--ease);
+    }
+    .wi-side + .wi-side { border-top: 1px solid var(--line); }
+    .wi-side:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+    @media (hover: hover) { .wi-side:hover { background: var(--surface-2); } }
+    .wi-side:active { background: var(--surface-3); }
+
+    .wi-side .mini-badge { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 7px; overflow: hidden; transition: opacity .2s ease, filter .2s ease; }
+    .wi-side .mini-badge .team-logo { width: 100%; height: 100%; object-fit: cover; }
+    .wi-team { flex: 1 1 auto; min-width: 0; display: grid; gap: 3px; }
+    .wi-team strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; letter-spacing: -.005em; transition: color .2s ease; }
+    .wi-meta { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--ink-3); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .wi-rec { white-space: nowrap; }
+
+    .wi-seed { display: inline-flex; align-items: center; gap: 3px; }
+    body:not(#_) .wi-seed .seed-tag { min-width: 0; padding: 1px 5px; font-size: 9.5px; }
+    .wi-seed.bump, .wi-rec.bump { animation: wiBump .5s var(--spring); }
+    @keyframes wiBump { 0% { transform: scale(.7); opacity: .3; } 100% { transform: none; opacity: 1; } }
+    .wi-rec.moved { color: var(--accent-ink); font-weight: 700; }
+
+    .wi-check {
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--line-2);
+      background: #fff;
+      transition: background .2s ease, border-color .2s ease;
+    }
+    .wi-check svg { width: 12px; height: 12px; fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 14; stroke-dashoffset: 14; transition: stroke-dashoffset .25s var(--ease); }
+    /* A narrow card: the tint and the rule say which side is picked, and
+       the name gets the check's room. */
+    @container (max-width: 189px) { .wi-check { display: none; } .wi-side { padding-right: 8px; } }
+
+    .wi-side.picked { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+    @media (hover: hover) { .wi-side.picked:hover { background: #e3edff; } }
+    .wi-side.picked .wi-team strong { color: var(--accent-ink); font-weight: 700; }
+    .wi-side.picked .wi-check { background: var(--accent); border-color: var(--accent); animation: wiCheck .4s var(--spring); }
+    .wi-side.picked .wi-check svg { stroke-dashoffset: 0; transition-delay: .06s; }
+    @keyframes wiCheck { 0% { transform: scale(.6); } 100% { transform: none; } }
+    .wi-side.passed .wi-team strong { color: var(--ink-2); font-weight: 500; }
+    .wi-side.passed .mini-badge { opacity: .5; filter: saturate(.6); }
+    .wi-side.passed .wi-check { border-color: var(--line); }
+
+    .wi-move { font-size: 9px; line-height: 1; }
+    .wi-move.up { color: #15803d; }
+    .wi-move.down { color: #dc2626; }
+
+    .wi-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 16px 12px;
+    }
+    .wi-count { color: var(--ink-3); font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .wi-btn {
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid var(--line-2);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 600;
+      transition: background .15s ease, opacity .15s ease, transform .18s var(--ease);
+    }
+    @media (pointer: coarse) { .wi-btn { min-height: 44px; } }
+    .wi-btn:active:not(:disabled) { transform: scale(.96); }
+    .wi-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .wi-btn:disabled { opacity: .45; cursor: default; }
+    @media (hover: hover) { .wi-btn:hover:not(:disabled) { background: var(--surface-2); } }
+
+    /* With picks in, the standings say what their numbers rest on. */
+    .wi-note { margin: 0; padding: 0 4px; color: var(--ink-2); font-size: 12.5px; line-height: 1.45; }
+    /* A bracket redrawn by a pick settles in rather than snapping. */
+    .wi-redraw .matchup-row.projected { animation: wiSettle .45s var(--ease); }
+    @keyframes wiSettle { from { opacity: .35; } to { opacity: 1; } }
+
+    /* The Matchups tab's way in. */
+    [data-goto-whatif] { min-height: 44px; text-align: left; touch-action: manipulation; }
+    [data-goto-whatif]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 4px; }
+
+    @media (max-width: 700px) {
+      .wi-bar-head { padding: 10px 12px; gap: 10px; }
+      .wi-bar-copy strong { font-size: 18px; }
+      .wi-bar-copy span { font-size: 11.5px; }
+      .wi-games { padding: 10px 12px 2px; scroll-padding: 0 12px; }
+      .wi-foot { padding: 8px 12px 10px; }
+      .wi-note { font-size: 12px; }
+    }
   </style>
   <link rel="stylesheet" href="ui.css" />
   <link rel="stylesheet" href="design.css" />
@@ -4375,8 +4586,32 @@
       playedWeeks.filter((w) => w <= week).forEach((w) => {
         results[w].forEach(([a, as, b, bs]) => out.push({ week: w, a, as, b, bs }));
       });
+      whatIf.games.forEach((g) => { if (g.week <= week) out.push(g); });
       return out;
     }
+
+    /* What if: a coming week with a winner picked for some of its games,
+       folded into every record while `withPicks` runs, so the standings,
+       seeds, clinch flags and brackets read a picked week as they would a
+       posted one. `open` is that week's games left unpicked, still to be
+       played. Empty the rest of the time; nothing else ever sees a pick. */
+    const NO_PICKS = { week: 0, games: [], open: [] };
+    let whatIf = NO_PICKS;
+    function withPicks(picked, fn) {
+      const saved = whatIf;
+      whatIf = picked;
+      try { return fn(); } finally { whatIf = saved; }
+    }
+    // Whether a picture as of the week has picks in it.
+    const picksBy = (week) => whatIf.week > 0 && whatIf.week <= week;
+    // Some of the picked week's games picked, and some not: those teams
+    // have played a game more than the rest.
+    const partlyPicked = () => whatIf.games.length > 0 && whatIf.open.length > 0;
+
+    /* Which side took a game: above zero for `a`, below for `b`. A picked
+       game names its winner outright, since its scores are each side's
+       season average, not a result. */
+    const edgeOf = (g) => (g.win ? (g.win === g.a ? 1 : -1) : g.as - g.bs);
 
     function blankLine(id) {
       return {
@@ -4397,13 +4632,14 @@
 
       gamesThrough(week).forEach((g) => {
         const sameDivision = HAS_DIVISIONS && divisionOf(g.a) === divisionOf(g.b);
-        [[g.a, g.as, g.b, g.bs], [g.b, g.bs, g.a, g.as]].forEach(([id, own, oppId, opp]) => {
+        const edge = edgeOf(g);
+        [[g.a, g.as, g.bs, edge], [g.b, g.bs, g.as, -edge]].forEach(([id, own, opp, won]) => {
           const line = stats[id];
           line.gp += 1;
           line.pf += own;
           line.pa += opp;
-          if (own > opp) { line.wins += 1; if (sameDivision) line.divWins += 1; line.form.push("W"); }
-          else if (own < opp) { line.losses += 1; if (sameDivision) line.divLosses += 1; line.form.push("L"); }
+          if (won > 0) { line.wins += 1; if (sameDivision) line.divWins += 1; line.form.push("W"); }
+          else if (won < 0) { line.losses += 1; if (sameDivision) line.divLosses += 1; line.form.push("L"); }
           else { line.ties += 1; if (sameDivision) line.divTies += 1; line.form.push("T"); }
         });
       });
@@ -4446,11 +4682,19 @@
     }
 
     /* Sleeper's order: record, then points for. Teams level on both are
-       left as Sleeper would leave them, in roster order, and flagged. */
+       left as Sleeper would leave them, in roster order, and flagged. With
+       a week only partly picked, winning percentage comes first, so a game
+       in hand isn't counted as a loss and a team picked to lose doesn't
+       climb on its extra game's points; with every team on the same games
+       that is the same order. */
     function rankIds(ids, stats) {
+      const partly = partlyPicked();
       return ids.slice().sort((a, b) =>
+        (partly ? stats[b].pct - stats[a].pct : 0) ||
         (stats[b].score - stats[a].score) || (stats[b].pf - stats[a].pf) || (teams[a].rosterId - teams[b].rosterId));
     }
+    // Two teams ranked on the tiebreaker: level on record.
+    const levelOn = (p, c) => p.score === c.score && (!partlyPicked() || p.pct === c.pct);
 
     /* Any run of teams level on record inside an ordered race was separated
        on points for, so each of them gets an explanation. */
@@ -4461,7 +4705,7 @@
       let i = 0;
       while (i < ordered.length) {
         let j = i;
-        while (j + 1 < ordered.length && stats[ordered[j + 1]].score === stats[ordered[i]].score) j += 1;
+        while (j + 1 < ordered.length && levelOn(stats[ordered[j + 1]], stats[ordered[i]])) j += 1;
         if (j > i) {
           const group = ordered.slice(i, j + 1);
           const ladder = group.map((id) => `${nameOf(id)} ${fmt(stats[id].pf)}`).join(", ");
@@ -4498,8 +4742,13 @@
       for (let w = week + 1; w <= REGULAR_WEEKS; w++) {
         if (startsGame(w) && (schedule[w] || []).some(([a, b]) => a === id || b === id)) n += 1;
       }
+      // A picked week's games left unpicked are still to come.
+      if (picksBy(week)) whatIf.open.forEach(([a, b]) => { if (a === id || b === id) n += 1; });
       return n;
     }
+
+    // A picked game names no median result, so that is still to come too.
+    const medianLeft = (id, week) => (MEDIAN && picksBy(week) && whatIf.games.some((g) => g.a === id || g.b === id) ? 1 : 0);
 
     /* Clinch and elimination flags. Every test here is a *sufficient*
        condition, so a badge is never shown unless it is mathematically
@@ -4514,7 +4763,8 @@
       const flags = {};
       if (!HAS_PLAYOFFS) return flags;
       const P = PLAYOFF_TEAMS;
-      const seasonOver = week >= REGULAR_WEEKS || TEAM_IDS.every((id) => !gamesLeft(id, week));
+      const seasonOver = (week >= REGULAR_WEEKS || TEAM_IDS.every((id) => !gamesLeft(id, week))) &&
+        TEAM_IDS.every((id) => !medianLeft(id, week) && !(picksBy(week) && gamesLeft(id, week)));
       if (seasonOver) {
         seeds.forEach((id, i) => {
           flags[id] = (BYES ? i < BYES : HAS_DIVISIONS && i < P && leaders.includes(id)) ? "z" : i < P ? "x" : "e";
@@ -4525,7 +4775,7 @@
       const unit = MEDIAN ? 2 : 1;
       return flagsFromBounds(
         (id) => stats[id].score,
-        (id) => stats[id].score + gamesLeft(id, week) * unit
+        (id) => stats[id].score + gamesLeft(id, week) * unit + medianLeft(id, week)
       );
     }
 
@@ -4571,7 +4821,9 @@
     /* The whole playoff picture as it stands after the given week. */
     const pictureCache = {};
     function buildPicture(week) {
-      if (pictureCache[week]) return pictureCache[week];
+      // A picture with picks in is worked out fresh: the picks change by the tap.
+      const cached = !picksBy(week);
+      if (cached && pictureCache[week]) return pictureCache[week];
       const stats = computeStats(week);
       const flips = [];
       const reasons = {};
@@ -4608,7 +4860,7 @@
         firstOut: seeds[PLAYOFF_TEAMS] || null
       };
       result.flags = clinchFlags(week, stats, seeds, leaders);
-      pictureCache[week] = result;
+      if (cached) pictureCache[week] = result;
       return result;
     }
 
@@ -5745,6 +5997,50 @@
     // Played, or part of a two-week game that has been (the week rail).
     const weekDone = (w) => isPlayed(spanEnd(w));
 
+    /* What if: pick the coming week's winners and see the standings and
+       the brackets as they would be. Only the next week to be played can be
+       picked, and only while the regular season lasts. */
+    function pickWeek() {
+      if (FINISHED || !TEAM_IDS.length) return null;
+      for (let w = lastPlayedWeek + 1; w <= REGULAR_WEEKS; w++) {
+        if (startsGame(w) && (schedule[w] || []).length) return w;
+      }
+      return null;
+    }
+    // The week a tab's switch picks: only where the tab is showing the
+    // latest results (a week behind them has its own picture).
+    const whatIfWeekFor = (week) => {
+      const w = pickWeek();
+      return w && week <= REGULAR_WEEKS && asOfWeek(week) === lastPlayedWeek ? w : null;
+    };
+
+    /* The picks as games, for withPicks. `picks` maps a game's place on the
+       week's slate to the team picked to win it. Each side scores its own
+       season average so far, its likeliest score, for the points-for
+       tiebreak; the game counts in the week it is scored. */
+    function picksOf(week, picks) {
+      const stats = computeStats(lastPlayedWeek);
+      const at = spanEnd(week);
+      const games = [], open = [];
+      (schedule[week] || []).forEach(([a, b], i) => {
+        const win = picks ? picks[i] : null;
+        if (win === a || win === b) games.push({ week: at, a, as: stats[a].pfg, b, bs: stats[b].pfg, win });
+        else open.push([a, b]);
+      });
+      return games.length ? { week: at, games, open } : NO_PICKS;
+    }
+
+    /* Everything the picks decide, worked out once per change: the picture
+       as it stands (`base`, null before Week 1) and as it would be with the
+       picks in (`picture`, the same object when nothing is picked). */
+    function whatIfState(week, picks) {
+      const picked = picksOf(week, picks);
+      const base = lastPlayedWeek ? buildPicture(lastPlayedWeek) : null;
+      const count = picked.games.length;
+      const picture = count ? withPicks(picked, () => buildPicture(picked.week)) : base;
+      return { week, asOf: lastPlayedWeek, through: count ? picked.week : lastPlayedWeek, picked, count, total: (schedule[week] || []).length, base, picture };
+    }
+
     /* =================================================================
        SHARED PIECES
        ================================================================= */
@@ -6168,6 +6464,9 @@
                 <div class="pg-side">${miniTeam(b)}<span class="pg-name">${nameOf(b)}</span><span class="pg-rec">${stats[b].record}</span></div>
               </div>`).join("")}
           </div>
+          ${whatIfWeekFor(week) === week ? `<div class="recap-bar">
+            <button type="button" class="recap-link" data-goto-whatif>Pick the winners and watch the ${HAS_PLAYOFFS ? "brackets" : "standings"} move →</button>
+          </div>` : ""}
         </article>
         </div>`;
     }
@@ -6231,7 +6530,11 @@
       }).join("");
     }
 
-    function renderStandingsPanel(week) {
+    function renderStandingsPanel(week, { whatIf = true } = {}) {
+      // From the latest results on, the tab carries the What If switch.
+      const pick = whatIf ? whatIfWeekFor(week) : null;
+      if (pick) { renderWhatIfPanel("panel-standings", pick); return; }
+
       const asOf = asOfWeek(week);
       const picture = buildPicture(asOf);
       document.getElementById("panel-standings").innerHTML = `
@@ -6821,6 +7124,10 @@
       const asOf = asOfWeek(week);
       const panel = document.getElementById("panel-picture");
 
+      // From the latest results on, the tab carries the What If switch.
+      const pick = HAS_PLAYOFFS ? whatIfWeekFor(week) : null;
+      if (pick) { renderWhatIfPanel("panel-picture", pick); return; }
+
       if (asOf === 0 || !HAS_PLAYOFFS) {
         panel.innerHTML = `
           <div class="panel-stack">
@@ -6884,6 +7191,315 @@
       document.getElementById("bracket").innerHTML = `${winnersCard(ctx, { note: "", label: `${SEASON} winner's bracket` })}${losersCard(ctx, { note: "" })}`;
       markBracketBoxScores();
     }
+
+    /* =================================================================
+       WHAT IF — pick the coming week's winners
+
+       A slim card with a switch on the Standings and Playoffs tabs, from
+       the latest results on. Switched on, it slides open the week's games;
+       a tap on a side picks it to win, and the tables re-rank (each row
+       sliding from its old place) or both brackets redraw as they would
+       with the picks in. The engine does the work (whatIfState, withPicks);
+       this is the switch, the pick cards and the two redraws. The bar is
+       built once per panel build and synced in place after that, so its
+       drawer and its cards animate without being interrupted; only the
+       content under it is redrawn on a tap. Picks carry between the two
+       tabs and are kept on this device, per league and season, until the
+       week is played.
+       ================================================================= */
+
+    const WHATIF_KEY = `lh-whatif-${model.leagueId || League.param("league") || "league"}-${SEASON}`;
+    let whatIfOn = false;
+    let picks = {};            // slate index → the team picked to win
+    let picksWeek = null;      // the week the picks are for
+
+    // Saved as { on, week, picks }. Picks for a week that has since been
+    // played are dropped; the rest are checked against the week's slate.
+    function loadWhatIf(week) {
+      if (picksWeek === week) return;
+      picksWeek = week;
+      picks = {};
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(WHATIF_KEY) || "null"); } catch (_) { /* storage blocked: the picks last for this visit */ }
+      if (!saved || typeof saved !== "object") return;
+      whatIfOn = saved.on === true;
+      if (saved.week === week && saved.picks && typeof saved.picks === "object") {
+        (schedule[week] || []).forEach(([a, b], i) => {
+          const id = saved.picks[i];
+          if (id === a || id === b) picks[i] = id;
+        });
+      }
+      if (saved.week !== week || Object.keys(picks).length !== Object.keys(saved.picks || {}).length) saveWhatIf();
+    }
+
+    function saveWhatIf() {
+      try {
+        if (!whatIfOn && !Object.keys(picks).length) localStorage.removeItem(WHATIF_KEY);
+        else localStorage.setItem(WHATIF_KEY, JSON.stringify({ on: whatIfOn, week: picksWeek, picks }));
+      } catch (_) { /* storage blocked */ }
+    }
+
+    function setWhatIfOn(on) {
+      whatIfOn = on;
+      saveWhatIf();
+    }
+
+    // The picks the tabs read: none while the switch is off (they are kept,
+    // and come back when it is turned on again).
+    const whatIfNow = () => whatIfState(picksWeek, whatIfOn ? picks : null);
+
+    /* An arrow beside a seed that a pick has moved, pointing the way it
+       went. Seeds here are one ordered list, so up is an earlier place. */
+    function seedMoveTag(base, picture, id) {
+      if (!base || !picture || base === picture) return "";
+      const was = base.seedLabels[id], now = picture.seedLabels[id];
+      if (!was || !now || was.chip === now.chip) return "";
+      const up = picture.seeds.indexOf(id) < base.seeds.indexOf(id);
+      return `<span class="wi-move ${up ? "up" : "down"}" title="Was ${was.chip}" aria-hidden="true">${up ? "▲" : "▼"}</span>`;
+    }
+
+    const CHECK_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.6 8.3 6.6 11.3 12.4 5"/></svg>';
+
+    /* The switch, and the week's games it opens. Each game is a matchup box
+       like the Matchups tab's: the side picked to win is tinted and ruled in
+       blue, the other side steps back. */
+    function whatIfBar(week, moves) {
+      const stats = computeStats(lastPlayedWeek);
+      const slate = schedule[week] || [];
+      const side = (id, i) => `
+        <button type="button" class="wi-side" data-pick="${i}" data-id="${id}" aria-pressed="false">
+          ${miniTeam(id)}
+          <span class="wi-team"><strong>${nameOf(id)}</strong><span class="wi-meta"><span class="wi-rec">${stats[id].record}</span><span class="wi-seed"></span></span></span>
+          <span class="wi-check">${CHECK_ICON}</span>
+        </button>`;
+      const game = ([a, b], i) => {
+        const kind = HAS_DIVISIONS
+          ? (divisionOf(a) === divisionOf(b) ? esc(divisionOf(a)) : "Cross-division")
+          : `Game ${i + 1}`;
+        return `<div class="wi-game" role="group" aria-label="${nameOf(a)} versus ${nameOf(b)}">
+          <div class="wi-game-head"><span class="wi-kind">${kind}</span><span class="wi-state" data-state="${i}">Pick</span></div>
+          ${side(a, i)}${side(b, i)}
+        </div>`;
+      };
+      return `
+        <section class="card wi-bar${whatIfOn ? " on" : ""}" aria-label="What if">
+          <div class="wi-bar-head" data-wi="toggle">
+            <span class="division-chip">${chipMark("versus")}</span>
+            <span class="wi-bar-copy"><strong>What If</strong><span>Pick the Week ${week} winners and watch the ${moves} move</span></span>
+            <button type="button" class="wi-switch" role="switch" aria-checked="${whatIfOn}" aria-label="What if: pick the Week ${week} winners"><span class="wi-knob"></span></button>
+          </div>
+          <div class="wi-drawer"${whatIfOn ? "" : " inert"}>
+            <div class="wi-drawer-inner">
+              <div class="wi-games" style="--wi-n:${slate.length}">${slate.map(game).join("")}</div>
+              <div class="wi-foot">
+                <span class="wi-count" aria-live="polite"></span>
+                <button type="button" class="wi-btn" data-wi="clear">Clear picks</button>
+              </div>
+            </div>
+          </div>
+        </section>`;
+    }
+
+    // Replays a one-shot animation class on an element.
+    function replay(el, cls) {
+      el.classList.remove(cls);
+      void el.offsetWidth;
+      el.classList.add(cls);
+    }
+
+    /* The switch, the drawer it opens and the pick buttons, each carrying
+       its team's record and where it would now be seeded. */
+    function syncWhatIfBar(bar, { picture, base, count, total }, first) {
+      if (!bar) return;
+      bar.classList.toggle("on", whatIfOn);
+      bar.querySelector(".wi-switch").setAttribute("aria-checked", String(whatIfOn));
+      bar.querySelector(".wi-drawer").inert = !whatIfOn;
+      bar.querySelectorAll(".wi-side").forEach((btn) => {
+        const i = btn.dataset.pick, id = btn.dataset.id;
+        const picked = picks[i] === id;
+        btn.classList.toggle("picked", picked);
+        btn.classList.toggle("passed", Boolean(picks[i]) && !picked);
+        btn.setAttribute("aria-pressed", String(picked));
+        const label = picture && picture.seedLabels[id];
+        const record = picture ? picture.stats[id].record : "0–0";
+        btn.setAttribute("aria-label", `${plain(id)}, ${record}, ${picked ? "picked to win" : "pick to win"}${label ? `, ${label.note}` : ""}`);
+        // The record on the card counts the picks, as the tables do.
+        const rec = btn.querySelector(".wi-rec");
+        if (rec.textContent !== record) {
+          rec.textContent = record;
+          if (!first) replay(rec, "bump");
+        }
+        rec.classList.toggle("moved", Boolean(base) && picture !== base && base.stats[id].record !== record);
+        const seed = btn.querySelector(".wi-seed");
+        const html = picture ? seedTag(picture, id) + seedMoveTag(base, picture, id) : "";
+        if (seed.innerHTML !== html) {
+          seed.innerHTML = html;
+          if (!first) replay(seed, "bump");
+        }
+      });
+      bar.querySelectorAll(".wi-state").forEach((el) => {
+        const done = Boolean(picks[el.dataset.state]);
+        el.textContent = done ? "Picked" : "Pick";
+        el.classList.toggle("done", done);
+      });
+      bar.querySelector(".wi-count").textContent = `${count} of ${total} picked`;
+      bar.querySelector('[data-wi="clear"]').disabled = !Object.keys(picks).length;
+    }
+
+    // The Standings tab: the tables with the picks in, every row sliding
+    // from its old place.
+    function drawWhatIfStandings(area, s, first) {
+      const { week, count, total, through, picked, picture } = s;
+      const before = first ? null : UI.measureRows(area);
+      area.innerHTML = withPicks(picked, () => {
+        const note = count
+          ? `<p class="wi-note">Records include your ${count === total ? "" : `${count} `}Week ${week} pick${count === 1 ? "" : "s"}. Points for and against add each team's season scoring average for a picked game.</p>`
+          : "";
+        return `${note}
+          <div class="division-grid">${standingsCards(through, count ? "wi" : `w${through}`)}</div>
+          ${through > 0 && picture ? standingsLegend(picture) : ""}`;
+      });
+      if (before) UI.shuffleRows(area, before);
+    }
+
+    // The Playoffs tab: both brackets, redrawn from the picked standings.
+    function drawWhatIfPicture(area, s, first) {
+      const { week, asOf, count, through, picked } = s;
+      if (!through) {
+        area.innerHTML = `${emptyState("The bracket opens after Week 1", playoffFormatText())}${formatCard()}`;
+        return;
+      }
+      area.innerHTML = withPicks(picked, () => {
+        const picture = buildPicture(through);
+        const note = count ? `With your Week ${week} picks` : through >= REGULAR_WEEKS ? "Final seeding" : `Projected · through Week ${through}`;
+        const ctx = bracketContext("projected", through);
+        // Before Week 1 every team is level, so there is no coin flip to note.
+        const flipNote = asOf && picture.flips.length
+          ? `<div class="tag-row" style="padding:0">${picture.flips.map(([a, b]) =>
+              `<span class="rule-tag flip">Level on record and points · ${nameOf(a)} / ${nameOf(b)}</span>`).join("")}</div>`
+          : "";
+        // What's at stake is about this same week, so it steps aside while
+        // the week is picked.
+        const stake = !count && !FINISHED ? scenarioCard(asOf) : "";
+        return `${stake}
+          ${winnersCard(ctx, { note, label: count ? `Winner's bracket with your Week ${week} picks` : "Projected winner's bracket" })}
+          ${flipNote}
+          ${losersCard(ctx, { note })}`;
+      });
+      updateBracketNameAlignment();
+      if (!first && whatIfOn) replay(area, "wi-redraw");
+    }
+
+    const WHATIF_VIEWS = {
+      "panel-standings": { area: ".wi-standings", draw: drawWhatIfStandings, render: (w) => renderStandingsPanel(w), moves: "standings" },
+      "panel-picture": { area: ".wi-picture", draw: drawWhatIfPicture, render: (w) => renderPicturePanel(w), moves: "brackets" },
+    };
+
+    /* Wide screens lay the games out as a grid rather than a swipe row:
+       as many across as fit, then evened out, so 5 games read 5 across or
+       3 + 2, never 4 + 1. */
+    const WI_CARD_MIN = 160, WI_GAP = 8;
+    function fitWhatIfGames(row) {
+      const n = row.children.length;
+      const cs = getComputedStyle(row);
+      const width = row.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      if (!n || width <= 0) return;
+      const fit = Math.max(1, Math.floor((width + WI_GAP) / (WI_CARD_MIN + WI_GAP)));
+      const rows = Math.ceil(n / fit);
+      row.style.setProperty("--wi-cols", String(Math.ceil(n / rows)));
+    }
+    const wiSizer = window.ResizeObserver
+      ? new ResizeObserver((entries) => entries.forEach((e) => fitWhatIfGames(e.target)))
+      : null;
+    const wiSized = {};
+    // Without ResizeObserver, the grid falls back on CSS (auto-fill) and is
+    // evened out whenever the window changes size.
+    if (!wiSizer) window.addEventListener("resize", () => Object.values(wiSized).forEach((row) => { if (row.isConnected) fitWhatIfGames(row); }));
+
+    // A tab with the switch: the bar, and the area under it it redraws.
+    function renderWhatIfPanel(view, week) {
+      loadWhatIf(week);
+      const panel = document.getElementById(view);
+      const tab = WHATIF_VIEWS[view];
+      panel.innerHTML = `
+        <div class="panel-stack">
+          ${whatIfBar(week, tab.moves)}
+          <div class="panel-stack ${tab.area.slice(1)}"></div>
+        </div>`;
+      const row = panel.querySelector(".wi-games");
+      if (wiSizer) {
+        if (wiSized[view]) wiSizer.unobserve(wiSized[view]);
+        wiSizer.observe(row);
+      }
+      wiSized[view] = row;
+      updateWhatIf({ first: true, view });
+    }
+
+    /* Redraw the tab the change was made on. The other tab that carries
+       the switch is rebuilt the next time it is opened, so the picks follow
+       from one to the other. */
+    function updateWhatIf({ first = false, view = state.view } = {}) {
+      const tab = WHATIF_VIEWS[view];
+      const panel = tab && document.getElementById(view);
+      const area = panel && panel.querySelector(tab.area);
+      if (!area) return;
+      const s = whatIfNow();
+      // A redraw slides and settles in place; the view's own entrance (its
+      // cards rising in) is for opening the tab, not for a tap.
+      if (!first) panel.classList.remove("panel-in");
+      syncWhatIfBar(panel.querySelector(".wi-bar"), s, first);
+      tab.draw(area, s, first);
+      if (first) return;
+      const shown = state.week;
+      Object.keys(WHATIF_VIEWS).forEach((other) => {
+        if (other === view || !document.querySelector(`#${other} .wi-bar`)) return;
+        pendingPanels[other] = () => WHATIF_VIEWS[other].render(shown);
+      });
+    }
+
+    document.addEventListener("click", (event) => {
+      const pick = event.target.closest(".wi-side[data-pick]");
+      if (pick) {
+        const i = pick.dataset.pick, id = pick.dataset.id;
+        if (picks[i] === id) delete picks[i]; else picks[i] = id;
+        saveWhatIf();
+        UI.haptic("tap");
+        updateWhatIf();
+        return;
+      }
+      const action = event.target.closest("[data-wi]");
+      if (action && action.dataset.wi === "toggle") {
+        setWhatIfOn(!whatIfOn);
+        UI.haptic("tap");
+        updateWhatIf();
+        return;
+      }
+      if (action && action.dataset.wi === "clear") {
+        picks = {};
+        saveWhatIf();
+        UI.haptic("tap");
+        updateWhatIf();
+        return;
+      }
+      // The Matchups tab's way in: the Playoffs tab (or the Standings, in a
+      // league without playoffs) with the switch on.
+      const go = event.target.closest("[data-goto-whatif]");
+      if (go) {
+        const week = whatIfWeekFor(state.week);
+        const view = HAS_PLAYOFFS ? "panel-picture" : "panel-standings";
+        if (!week || !viewsFor(state.week).some((v) => v.id === view)) return;
+        loadWhatIf(week);
+        setWhatIfOn(true);
+        UI.haptic("tap");
+        const shown = state.week;
+        Object.keys(WHATIF_VIEWS).forEach((id) => { pendingPanels[id] = () => WHATIF_VIEWS[id].render(shown); });
+        SeasonNav.toTop();
+        state.view = view;
+        renderViewTabs();
+        showActivePanel();
+        writeHash();
+      }
+    });
 
     /* =================================================================
        BOX SCORES
@@ -7417,7 +8033,7 @@
       } else if (week > REGULAR_WEEKS) {
         pendingPanels = {
           "panel-playoffs": () => renderPlayoffPanel(week),
-          "panel-standings": () => renderStandingsPanel(REGULAR_WEEKS),
+          "panel-standings": () => renderStandingsPanel(REGULAR_WEEKS, { whatIf: false }),
           "panel-recap": () => renderRecapPanel(week),
         };
       } else {

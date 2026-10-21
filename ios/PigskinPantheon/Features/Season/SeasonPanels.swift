@@ -39,8 +39,13 @@ struct PanelLoader<Value: Decodable, Content: View>: View {
     let arguments: [String: Any]
     let loadingTitle: String
     var failureTitle: String = "This view couldn't be read"
+    /// Moved to a new answer of the same view (a What If pick): the answer
+    /// shown stays until the new one is read, then gives way to it with
+    /// this animation (none with Reduce Motion), rather than a loading card.
+    var refresh: Animation? = nil
     @ViewBuilder let content: (Value) -> Content
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var value: Value?
     @State private var error: String?
 
@@ -61,14 +66,25 @@ struct PanelLoader<Value: Decodable, Content: View>: View {
             }
         }
         .task(id: key) {
-            if let hit = PanelCache[key] as? Value { value = hit; return }
-            value = nil
+            // A refreshing view keeps what it shows until the new answer is in.
+            let keeps = refresh != nil && value != nil
+            let motion = keeps && !reduceMotion ? refresh : nil
+            if let hit = PanelCache[key] as? Value {
+                withAnimation(motion) { value = hit }
+                return
+            }
+            if !keeps { value = nil }
             error = nil
             do {
                 let answer = try await session.engine.call(Value.self, expression, arguments)
                 PanelCache.store(answer, for: key)
-                value = answer
+                // Overtaken by a newer key while it was read: that one shows.
+                guard !Task.isCancelled else { return }
+                withAnimation(motion) { value = answer }
+            } catch is CancellationError {
+                // Overtaken by a newer key; that task shows its own answer.
             } catch {
+                value = nil
                 self.error = error.localizedDescription
             }
         }

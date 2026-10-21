@@ -12,6 +12,8 @@ import Foundation
 ///   SIMCTL_CHILD_PP_WEEK=9                 the season screen's week
 ///   SIMCTL_CHILD_PP_VIEW=panel-standings   the season screen's view (a panel id)
 ///   SIMCTL_CHILD_PP_SHEET=chat             chat | account
+///   SIMCTL_CHILD_PP_WHATIF=0:r3,1:r4       the What If switch on, with those picks
+///                                          (slate index:team id; "1" on, "0" off)
 ///
 /// e.g. SIMCTL_CHILD_PP_LEAGUE=demo xcrun simctl launch <device> com.pigskinpantheon.app
 enum DebugLaunch {
@@ -45,6 +47,20 @@ enum DebugLaunch {
     /// SIMCTL_CHILD_PP_SIDEBAR=hidden opens the wide layout with its sidebar folded.
     static var sidebarHidden: Bool { env["PP_SIDEBAR"] == "hidden" }
     static var sheet: LeagueSheet? { env["PP_SHEET"].flatMap(LeagueSheet.init(rawValue:)) }
+
+    /// SIMCTL_CHILD_PP_WHATIF opens the season's What If switch: "1" on with
+    /// no picks, "0" off, or picks by slate index ("0:r3,1:r4"), switch on.
+    /// It stands in for what the device saved.
+    static var whatIf: (on: Bool, picks: [Int: String])? {
+        guard let raw = env["PP_WHATIF"] else { return nil }
+        if raw == "0" || raw == "off" { return (false, [:]) }
+        var picks: [Int: String] = [:]
+        for pair in raw.split(separator: ",") {
+            let p = pair.split(separator: ":").map(String.init)
+            if p.count == 2, let i = Int(p[0]) { picks[i] = p[1] }
+        }
+        return (true, picks)
+    }
 
     /// The route to push on a tab's stack at launch, if it's that tab's.
     static func routes(for tab: LeagueTab) -> [LeagueRoute] {
