@@ -10,6 +10,8 @@
 
      League.load(id) -> model
        model.name, model.avatar, model.leagueId
+       model.rootLeagueId      a Sleeper history's first league id (the end of
+                               its previous_league_id chain, loaded or not)
        model.owners            { ownerId: { name, currentTeam, icon, color, logo } }
        model.seasons           oldest first; each season:
          year, leagueId, status, finished, live, preseason
@@ -835,6 +837,11 @@
       next = league.previous_league_id;
     }
     if (!chain.length) throw new Error("Sleeper has no league with that id.");
+    // The history's first league, as the chain names it: the clubhouse's
+    // lasting name for the league (clubhouse.js leagueKey). Taken from the
+    // chain itself, not the seasons that load, so an old season left out
+    // (Sleeper busy, or no game ever scored) doesn't change it.
+    const rootLeagueId = String(chain[chain.length - 1]);
     if (!given) chain.push(...(await siblingSeasons(chain)));
     let done = 0;
     if (onProgress) onProgress(0, chain.length);
@@ -850,7 +857,7 @@
       if (onProgress) onProgress(done, chain.length);
       return raw;
     }));
-    return { raws, state: st };
+    return { raws, state: st, rootLeagueId };
   }
 
   // The demo: Sleeper's shapes, frozen in the middle of its 2026 season.
@@ -896,7 +903,7 @@
     if (!source && !/^\d{6,}$/.test(id)) return Promise.reject(new Error("That isn't a league id this site knows."));
     if (!models.has(id)) {
       const job = (async () => {
-        const { raws, state: st } = source ? await source.seasons(id, { onProgress }) : await sleeperSeasons(id, onProgress);
+        const { raws, state: st, rootLeagueId } = source ? await source.seasons(id, { onProgress }) : await sleeperSeasons(id, onProgress);
         const seasons = raws.filter(Boolean).map(buildSeason).sort((a, b) => a.year - b.year);
         // An abandoned season (no game ever scored) is left out, unless it
         // is the newest, which may simply not have started.
@@ -911,6 +918,8 @@
         });
         const model = buildModel(id, [...byYear.values()].sort((a, b) => a.year - b.year), st);
         model.platform = source ? source.name : "sleeper";
+        // Sleeper's chains only (ESPN's sources give none).
+        if (rootLeagueId) model.rootLeagueId = rootLeagueId;
         if (source && source.decorate) source.decorate(model);
         // The account gate (account.js): resolves once this visitor may see
         // the league, holding the page at its loading line until then.

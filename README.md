@@ -641,6 +641,125 @@ With `ADS.provider` unset the slots show labelled placeholders; set it to
 attribute) to serve ads, using fixed-size display units, not responsive
 ones. Pro members see none, and nobody does while `ADS.enabled` is false.
 
+## The clubhouse (pick'em, awards, notifications)
+
+What a league's members do together week to week, on the site and in the
+app: **league pick'em** (pick the winners of the coming week's games, one
+Lock of the Week worth 2, all locked at the week's first NFL kickoff), the
+**week's awards** (Manager, Choke and Robbery of the Week, voted from the
+week's kickoff until the next week's, tallies hidden until then), and
+**notifications** ("Week 9 is final" on Tuesday, "Picks lock at 8:15 PM ET"
+on Thursday, "Week 9's awards are in"). The shared logic (grading, nominees,
+the demo league's made-up league-mates) is `clubhouse.js`; the demo league
+never touches the server.
+
+The database is `supabase/migrations/20261021000000_league_clubhouse.sql`.
+A league is named by its `league_key` (a Sleeper league's first season's
+id, or `espn-<id>`), the same every season. Row-level security is on with
+no policies, so everything goes through its functions:
+
+- `league_members`: which account is which manager (one each way), the
+  member's notification choices (all off until they turn them on), and
+  what their page last saw of the league (`seen_*`: its newest id, season
+  and name). `league_claims`, `claim_manager`, `release_manager`,
+  `my_clubhouses`, `set_league_notifications` (the only thing that turns a
+  notification on; the site's and the app's "Turn on" call it).
+- `pickem_picks`: `save_picks` replaces a member's picks for a week, until
+  it locks; `pickem_board` shows a member their own picks, everyone's once a
+  week has locked, and who has picked an open week.
+- `award_votes`: `cast_vote` (a null nominee takes it back); `award_board`
+  shows running counts while voting is open and the tallies once it closes.
+- `push_devices`: `register_push_device` / `unregister_push_device` (a Web
+  Push subscription on one of the browsers' push services, FCM, Mozilla's,
+  Apple's or WNS, or an APNs token; 10 a member). `push_sends` records
+  each notification sent so none goes twice. `clubhouse_leagues` is the
+  sender's own: each Sleeper league's id this season, once it has checked
+  it on Sleeper.
+- `nfl_weeks` and `pick_deadline(season, week)`: the week's first kickoff,
+  which everything locks and closes on (a Thursday 8:15 PM ET formula for a
+  week not in the table).
+
+**A claim is taken on trust.** Sleeper and ESPN have no sign-in to check
+"I'm Lamb Chops' manager" against, so it's first come, first served and
+shown to the league; the member can let it go, and a wrong one is fixed by
+deleting its row in the table editor. **Nothing a page sends reaches
+anyone else's notifications**: what a member's page saw of the league stays
+on their own row; the sender uses a Sleeper league id only once Sleeper
+says it's this season's and its `previous_league_id` chain leads back to
+the league's key, takes the league's and teams' names from Sleeper, and
+sends nothing for a claim on someone who isn't one of the league's
+managers. An ESPN league (private, so the sender can't read it) gets plain
+lines under the name the member's own page saw. **Picks are graded on the
+device**, from the league's results that every member's page already has; what the
+server guarantees is that nobody's picks change after the lock and nobody
+sees anyone else's before it.
+
+The notifications come from `supabase/functions/clubhouse-push`, called
+every hour by pg_cron: each run works out what's due from the weeks'
+kickoffs (the recap from Tuesday 9 AM ET, the reminder about four hours
+before the lock to members who haven't picked, the awards in the 12 hours
+after voting closes, week 18's included), writes the member's line (for a
+Sleeper league, their game and record: "You beat Lamb Chops 132.4–118.1 and
+you're 6–3"; an ESPN league gets a plain one), records it and sends it,
+eight members at a time, five seconds a device, following no redirect. A
+device that's gone (or whose keys can't be used) is forgotten at once, one
+that fails five sends in a row too, and an APNs token the other
+environment takes is kept as that one's. The reminder goes only for a week
+with games to pick: a Sleeper week with matchups, and an ESPN week up to
+14, or later once someone in the league has picked it (the sender can't
+see an ESPN league's two-week matchups; `run.ts`'s header says more). Its
+header says what a notification carries (`url` for the site, `link` for
+the app) and the test switches (`?dry=1`, `?only=`, `?now=`, `?league=`);
+a real run answers only how many (the hourly run's answer is kept in
+`net._http_response`), a dry run what each would say.
+
+To turn it on:
+
+1. Paste `20261021000000_league_clubhouse.sql`, then
+   `20261021000100_nfl_weeks_2026.sql`, into Supabase ▸ SQL editor.
+2. Make the Web Push (VAPID) key pair: `npx web-push generate-vapid-keys`.
+   Put the **public** key in `account-config.js` as `VAPID_PUBLIC_KEY`
+   (until then the site offers no notifications).
+3. Make an APNs key: Apple Developer ▸ Certificates, Identifiers & Profiles
+   ▸ Keys ▸ +, tick Apple Push Notifications service (APNs), download the
+   `.p8` (once only) and note its Key ID and your Team ID.
+4. Set the function's secrets (`CLUBHOUSE_PUSH_SECRET` is any long random
+   string, e.g. `openssl rand -hex 32`):
+
+       supabase secrets set CLUBHOUSE_PUSH_SECRET=… \
+         VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=… VAPID_SUBJECT=mailto:you@example.com \
+         APNS_KEY_ID=… APNS_TEAM_ID=… APNS_PRIVATE_KEY="$(cat AuthKey_XXXXXXXXXX.p8)" \
+         APNS_TOPIC=com.pigskinpantheon.app
+       supabase functions deploy clubhouse-push --no-verify-jwt
+
+   Try it: `curl -X POST -H "x-clubhouse-secret: …"
+   "https://<project-ref>.supabase.co/functions/v1/clubhouse-push?dry=1"`
+   answers what it would send now (add `&now=2026-11-10T14:05:00Z` to try
+   a Tuesday morning).
+5. Store the function's address and secret in Vault and run
+   `20261021000200_clubhouse_push_schedule.sql` (its header has the two
+   `vault.create_secret` lines, how to watch it run, and
+   `select cron.unschedule('clubhouse-push')` to stop it).
+6. Each May, when the NFL's schedule comes out:
+   `node tools/nfl-weeks.mjs 2027 > supabase/migrations/2027MMDD000000_nfl_weeks_2027.sql`
+   and paste it in; run it again in early January, once week 18's times are
+   set (until then week 18 stands in at Saturday 1 PM ET).
+
+The tests run the migration in an in-process Postgres and the sender
+against a pretend Sleeper and push services (each file's header says how
+to install PGlite and web-push for them, outside the repository):
+`PGLITE_DIR=<that folder> node supabase/tests/clubhouse.test.mjs`, and the
+same for `clubhouse-push.test.mjs`.
+
+**Privacy.** The clubhouse keeps, per member: which manager they claimed
+in each league (and the league id, season and name their page last saw),
+their picks and award votes, their notification choices,
+and each device's push address (a browser's Web Push endpoint and keys, or
+the app's APNs device token), plus which notifications were sent. Deleting
+the account deletes all of it (every table cascades from `auth.users`). The
+privacy policy (`privacy.html`) and the app's privacy manifest
+(`PrivacyInfo.xcprivacy`) need to say so.
+
 ## Tools
 
 - `tools/update-players.py` refreshes `data/players.json` from Sleeper (the

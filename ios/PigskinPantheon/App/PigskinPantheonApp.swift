@@ -3,6 +3,8 @@ import UIKit
 
 @main
 struct PigskinPantheonApp: App {
+    /// Remote notifications: the device token and a tapped notification.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var app = AppModel()
 
     init() {
@@ -47,6 +49,8 @@ struct RootView: View {
             // then links open in Safari.
             if let id = DeepLink.leagueId(in: url) { app.open(id) }
         }
+        // A notification tapped: its league opens (or stays, if it's open).
+        .clubhouseLinks()
     }
 }
 

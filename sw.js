@@ -8,7 +8,7 @@
        copies in IndexedDB
    Bump CACHE_VERSION whenever the precache list or these rules change. */
 
-const CACHE_VERSION = 'v109';
+const CACHE_VERSION = 'v115';
 const SHELL_CACHE = `league-history-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `league-history-fonts-${CACHE_VERSION}`;
 
@@ -34,6 +34,10 @@ const PRECACHE = [
   './chat.css',
   './landing.css',
   './demo.js',
+  // The clubhouse: pick'em, the week's awards, the share card.
+  './clubhouse.js',
+  './clubhouse-ui.js',
+  './clubhouse.css',
   // The trophy room's modules and its copy of three.js. Precaching them keeps
   // the hall openable offline, the same as every other page here.
   './trophy/app.js',
@@ -77,6 +81,61 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data === 'skip-waiting') self.skipWaiting();
+});
+
+/* The clubhouse's notifications (Web Push, for members who turned them on
+   in a league's Leaderboard sheet): the sender's JSON payload is
+   { title, body, url, tag, kind, link } (url: the season page's deep link
+   to the week; icon and badge optional). A tap opens url, in the tab
+   already showing that page when there is one. */
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (err) { data = { body: event.data ? event.data.text() : '' }; }
+  const sameSite = (u) => { try { return new URL(u, self.location.href).origin === self.location.origin; } catch (err) { return false; } };
+  const url = [data.url, data.link].find((u) => typeof u === 'string' && sameSite(u)) || './';
+  event.waitUntil(self.registration.showNotification(String(data.title || 'Pigskin Pantheon'), {
+    body: String(data.body || ''),
+    icon: data.icon && sameSite(data.icon) ? data.icon : './icons/icon-192.png',
+    badge: data.badge && sameSite(data.badge) ? data.badge : './icons/favicon-32.png',
+    tag: data.tag ? String(data.tag) : undefined,
+    data: { url: new URL(url, self.location.href).href, kind: data.kind || null },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || new URL('./', self.location.href).href;
+  event.waitUntil((async () => {
+    const tabs = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    // The page it names, open already: back to it. Otherwise a new tab, so
+    // nothing the member had open elsewhere is navigated away.
+    const same = tabs.find((c) => c.url.split('#')[0] === url.split('#')[0]);
+    if (same) {
+      if (same.url !== url && 'navigate' in same) { try { const moved = await same.navigate(url); return (moved || same).focus(); } catch (err) { /* focus it as it is */ } }
+      return same.focus();
+    }
+    return self.clients.openWindow(url);
+  })());
+});
+
+/* The browser rotated or dropped the subscription: subscribe again with the
+   same key where the old one says what it was (or take the one the browser
+   already made), and tell the open tabs, which register it on the member's
+   account (clubhouse-ui.js) and, without one, subscribe themselves. A tab
+   opened later finds the new subscription and registers it then. */
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil((async () => {
+    const old = event.oldSubscription || null;
+    let sub = event.newSubscription || null;
+    try {
+      if (!sub) sub = await self.registration.pushManager.getSubscription();
+      const key = old && old.options && old.options.applicationServerKey;
+      if (!sub && key) sub = await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    } catch (err) { sub = null; }
+    const tabs = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const message = { type: 'pushsubscriptionchange', old: old ? old.endpoint : null, sub: sub ? sub.toJSON() : null };
+    tabs.forEach((tab) => tab.postMessage(message));
+  })());
 });
 
 function isFontRequest(url) {

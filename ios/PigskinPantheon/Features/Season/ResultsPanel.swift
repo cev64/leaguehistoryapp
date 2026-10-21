@@ -15,48 +15,20 @@ struct ResultsPanel: View {
         if payload.week == 0 {
             SchedulePanel(info: info, season: season)
         } else if !payload.games.isEmpty {
-            AdaptiveGrid(minWidth: 330) {
-                ForEach(Array(payload.games.enumerated()), id: \.offset) { _, game in
-                    GameCard(season: season, week: payload.week, game: game)
-                }
-            }
+            // Each tile with how the league picked it (Clubhouse/PickemResults.swift).
+            ResultsGamesGrid(season: season, week: payload.week, games: payload.games)
             if let notes = payload.superlatives {
                 WeekNotes(store: store, season: season, week: payload.week, notes: notes)
             }
+            // The week's pick'em winner and points (Clubhouse/PickemCard.swift).
+            PickemCard(season: season, week: payload.week)
         } else if !payload.matchups.isEmpty {
             if let scenarios = payload.scenarios, !scenarios.rows.isEmpty {
                 ScenarioCard(season: season, scenarios: scenarios, median: info.median)
             }
-            Card {
-                CardHead(title: "Week \(payload.week) Matchups", symbol: CardIcon.versus, meta: "Not yet played")
-                AdaptiveGrid(minWidth: 300, spacing: 10) {
-                    ForEach(payload.matchups, id: \.self) { m in
-                        UpcomingGame(season: season, week: payload.week, matchup: m)
-                    }
-                }
-                .padding(12)
-                if payload.week == info.pickWeek, payload.views.contains(where: { $0.id == "panel-picture" }) {
-                    Divider().overlay(Theme.line)
-                    // The way into What If: the Playoffs view, switch on.
-                    Button {
-                        store.whatIf.setOn(true)
-                        withAnimation { store.view = "panel-picture" }
-                        store.scrollToTop += 1
-                    } label: {
-                        // The arrow keeps to the last word where the line wraps.
-                        Text("Pick the winners and watch the brackets move\u{00A0}\(Image(systemName: "arrow.right"))")
-                            .multilineTextAlignment(.center)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.accentInk)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(Felt(.plain))
-                    .accessibilityHint("Opens the Playoffs view with the What If switch on")
-                }
-            }
+            // The week's games, one tile each; on the pick week, the
+            // league's pick'em in them too (Clubhouse/WeekGamesCard.swift).
+            WeekGamesCard(store: store, info: info, season: season, payload: payload)
         } else {
             EmptyCard(title: "No games in Week \(payload.week)",
                       detail: "\(info.source) has no matchups for this league this week.",
@@ -70,6 +42,8 @@ struct GameCard: View {
     let season: Season
     let week: Int
     let game: WeekGame
+    /// How the league picked it, where anyone did (the pick'em strip).
+    var pickem: PickemWeek.Game? = nil
 
     var body: some View {
         let a = game.as ?? 0, b = game.bs ?? 0
@@ -90,6 +64,10 @@ struct GameCard: View {
             Divider().overlay(Theme.line)
             GameSide(season: season, teamId: game.b, score: game.bs, won: b > a, decided: a != b)
             Divider().overlay(Theme.line)
+            if let pickem {
+                PickemResultStrip(season: season, game: pickem)
+                Divider().overlay(Theme.line)
+            }
             NavigationLink(value: LeagueRoute.boxScore(year: season.year, week: week, a: game.a, b: game.b)) {
                 Label("Box score", systemImage: "tablecells")
                     .font(.subheadline.weight(.semibold))
@@ -136,39 +114,6 @@ private struct GameSide: View {
             }
             .buttonStyle(Felt(.plain))
             .accessibilityLabel("\(team.name), \(Fmt.pts(score))\(won ? ", won" : "")")
-        }
-    }
-}
-
-/// A week to come: both teams with their records going in.
-private struct UpcomingGame: View {
-    let season: Season
-    let week: Int
-    let matchup: Matchup
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Week \(week)").font(.system(size: 11, weight: .bold)).textCase(.uppercase).tracking(0.8).foregroundStyle(Theme.ink3)
-            side(matchup.a, matchup.ar)
-            side(matchup.b, matchup.br)
-        }
-        .padding(12)
-        .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    @ViewBuilder private func side(_ id: String, _ record: String) -> some View {
-        if let team = season.team(id) {
-            NavigationLink(value: LeagueRoute.team(year: season.year, teamId: id)) {
-                HStack(spacing: 10) {
-                    TeamBadge(team: team, size: 26, corner: 8)
-                    Text(team.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink).lineLimit(1)
-                    Spacer()
-                    // The record whole ("10–3–1" with a tie): the name gives way.
-                    Text(record).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Theme.ink2).fixedSize()
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(Felt(.plain))
         }
     }
 }

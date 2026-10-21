@@ -137,7 +137,7 @@ final class LeagueEngine: NSObject {
     private static func scripts(demo: Bool) -> [String] {
         var names = ["account-config", "engine-core", "sleeper", "espn"]
         if demo { names.append("demo") }
-        names += ["insights", "chat", "season-engine"]
+        names += ["insights", "chat", "season-engine", "clubhouse"]
         var sources = names.compactMap(bundled)
         // Each screen's bridge (bridge-*.js), in name order.
         let bridges = (Bundle.main.urls(forResourcesWithExtension: "js", subdirectory: nil) ?? [])

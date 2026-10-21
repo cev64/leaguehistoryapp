@@ -2712,6 +2712,179 @@
     .projected-game .pg-side .pg-rec { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
     .projected-game .pg-bye { padding: 9px 12px; font-size: 11.5px; color: var(--muted); font-weight: 700; }
 
+    /* A matchup to come opens its rivalry preview (openRivalry). */
+    .projected-game[data-rv-week] { cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+    @media (hover: hover) { .projected-game[data-rv-week]:hover { border-color: rgba(23, 105, 224, .35); box-shadow: 0 6px 18px -12px rgba(7, 24, 39, .35); } }
+    .rv-open {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 12px; border: 0; border-top: 1px solid var(--line);
+      background: var(--surface); color: var(--accent-ink, var(--blue-2));
+      font: inherit; font-size: 12px; font-weight: 700; letter-spacing: .01em; cursor: pointer;
+    }
+    .rv-open svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+    .rv-open i { font-style: normal; font-size: 15px; line-height: 1; }
+    @media (hover: hover) { .rv-open:hover { background: var(--accent-soft, #edf3ff); } }
+    .rv-open:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+    .bx-foot .rv-switch {
+      display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; padding: 3px 10px;
+      border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+      color: var(--accent-ink, var(--blue-2)); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+      white-space: nowrap;
+    }
+    .bx-foot .rv-switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    @media (hover: hover) { .bx-foot .rv-switch:hover { background: var(--accent-soft, #edf3ff); } }
+    .bx-foot:has(.rv-switch) { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+    .bx-foot:has(.rv-switch) .rv-switch { margin-left: auto; }
+
+    /* The preview itself, in the box score's sheet. */
+    .rv-body { padding: 14px; display: grid; gap: 12px; background: var(--page); }
+    .rv-hero {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px;
+      padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line);
+    }
+    .rv-team { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .rv-team.rv-b { flex-direction: row-reverse; text-align: right; }
+    .rv-team .mini-badge { width: 44px; height: 44px; border-radius: 13px; font-size: 19px; }
+    .rv-team .mini-badge .team-logo { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+    .rv-team-text { min-width: 0; display: grid; gap: 1px; }
+    .rv-team-text strong { font-size: 16px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rv-team-text span { font-size: 12px; color: var(--ink-3, var(--muted)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rv-team-text em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--ink-2, var(--ink)); font-variant-numeric: tabular-nums; }
+    .rv-center { text-align: center; display: grid; gap: 2px; justify-items: center; min-width: 92px; }
+    .rv-center small { font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3, var(--muted)); }
+    .rv-center b { font-family: var(--font-display, inherit); font-size: 34px; line-height: 1; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+    .rv-center span { font-size: 11.5px; color: var(--ink-2, var(--muted)); max-width: 150px; }
+    .rv-final { font-size: 13px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .rv-final .rv-won { color: var(--accent-ink, var(--blue-2)); }
+
+    .rv-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+    .rv-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+    @media (min-width: 761px) { .rv-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; } }
+    .rv-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; min-width: 0; }
+    .rv-card > h4 {
+      margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line);
+      font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2, var(--ink));
+      display: flex; justify-content: space-between; gap: 8px;
+    }
+    .rv-card > h4 span { font-weight: 600; letter-spacing: .02em; text-transform: none; color: var(--ink-3, var(--muted)); }
+    .rv-empty { padding: 14px; font-size: 13px; color: var(--ink-2, var(--muted)); margin: 0; }
+
+    .rv-stakes { list-style: none; margin: 0; padding: 0; }
+    .rv-stake { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; }
+    .rv-stake + .rv-stake { border-top: 1px solid var(--line); }
+    .rv-ico { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: 15px; background: var(--rv-soft, #eef1f5); }
+    .rv-stake p { margin: 0; font-size: 13.5px; line-height: 1.35; color: var(--ink); }
+    .rv-stake .mini-badge { width: 20px; height: 20px; border-radius: 6px; font-size: 10px; }
+    .rv-stake .rv-tag { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; white-space: nowrap; }
+    .rv-tag.rv-hit { background: #e7f6ee; color: var(--green); }
+    .rv-tag.rv-miss { background: var(--surface-2); color: var(--ink-3, var(--muted)); }
+    .rv-tone-gold { --rv-soft: #fdf1d8; }
+    .rv-tone-fire { --rv-soft: #fff0e5; }
+    .rv-tone-blue { --rv-soft: #edf3ff; }
+    .rv-tone-red { --rv-soft: #fef3f2; }
+    .rv-tone-purple { --rv-soft: #f3efff; }
+    .rv-tone-navy { --rv-soft: #eef1f5; }
+
+    .rv-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rv-tile { padding: 10px 14px; display: grid; gap: 2px; border-top: 1px solid var(--line); min-width: 0; }
+    .rv-tile:nth-child(-n+2) { border-top: 0; }
+    .rv-tile:nth-child(odd) { border-right: 1px solid var(--line); }
+    .rv-tile.rv-wide { grid-column: 1 / -1; border-right: 0; }
+    .rv-tile.rv-wide strong { font-size: 14px; font-weight: 700; }
+    .rv-tile small { font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3, var(--muted)); }
+    .rv-tile strong { font-size: 16px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .rv-tile span { font-size: 11.5px; color: var(--ink-2, var(--muted)); }
+
+    .rv-tape { display: grid; }
+    .rv-tape-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(86px, auto) minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 14px; font-variant-numeric: tabular-nums; }
+    .rv-tape-row + .rv-tape-row { border-top: 1px solid var(--line); }
+    .rv-tape-row b { font-size: 13.5px; font-weight: 600; color: var(--ink-2, var(--ink)); }
+    .rv-tape-row b:last-child { text-align: right; }
+    .rv-tape-row b.rv-better { color: var(--accent-ink, var(--blue-2)); font-weight: 800; }
+    .rv-tape-row small { text-align: center; font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3, var(--muted)); }
+    .rv-tape-head { background: var(--surface-2); }
+    .rv-tape-head b { font-size: 11.5px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Every meeting: a season to a group, a row per game. */
+    .rv-yr + .rv-yr, .rv-more .rv-yr { border-top: 1px solid var(--line); }
+    .rv-yr-head {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 14px;
+      background: var(--surface-2); color: var(--ink-2, var(--ink)); font-size: 11px; font-weight: 800; letter-spacing: .08em; font-variant-numeric: tabular-nums;
+    }
+    .rv-yr-head span:last-child { color: var(--ink-3, var(--muted)); font-weight: 700; letter-spacing: .04em; }
+    .rv-mt {
+      width: 100%; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto 10px; gap: 10px; align-items: center;
+      padding: 9px 12px 9px 14px; border: 0; border-top: 1px solid var(--line); background: var(--surface);
+      color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: background-color .15s ease;
+    }
+    .rv-yr-head + .rv-mt { border-top: 0; }
+    @media (hover: hover) { .rv-mt:not(:disabled):hover { background: var(--accent-soft, #edf3ff); } }
+    .rv-mt:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+    .rv-mt:disabled { cursor: default; }
+    .rv-mt:disabled .rv-mt-go { visibility: hidden; }
+    .rv-mt.rv-now { background: var(--accent-soft, #edf3ff); }
+    .rv-mt-res { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; font-size: 11px; font-weight: 900; }
+    .rv-mt-w .rv-mt-res { background: #e7f6ee; color: #12804a; }
+    .rv-mt-l .rv-mt-res { background: #fdecec; color: #c73535; }
+    .rv-mt-t .rv-mt-res { background: var(--surface-3, #eef1f5); color: var(--ink-3, var(--muted)); }
+    .rv-mt-teams { display: grid; gap: 3px; min-width: 0; }
+    .rv-mt-side { display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--ink-3, var(--muted)); font-size: 12.5px; font-weight: 500; }
+    .rv-mt-side .mini-badge { flex: 0 0 auto; width: 18px; height: 18px; border-radius: 5px; font-size: 9px; opacity: .65; }
+    .rv-mt-side .mini-badge .team-logo { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+    .rv-mt-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rv-mt-side b { flex: 0 0 auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .rv-mt-side.rv-mt-win { color: var(--ink); font-weight: 700; }
+    .rv-mt-side.rv-mt-win .mini-badge { opacity: 1; }
+    .rv-mt-side.rv-mt-win b { font-weight: 800; }
+    .rv-mt-meta { display: grid; justify-items: end; gap: 4px; min-width: 64px; text-align: right; }
+    .rv-mt-when { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; color: var(--ink-2, var(--ink)); white-space: nowrap; }
+    .rv-mt-when.rv-mt-po, .rv-mt-when.rv-mt-con { padding: 2px 7px; border-radius: 999px; font-size: 10px; letter-spacing: .03em; max-width: 112px; overflow: hidden; text-overflow: ellipsis; }
+    .rv-mt-when.rv-mt-po { background: #fdf1d8; color: #8a5a00; box-shadow: inset 0 0 0 1px #f3d08a; }
+    .rv-mt-when.rv-mt-con { background: var(--surface-3, #eef1f5); color: var(--ink-2, var(--muted)); }
+    .rv-mt-by { font-size: 11px; color: var(--ink-3, var(--muted)); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .rv-mt-go { font-style: normal; font-size: 16px; line-height: 1; color: var(--ink-3, var(--muted)); }
+    /* wide sheets: the names stay beside their scores */
+    @media (min-width: 761px) { .rv-mt { grid-template-columns: 24px minmax(0, 340px) minmax(64px, 1fr) 10px; gap: 14px; } }
+    /* narrow phones: the week (or round) and margin sit over the teams,
+       so the names keep the row's width */
+    @media (max-width: 420px) {
+      .rv-card .rv-mt { grid-template-columns: 24px minmax(0, 1fr) 10px; grid-template-areas: "res meta go" "res teams go"; gap: 5px 10px; }
+      .rv-mt-res { grid-area: res; }
+      .rv-mt-teams { grid-area: teams; }
+      .rv-mt-go { grid-area: go; }
+      .rv-mt-meta { grid-area: meta; display: flex; align-items: center; justify-content: flex-start; gap: 8px; min-width: 0; text-align: left; }
+      .rv-mt-when.rv-mt-po, .rv-mt-when.rv-mt-con { max-width: 70%; }
+    }
+    .rv-more summary { padding: 9px 14px; border-top: 1px solid var(--line); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--accent-ink, var(--blue-2)); list-style: none; }
+    .rv-more summary::-webkit-details-marker { display: none; }
+    .rv-more summary:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+    .rv-more[open] summary { display: none; }
+
+    @media (max-width: 760px) {
+      .rv-body { padding: 10px; gap: 10px; }
+      /* one column: the stakes, the series, then the careers */
+      .rv-grid { gap: 10px; }
+      .rv-col { display: contents; }
+      .rv-card-stakes { order: 1; }
+      .rv-card-tape { order: 3; }
+      .rv-col .rv-card:not(.rv-card-stakes):not(.rv-card-tape) { order: 2; }
+      .rv-hero { padding: 12px; gap: 8px; }
+      .rv-team { flex-direction: column; align-items: flex-start; gap: 7px; }
+      .rv-team.rv-b { flex-direction: column; align-items: flex-end; }
+      .rv-team .mini-badge { width: 38px; height: 38px; font-size: 16px; border-radius: 11px; }
+      .rv-team-text { width: 100%; }
+      .rv-team-text strong { font-size: 14px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .rv-center { min-width: 74px; }
+      .rv-center b { font-size: 28px; }
+      .rv-center span { font-size: 10.5px; max-width: 96px; }
+      .rv-mt { gap: 8px; padding: 9px 10px 9px 12px; }
+      .rv-yr-head { padding: 7px 12px; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .ui-enter .rv-hero { animation: uiRise .5s var(--ease, ease) both .06s; }
+      .ui-enter .rv-stake { animation: uiRowIn .5s var(--ease, ease) both; animation-delay: calc(.16s + var(--rv-i, 0) * 50ms); }
+    }
+
     /* Weekly summary ------------------------------------------------ */
 
     .summary-card .summary-body {
@@ -3977,6 +4150,23 @@
     .rc-also li::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 9px; border-radius: 50%; background: #d71920; vertical-align: 2px; }
     .rc-actions { margin-top: 16px; }
     .rc-lead .recap-open { background: #fff; color: var(--navy); }
+    .rc-share-btn .rc-caret { width: 14px; height: 14px; margin-left: -2px; transition: transform .25s var(--ease, ease); }
+    .rc-share-btn[aria-expanded="true"] .rc-caret { transform: rotate(180deg); }
+    .rc-share-menu { flex: 1 1 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 8px; min-width: 0; }
+    .rc-share-menu[hidden] { display: none; }
+    @media (prefers-reduced-motion: no-preference) { .rc-share-menu:not([hidden]) { animation: uiRise .3s var(--ease, ease) both; } }
+    .rc-share-opt {
+      display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 11px 12px; border: 0; border-radius: 12px;
+      background: rgba(255, 255, 255, .1); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22); color: #fff; font: inherit; text-align: left; cursor: pointer;
+      transition: background-color .15s ease;
+    }
+    @media (hover: hover) { .rc-share-opt:hover { background: rgba(255, 255, 255, .18); } }
+    .rc-share-opt:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .rc-share-opt.is-busy { opacity: .7; cursor: progress; }
+    .rc-share-opt svg { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px; fill: none; stroke: #f6b73c; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .rc-share-opt span { display: grid; gap: 2px; min-width: 0; }
+    .rc-share-opt strong { font-size: 13.5px; font-weight: 800; }
+    .rc-share-opt small { color: rgba(219, 229, 238, .78); font-size: 12px; line-height: 1.35; }
 
     .rc-team { display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
     .rc-team > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
@@ -4282,6 +4472,7 @@
   <link rel="stylesheet" href="design.css" />
   <link rel="stylesheet" href="account.css" />
   <link rel="stylesheet" href="chat.css" />
+  <link rel="stylesheet" href="clubhouse.css" />
   <script src="account-config.js"></script>
   <script src="account.js"></script>
   <script src="chat.js" defer></script>
@@ -4289,6 +4480,8 @@
   <script src="sleeper.js"></script>
   <script src="espn.js"></script>
   <script src="insights.js"></script>
+  <script src="clubhouse.js"></script>
+  <script src="clubhouse-ui.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -5413,9 +5606,23 @@
         ${r.headline ? `<h3 class="rc-title">${esc(r.headline.title)}</h3><p class="rc-dek">${esc(r.headline.dek)}</p>` : ""}
         ${r.also.length ? `<ul class="rc-also">${r.also.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
         <div class="rc-actions">
-          <button type="button" class="recap-open" data-recap="${r.week}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.6M5 5.4l3-3 3 3M3.2 9v3.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>Share the recap</button>
+          ${r.playoff || !window.ClubhouseUI
+            ? `<button type="button" class="recap-open" data-recap="${r.week}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.6M5 5.4l3-3 3 3M3.2 9v3.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>Share the recap</button>`
+            : `<button type="button" class="recap-open rc-share-btn" data-rc-share aria-expanded="false" aria-controls="rcShare${r.week}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.6M5 5.4l3-3 3 3M3.2 9v3.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>Share<svg class="rc-caret" viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></button>
+            <div class="rc-share-menu" id="rcShare${r.week}" hidden>
+              <button type="button" class="rc-share-opt" data-ch-share="${r.week}">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.6" y="3" width="10.8" height="10" rx="1.8"/><path d="m13.4 10.6-3.2-3.2-5.6 5.6"/></svg>
+                <span><strong>The week card</strong><small>One picture for the group chat: scores, standings, awards</small></span>
+              </button>
+              <button type="button" class="rc-share-opt" data-recap="${r.week}">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.6 3.4h8.8M3.6 6.4h8.8M3.6 9.4h8.8M3.6 12.4h5.2"/></svg>
+                <span><strong>The recap story</strong><small>This write-up and the power rankings, as pictures or text</small></span>
+              </button>
+            </div>`}
         </div>
       </article>`);
+      // The week's awards, voted by the league (clubhouse-ui.js fills it).
+      if (!r.playoff) parts.push(`<div class="ch-slot" data-ch="awards" data-week="${r.week}"></div>`);
 
       parts.push(`<article class="card">
         ${cardHead("Every game", "versus", plural(r.games.length, "game"))}
@@ -5826,6 +6033,30 @@
     document.addEventListener("click", (e) => {
       const b = e.target.closest("[data-recap]");
       if (b) openRecap(Number(b.dataset.recap), b);
+    });
+    /* The Recap's one Share button: the week card or the recap story.
+       The choices open in place under it (the lead card clips anything
+       that would hang below it); a choice, a tap elsewhere or Escape
+       folds them away. */
+    const shareMenu = (btn, open) => {
+      const menu = btn && document.getElementById(btn.getAttribute("aria-controls"));
+      if (!menu) return;
+      btn.setAttribute("aria-expanded", String(open));
+      menu.hidden = !open;
+      if (open) { const first = menu.querySelector("button"); if (first) first.focus({ preventScroll: true }); }
+    };
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-rc-share]");
+      if (btn) { shareMenu(btn, btn.getAttribute("aria-expanded") !== "true"); return; }
+      document.querySelectorAll('[data-rc-share][aria-expanded="true"]').forEach((open) => {
+        const menu = document.getElementById(open.getAttribute("aria-controls"));
+        if (!menu || !menu.contains(e.target) || e.target.closest(".rc-share-opt")) shareMenu(open, false);
+      });
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const open = document.querySelector('[data-rc-share][aria-expanded="true"]');
+      if (open) { shareMenu(open, false); open.focus({ preventScroll: true }); }
     });
 
 
@@ -6434,6 +6665,7 @@
                 <button type="button" class="recap-open" data-recap="${week}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.6M5 5.4l3-3 3 3M3.2 9v3.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>Share week ${week} recap</button>
               </div>
             </article>
+            <div class="ch-slot" data-ch="results" data-week="${week}"></div>
           </div>`;
         markBoxScores(week);
         fillBlunder(week);
@@ -6451,24 +6683,35 @@
       const end = spanEnd(week);
       const status = end === week ? "Not yet played"
         : `Two-week matchups · ${isPlayed(end) ? `final in week ${end}` : `decided after week ${end}`}`;
+      /* The matchups, in the clubhouse's slot: on the pick week
+         clubhouse-ui.js swaps this card for one where the same tiles are
+         where the league makes its picks; other weeks keep it as it is. */
       panel.innerHTML = `
         <div class="panel-stack">
         ${stake}
+        <div class="ch-slot" data-ch="pickem" data-week="${week}">
         <article class="card">
           ${cardHead(`Week ${week} Matchups`, "versus", status)}
           <div class="projected-matchups">
             ${(schedule[week] || []).map(([a, b]) => `
-              <div class="projected-game">
+              <div class="projected-game" data-rv-week="${week}" data-rv-a="${a}" data-rv-b="${b}">
                 <div class="pg-head">Week ${week}</div>
                 <div class="pg-side">${miniTeam(a)}<span class="pg-name">${nameOf(a)}</span><span class="pg-rec">${stats[a].record}</span></div>
                 <div class="pg-side">${miniTeam(b)}<span class="pg-name">${nameOf(b)}</span><span class="pg-rec">${stats[b].record}</span></div>
+                ${rivalryButton(week, a, b)}
               </div>`).join("")}
           </div>
-          ${whatIfWeekFor(week) === week ? `<div class="recap-bar">
-            <button type="button" class="recap-link" data-goto-whatif>Pick the winners and watch the ${HAS_PLAYOFFS ? "brackets" : "standings"} move →</button>
-          </div>` : ""}
+          ${whatIfLink(week)}
         </article>
+        </div>
         </div>`;
+    }
+
+    // The Matchups card's way into What If (the Standings or Playoffs tab).
+    function whatIfLink(week) {
+      return whatIfWeekFor(week) === week ? `<div class="recap-bar">
+            <button type="button" class="recap-link" data-goto-whatif>What if? Play out the week and watch the ${HAS_PLAYOFFS ? "brackets" : "standings"} move →</button>
+          </div>` : "";
     }
 
     /* =================================================================
@@ -7629,11 +7872,24 @@
       bxBackdrop.classList.remove("open");
       bxModal.setAttribute("aria-hidden", "true");
       document.body.style.overflow = document.querySelector(".team-drawer.open") ? "hidden" : "";
+      rivalryClosed();
     }
 
-    function openBox(week, idA, idB) {
+    /* `year`: another season's game (a meeting in the rivalry preview's
+       list, whose team ids are that season's); `back`: the rivalry preview
+       it was opened from, which its foot then leads back to. */
+    const otherBoxes = {};
+    function openBox(week, idA, idB, year = SEASON, back = null) {
       if (!bxModal) return;
-      boxWeek(week).then((data) => {
+      year = Number(year);
+      const yrSeason = year === SEASON ? season : model.season(year);
+      if (!yrSeason) return;
+      const yrTeams = yrSeason.teams;
+      const tName = (id) => esc(yrTeams[id] ? yrTeams[id].name : id);
+      const tBadge = (id) => (year === SEASON ? miniTeam(id) : `<span class="mini-badge" style="--team-color:${yrTeams[id] ? yrTeams[id].color : "#304f91"}">${teamMark(yrTeams[id])}</span>`);
+      const load = year === SEASON ? boxWeek(week)
+        : (otherBoxes[`${year}:${week}`] = otherBoxes[`${year}:${week}`] || Promise.resolve(model.boxWeek(year, week)).catch(() => null));
+      load.then((data) => {
         if (!data) return;
         const game = data.games.find((g) =>
           (g.home === idA && g.away === idB) || (g.home === idB && g.away === idA));
@@ -7647,9 +7903,9 @@
 
         // The header is just the season and week; the teams and the score are
         // the first row underneath. A playoff game adds its round.
-        const round = season.postseason.find((g) => g.weeks.includes(week) &&
+        const round = (yrSeason.postseason || []).find((g) => g.weeks.includes(week) &&
           ((g.a === idA && g.b === idB) || (g.a === idB && g.b === idA)));
-        document.getElementById("bxTitle").textContent = `${SEASON} · Week ${week}`;
+        document.getElementById("bxTitle").textContent = `${year} · Week ${week}`;
         document.getElementById("bxSub").textContent = round ? round.label : "";
 
         const lu = (id, test) => (game.lineups[id] || []).filter(test);
@@ -7659,17 +7915,21 @@
 
         document.getElementById("bxCols").innerHTML = `
           <div class="bx-sb">
-            <div class="bx-p bx-l">${miniTeam(a.id)}<span class="bx-name">${nameOf(a.id)}</span></div>
+            <div class="bx-p bx-l">${tBadge(a.id)}<span class="bx-name">${tName(a.id)}</span></div>
             <div class="bx-sc bx-total${a.score > b.score ? " bx-won" : ""}"><b>${fmt(a.score)}</b></div>
             <div class="bx-slot"></div>
             <div class="bx-sc bx-total${b.score > a.score ? " bx-won" : ""}"><b>${fmt(b.score)}</b></div>
-            <div class="bx-p bx-r"><span class="bx-name">${nameOf(b.id)}</span>${miniTeam(b.id)}</div>
+            <div class="bx-p bx-r"><span class="bx-name">${tName(b.id)}</span>${tBadge(b.id)}</div>
           </div>
           ${bxGroup("Starters", lu(a.id, starters), lu(b.id, starters))}
           ${bxGroup("Bench", lu(a.id, benched), lu(b.id, benched))}
           ${bxGroup("Injured reserve", lu(a.id, reserve), lu(b.id, reserve))}`;
 
         document.getElementById("bxFoot").textContent = "The chip beside each player is his NFL club today.";
+        bxModal.classList.remove("rv-mode");
+        document.getElementById("bxFoot").insertAdjacentHTML("beforeend", back
+          ? ` <button type="button" class="rv-switch" data-rv-week="${back.week}" data-rv-a="${back.a}" data-rv-b="${back.b}">‹ Back to the rivalry</button>`
+          : year === SEASON ? rivalryCue(week, idA, idB) : "");
 
         document.getElementById("bxCols").scrollTop = 0;
 
@@ -7696,6 +7956,258 @@
         if (event.key !== "Enter" && event.key !== " ") return;
         const card = event.target.closest && event.target.closest("[data-bx-week]");
         if (card) { event.preventDefault(); openBox(Number(card.dataset.bxWeek), card.dataset.bxA, card.dataset.bxB); }
+      });
+    }
+
+    /* =================================================================
+       RIVALRY PREVIEW
+
+       A game read against the league's whole history (Insights.rivalry in
+       insights.js, which the app runs too): the two managers' all-time
+       series, their seasons and careers, and what this one game can
+       settle. Drawn in the box score's sheet: a matchup to come opens it
+       from its tile, a played game from its box score.
+       ================================================================= */
+
+    let rvOpener = null;
+    let rvShown = null;   // the game the preview shows, for a box score's way back
+
+    // The visible way in, under each matchup tile.
+    function rivalryButton(week, a, b) {
+      return `<button type="button" class="rv-open" data-rv-week="${week}" data-rv-a="${a}" data-rv-b="${b}"
+        aria-label="Rivalry preview: ${nameOf(a)} versus ${nameOf(b)}">
+        <svg viewBox="0 0 16 16" aria-hidden="true">${CARD_ICONS.versus}</svg>
+        <span>Rivalry &amp; stakes</span><i aria-hidden="true">›</i>
+      </button>`;
+    }
+
+    function rivalryHTML(r) {
+      const A = r.a, B = r.b, S = r.series;
+      const sideOf = (k) => (k === "a" ? A : k === "b" ? B : null);
+      const team = (s) => `
+        <div class="rv-team rv-${s.key}">
+          ${miniTeam(s.teamId)}
+          <div class="rv-team-text">
+            <strong>${esc(s.team)}</strong>
+            <span>${esc(s.owner)}</span>
+            <em>${esc(s.season.record)}${s.season.games ? ` · ${s.season.pfText} PF` : ""}</em>
+          </div>
+        </div>`;
+      const centre = r.played
+        ? `<small>Final</small>
+           <div class="rv-final"><span class="${r.score.a > r.score.b ? "rv-won" : ""}">${r.score.aText}</span> – <span class="${r.score.b > r.score.a ? "rv-won" : ""}">${r.score.bText}</span></div>
+           <span>${esc(S.games ? `All-time ${S.all.record}` : "First meeting")}</span>`
+        : S.games
+          ? `<small>All-time</small><b>${esc(S.all.record)}</b><span>${esc(S.streak.text)}</span>`
+          : `<small>All-time</small><b>0–0</b><span>First meeting</span>`;
+
+      const stakes = r.stakes.length
+        ? `<ol class="rv-stakes">${r.stakes.map((x, i) => {
+            const s = sideOf(x.side);
+            const tag = x.hit == null ? (s ? miniTeam(s.teamId) : "")
+              : `<span class="rv-tag ${x.hit ? "rv-hit" : "rv-miss"}">${x.hit ? "Happened" : "Didn’t"}</span>`;
+            return `<li class="rv-stake rv-tone-${x.tone}" style="--rv-i:${i}">
+              <span class="rv-ico" aria-hidden="true">${x.icon}</span>
+              <p>${esc(x.text)}</p>
+              ${tag}
+            </li>`;
+          }).join("")}</ol>`
+        : `<p class="rv-empty">${esc(r.noStakes)}</p>`;
+
+      const tile = (label, value, meta) => ({ label, value, meta });
+      const meetLine = (m) => `${m.year} ${m.kind === "regular" ? `week ${m.week}` : esc(m.label)}`;
+      const leadOf = (rec) => (rec.a > rec.b ? A.team : rec.b > rec.a ? B.team : null);
+      const split = (rec) => (rec.games ? `${esc(rec.record)}` : "—");
+      const splitMeta = (rec) => (!rec.games ? "No meetings" : leadOf(rec) ? `${esc(leadOf(rec))} ahead` : "Even");
+      const big = (k) => {
+        const m = S.biggest[k];
+        return m ? tile(`${esc(sideOf(k).team)}’s biggest win`, `+${m.marginText}`, `${k === "a" ? `${m.aText}–${m.bText}` : `${m.bText}–${m.aText}`} · ${meetLine(m)}`)
+          : tile(`${esc(sideOf(k).team)}’s biggest win`, "—", "Hasn’t won one yet");
+      };
+      const sweeps = (k) => (S.sweeps[k].length ? `${esc(sideOf(k).team)} ${S.sweeps[k].join(", ")}` : "");
+      const sweepText = [sweeps("a"), sweeps("b")].filter(Boolean).join(" · ");
+      const tiles = !S.games ? [] : [
+        tile("Regular season", split(S.regular), splitMeta(S.regular)),
+        tile("Playoffs", split(S.playoffs), S.playoffs.games ? splitMeta(S.playoffs) : "Never met"),
+        S.consolation.games ? tile("Consolation", split(S.consolation), splitMeta(S.consolation)) : null,
+        S.all.t ? tile("Ties", String(S.all.t), "") : null,
+        S.last ? tile("Last meeting", `${S.last.aText}–${S.last.bText}`, `${meetLine(S.last)} · ${S.last.winner ? `${esc(sideOf(S.last.winner).team)} won` : "a tie"}`) : null,
+        S.avg ? tile("Average score", `${S.avg.aText}–${S.avg.bText}`, "per meeting") : null,
+        big("a"),
+        big("b"),
+        sweepText ? tile("Season sweeps", sweepText, "") : null,
+      ].filter(Boolean);
+      // An odd tile out runs the width of the card.
+      const series = S.games ? `
+        <div class="rv-tiles">${tiles.map((t, i) => `<div class="rv-tile${i === tiles.length - 1 && tiles.length % 2 ? " rv-wide" : ""}"><small>${t.label}</small><strong>${t.value}</strong>${t.meta ? `<span>${t.meta}</span>` : ""}</div>`).join("")}</div>`
+        : `<p class="rv-empty">These two managers have never met. Here is how each has fared against the league.</p>`;
+
+      // Tale of the tape: the careers side by side, the better one in blue.
+      const tape = (label, x, y, better) => {
+        const cmp = better ? better() : 0;
+        return `<div class="rv-tape-row"><b class="${cmp > 0 ? "rv-better" : ""}">${x}</b><small>${label}</small><b class="${cmp < 0 ? "rv-better" : ""}">${y}</b></div>`;
+      };
+      const ca = A.career, cb = B.career;
+      const num = (v) => parseFloat(String(v).replace(/,/g, "")) || 0;
+      const tapeRows = `
+        <div class="rv-tape">
+          <div class="rv-tape-row rv-tape-head"><b>${esc(A.team)}</b><small></small><b>${esc(B.team)}</b></div>
+          ${tape("Record", esc(ca.record), esc(cb.record), () => num(ca.pct) - num(cb.pct))}
+          ${tape("Win pct", ca.pct, cb.pct, () => num(ca.pct) - num(cb.pct))}
+          ${tape("Playoffs", esc(ca.playoffs), esc(cb.playoffs))}
+          ${tape("Titles", String(ca.titles), String(cb.titles), () => ca.titles - cb.titles)}
+          ${tape("Points / game", ca.pfg, cb.pfg, () => num(ca.pfg) - num(cb.pfg))}
+          ${tape("Best week", ca.high ? ca.high.text : "—", cb.high ? cb.high.text : "—", () => (ca.high ? ca.high.pts : 0) - (cb.high ? cb.high.pts : 0))}
+          ${tape("Win streak", ca.streak ? String(ca.streak.n) : "—", cb.streak ? String(cb.streak.n) : "—", () => (ca.streak ? ca.streak.n : 0) - (cb.streak ? cb.streak.n : 0))}
+          ${tape("Seasons", String(ca.seasons), String(cb.seasons))}
+        </div>`;
+
+      /* Every meeting, newest first, a season to a group: who won (the
+         winner's name and score in ink, the W/L from the left team's
+         side), the margin, and a playoff or consolation game's round as
+         a chip. Each opens its box score (openBox, that season's ids);
+         openRivalry greys out the ones without one. */
+      const yrTeam = (year, id) => { const s = model.season(year); return s && s.teams[id] ? s.teams[id] : null; };
+      const yrBadge = (t) => (t ? `<span class="mini-badge" style="--team-color:${t.color || "#304f91"}">${teamMark(t)}</span>` : '<span class="mini-badge"></span>');
+      const meetRow = (m) => {
+        const res = m.winner === "a" ? "W" : m.winner === "b" ? "L" : "T";
+        const margin = fmt(Math.abs(m.aScore - m.bScore));
+        const side = (k) => `<span class="rv-mt-side${m.winner === k ? " rv-mt-win" : ""}">
+            ${yrBadge(yrTeam(m.year, k === "a" ? m.teamIdA : m.teamIdB))}<span class="rv-mt-name">${esc(k === "a" ? m.teamA : m.teamB)}</span><b>${k === "a" ? m.aText : m.bText}</b>
+          </span>`;
+        const when = m.kind === "regular" ? `<span class="rv-mt-when">Week ${m.week}</span>`
+          : `<span class="rv-mt-when rv-mt-${m.kind === "playoffs" ? "po" : "con"}">${esc(m.label)}</span>`;
+        const said = `${m.year} ${m.kind === "regular" ? `week ${m.week}` : m.label}: ${m.teamA} ${m.aText}, ${m.teamB} ${m.bText}, ${m.winner ? `${m.winner === "a" ? m.teamA : m.teamB} by ${margin}` : "a tie"}. Box score`;
+        return `<button type="button" class="rv-mt rv-mt-${res.toLowerCase()}${m.current ? " rv-now" : ""}" data-rv-box="${m.year}" data-week="${m.week}" data-a="${m.teamIdA}" data-b="${m.teamIdB}" aria-label="${esc(said)}">
+            <span class="rv-mt-res" aria-hidden="true">${res}</span>
+            <span class="rv-mt-teams">${side("a")}${side("b")}</span>
+            <span class="rv-mt-meta">${when}<span class="rv-mt-by">${m.winner ? `by ${margin}` : "Tie"}</span></span>
+            <i class="rv-mt-go" aria-hidden="true">›</i>
+          </button>`;
+      };
+      const groups = [];
+      S.meetings.forEach((m) => {
+        let g = groups[groups.length - 1];
+        if (!g || g.year !== m.year) groups.push(g = { year: m.year, list: [] });
+        g.list.push(m);
+      });
+      const groupHtml = (g) => {
+        const w = g.list.filter((m) => m.winner === "a").length, l = g.list.filter((m) => m.winner === "b").length;
+        const t = g.list.length - w - l;
+        return `<div class="rv-yr">
+            <div class="rv-yr-head"><span>${g.year}</span><span>${w}–${l}${t ? `–${t}` : ""}</span></div>
+            ${g.list.map(meetRow).join("")}
+          </div>`;
+      };
+      // About six games up front, whole seasons at a time; the rest folded.
+      const SHOWN = 6;
+      let shown = 0, cut = groups.length;
+      for (let i = 0; i < groups.length; i++) {
+        if (i > 0 && shown >= SHOWN) { cut = i; break; }
+        shown += groups[i].list.length;
+      }
+      const later = groups.slice(cut).reduce((n, g) => n + g.list.length, 0);
+      const meetings = S.meetings.length ? `
+        <section class="rv-card rv-card-meet" aria-label="Every meeting">
+          <h4>Every meeting <span>${S.meetings.length} game${S.meetings.length === 1 ? "" : "s"} · W–L for ${esc(A.team)}</span></h4>
+          ${groups.slice(0, cut).map(groupHtml).join("")}
+          ${later ? `<details class="rv-more"><summary>Show ${later} more</summary>${groups.slice(cut).map(groupHtml).join("")}</details>` : ""}
+        </section>` : "";
+
+      return `<div class="rv-body">
+        <div class="rv-hero">${team(A)}<div class="rv-center">${centre}</div>${team(B)}</div>
+        <div class="rv-grid">
+          <div class="rv-col">
+            <section class="rv-card rv-card-stakes" aria-label="${esc(r.stakesTitle)}">
+              <h4>${esc(r.stakesTitle)}<span>${r.played ? "Going in" : "This game"}</span></h4>
+              ${stakes}
+            </section>
+            <section class="rv-card rv-card-tape" aria-label="Tale of the tape">
+              <h4>Tale of the tape<span>All-time</span></h4>
+              ${tapeRows}
+            </section>
+          </div>
+          <div class="rv-col">
+            <section class="rv-card" aria-label="The series">
+              <h4>The series<span>${esc(S.games ? S.lead : "Never met")}</span></h4>
+              ${series}
+            </section>
+          </div>
+        </div>
+        ${meetings}
+      </div>`;
+    }
+
+    function openRivalry(week, a, b) {
+      if (!bxModal || !window.Insights || !Insights.rivalry) return;
+      let r;
+      try { r = Insights.rivalry(model, SEASON, week, a, b); } catch (err) { console.warn(err); return; }
+      if (!bxModal.classList.contains("open")) rvOpener = document.activeElement;
+      bxModal.classList.add("rv-mode");
+      document.getElementById("bxTitle").textContent = `${SEASON} · ${r.kind === "regular" ? `Week ${week}` : r.label}`;
+      document.getElementById("bxSub").textContent = r.played ? `Rivalry · ${r.kind === "regular" ? "Final" : r.label}` : "Rivalry preview";
+      const cols = document.getElementById("bxCols");
+      cols.innerHTML = rivalryHTML(r);
+      cols.scrollTop = 0;
+      rvShown = { week, a, b };
+      // A meeting without a box score (no lineups that week) can't open one.
+      const rows = [...cols.querySelectorAll("[data-rv-box]")];
+      [...new Set(rows.map((el) => Number(el.dataset.rvBox)))].forEach((year) => {
+        const off = (weeks) => rows.forEach((el) => {
+          if (Number(el.dataset.rvBox) !== year || (weeks && weeks.has(Number(el.dataset.week)))) return;
+          el.disabled = true;
+          el.title = "No box score for this game";
+          el.setAttribute("aria-label", el.getAttribute("aria-label").replace(/\. Box score$/, ". No box score"));
+        });
+        Promise.resolve(year === SEASON ? boxWeeks() : model.boxWeeks(year)).then(off, () => off(null));
+      });
+      const foot = document.getElementById("bxFoot");
+      foot.textContent = r.note;
+      if (r.played) {
+        boxWeeks().then((weeks) => {
+          if (!weeks.has(r.end) || !bxModal.classList.contains("rv-mode")) return;
+          foot.insertAdjacentHTML("beforeend", `<button type="button" class="rv-switch" data-bx-week="${r.end}" data-bx-a="${a}" data-bx-b="${b}">‹ Box score</button>`);
+        });
+      }
+      bxModal.classList.add("open");
+      bxBackdrop.classList.add("open");
+      bxModal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      document.getElementById("bxClose").focus();
+    }
+
+    // The box score's way across to the same game's rivalry.
+    function rivalryCue(week, a, b) {
+      return ` <button type="button" class="rv-switch" data-rv-week="${week}" data-rv-a="${a}" data-rv-b="${b}">Rivalry &amp; stakes ›</button>`;
+    }
+
+    // The sheet closing: back to whatever opened the preview.
+    function rivalryClosed() {
+      bxModal.classList.remove("rv-mode");
+      const back = rvOpener;
+      rvOpener = null;
+      if (back && back.isConnected && typeof back.focus === "function") back.focus();
+    }
+
+    if (bxModal) {
+      document.addEventListener("click", (event) => {
+        if (event.target.closest("[data-team]")) return;
+        const meet = event.target.closest("[data-rv-box]");
+        if (meet) {
+          if (!meet.disabled) openBox(Number(meet.dataset.week), meet.dataset.a, meet.dataset.b, Number(meet.dataset.rvBox), rvShown);
+          return;
+        }
+        const el = event.target.closest("[data-rv-week]");
+        if (el) openRivalry(Number(el.dataset.rvWeek), el.dataset.rvA, el.dataset.rvB);
+      });
+      // Focus stays in the sheet while it's open.
+      bxModal.addEventListener("keydown", (event) => {
+        if (event.key !== "Tab" || !bxModal.classList.contains("open")) return;
+        const items = [...bxModal.querySelectorAll("button, [href], summary, [tabindex]:not([tabindex='-1'])")].filter((n) => n.offsetParent !== null);
+        if (!items.length) return;
+        const first = items[0], last = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       });
     }
 
@@ -8111,6 +8623,19 @@
     // applyHash may substitute a view the week does not offer, so rewrite
     // the URL to what rendered.
     window.addEventListener("hashchange", () => { if (applyHash()) { renderAll(); writeHash(); } });
+
+    /* The clubhouse (clubhouse-ui.js): league pick'em on the pick week's
+       Matchups and on played weeks' Results, the week's awards and the
+       share card on the Recap. It fills the .ch-slot placeholders the views
+       leave. */
+    if (window.ClubhouseUI) ClubhouseUI.mount({
+      model, season, pickWeek, cardHead,
+      records: (week) => computeStats(week),
+      standings: (week) => buildPicture(week),
+      recap: weekRecap,
+      // the pick week's game tiles keep the rivalry preview and What If
+      rivalryButton, whatIfLink,
+    });
 
     renderHero();
     if (FINISHED) {

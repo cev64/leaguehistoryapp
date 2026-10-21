@@ -34,6 +34,19 @@ struct BoxScoreView: View {
                             .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     }
                 }
+                // The same game against the league's history (RivalryView).
+                NavigationLink(value: LeagueRoute.rivalry(year: year, week: week, a: a, b: b)) {
+                    Label("Rivalry & what was on the line", systemImage: CardIcon.versus)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accentInk)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous).strokeBorder(Theme.line))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(Felt(.plain))
+                .accessibilityHint("The two managers' all-time series and the records at stake")
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 12)

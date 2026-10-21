@@ -95,6 +95,7 @@ private struct SeasonContent: View {
             }
         }
         .scrollPosition($position)
+        .clubhouseWeekLinks(session: session, store: store)
         .onChange(of: store.scrollToTop) {
             withAnimation(reduceMotion ? nil : .smooth(duration: 0.4)) { position.scrollTo(edge: .top) }
         }
