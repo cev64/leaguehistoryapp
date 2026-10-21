@@ -58,11 +58,15 @@ private struct SeasonContent: View {
         return season?.unplayed == true ? "Not played" : "Preseason"
     }
 
-    /// A wide screen (an iPad, the unfolded Duo) has the week's views in
-    /// the title's row, beside "Week 9", leaving the page the height.
+    /// A wide page (an iPad in landscape, the unfolded Duo on its side) has
+    /// the week's views in the title's row, beside "Week 9", leaving the page
+    /// the height. Wide by its own width, not the size class: the unfolded
+    /// Duo held upright, or an iPad beside its sidebar, is "regular" but has
+    /// no room for the title, the views and the bar's buttons in one row.
     private var viewsInBar: Bool {
-        sizeClass == .regular && (store.payload?.views.count ?? 0) > 1
+        sizeClass == .regular && pageWidth >= 840 && (store.payload?.views.count ?? 0) > 1
     }
+    @State private var pageWidth: CGFloat = 0
 
     /// The league, and the year where nothing else on screen shows it (a
     /// season pushed from another page).
@@ -94,6 +98,7 @@ private struct SeasonContent: View {
                 EmptyCard(title: "This season couldn't be read", detail: error, symbol: "exclamationmark.triangle")
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { pageWidth = $0 }
         .scrollPosition($position)
         .clubhouseWeekLinks(session: session, store: store)
         .onChange(of: store.scrollToTop) {

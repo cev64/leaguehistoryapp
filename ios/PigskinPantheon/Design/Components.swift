@@ -326,24 +326,40 @@ struct PageScroll<Content: View>: View {
     var onScroll: ((CGFloat) -> Void)? = nil
     @ViewBuilder var content: Content
 
+    /// The page's width, measured: what the column (or the screen) gives it.
+    @State private var width: CGFloat?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) { content }
                 .padding(.horizontal, Theme.gutter)
                 .padding(.vertical, 12)
                 .frame(maxWidth: maxWidth)
-                // Exactly the scroll view's width, whatever a card inside
-                // asks for. A card a hair too wide (a wrapped Text rounding up
-                // to the pixel) made the content wider than the page, the
-                // page then grew to fit, a pixel a pass, and the whole page
-                // could be dragged sideways.
-                .containerRelativeFrame(.horizontal)
+                // Exactly the page's width, whatever a card inside asks for.
+                // A vertical ScrollView is as wide as its content, so the
+                // content can't take its width from the scroll view: a card a
+                // hair too wide (a wrapped Text rounding up to the pixel) made
+                // the page grow to fit, a pixel a pass, until it could be
+                // dragged sideways, and `containerRelativeFrame` (the scroll
+                // view's width, which was the content's) held whatever width
+                // the page first had, so the iPad's sidebar shown or hidden
+                // left the page under it or too narrow. The width is measured
+                // outside the scroll view instead, where the content can't
+                // reach it.
+                .frame(width: width)
+                .frame(maxWidth: width == nil ? .infinity : nil)
         }
         .onScrollGeometryChange(for: CGFloat.self) { geo in
             let end = geo.contentSize.height + geo.contentInsets.bottom - geo.containerSize.height
             return max(0, min(geo.contentOffset.y, end) + geo.contentInsets.top)
         } action: { _, y in
             onScroll?(y)
+        }
+        // the width the page is given (a split view's column, the screen),
+        // whatever the scroll view's content
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { new in
+            if new > 0 { width = new }
         }
         .background(Theme.page)
     }

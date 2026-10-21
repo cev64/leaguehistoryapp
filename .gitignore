@@ -7,3 +7,6 @@ __pycache__/
 
 # Secrets kept on this Mac only (Supabase function secrets to paste in).
 .secrets/
+
+# The Supabase CLI's local cache (project ref, versions).
+supabase/.temp/

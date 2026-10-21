@@ -10,8 +10,12 @@ struct ManagerProfileView: View {
     let ownerId: String
 
     @Environment(LeagueSession.self) private var session
-    @Environment(\.horizontalSizeClass) private var sizeClass
 
+    /// The page has room for the drawer's sections two to a row (an iPad,
+    /// the unfolded Duo with its sidebar folded away): by its width, not
+    /// the size class, as the unfolded Duo with its sidebar is regular but
+    /// too narrow for two.
+    @State private var twoColumns = false
     @State private var profile: BookProfile?
     @State private var error: String?
     @State private var starters: BookStarters?
@@ -22,7 +26,8 @@ struct ManagerProfileView: View {
         PageScroll {
             if let profile {
                 BookProfileHero(profile: profile)
-                if sizeClass == .regular {
+                    .onGeometryChange(for: Bool.self) { $0.size.width >= 320 * 2 + 14 } action: { twoColumns = $0 }
+                if twoColumns {
                     // The desktop drawer's sections, two to a row.
                     HStack(alignment: .top, spacing: 14) {
                         VStack(spacing: 14) {
@@ -394,13 +399,19 @@ private struct BookWinsChartCard: View {
 // MARK: Most-Started Players
 
 private struct BookStartersCard: View {
-    @Environment(\.horizontalSizeClass) private var sizeClass
     let profile: BookProfile
     let starters: BookStarters?
     let failed: Bool
+    /// The card's width: wide cells with each season's club where the
+    /// table has room for them, narrow ones (a phone, a column) where not.
+    @State private var width: CGFloat = 0
 
     private var tint: Color { Color(css: profile.color) ?? Theme.accent }
-    private var roomy: Bool { sizeClass == .regular }
+    /// Wide cells (44 points a season) where they leave the name 110
+    /// points beside the rank, club and starts columns (about 140).
+    private var roomy: Bool {
+        width >= 140 + CGFloat(starters?.years.count ?? 0) * 44 + 110
+    }
 
     var body: some View {
         Card {
@@ -415,6 +426,7 @@ private struct BookStartersCard: View {
                     .padding(18)
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
     private func table(_ s: BookStarters) -> some View {
