@@ -2813,7 +2813,8 @@
     }
     .rv-yr-head span:last-child { color: var(--ink-3, var(--muted)); font-weight: 700; letter-spacing: .04em; }
     .rv-mt {
-      width: 100%; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto 10px; gap: 10px; align-items: center;
+      width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 10px; grid-template-areas: "meta go" "teams go";
+      gap: 5px 10px; align-items: center;
       padding: 9px 12px 9px 14px; border: 0; border-top: 1px solid var(--line); background: var(--surface);
       color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: background-color .15s ease;
     }
@@ -2823,11 +2824,7 @@
     .rv-mt:disabled { cursor: default; }
     .rv-mt:disabled .rv-mt-go { visibility: hidden; }
     .rv-mt.rv-now { background: var(--accent-soft, #edf3ff); }
-    .rv-mt-res { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; font-size: 11px; font-weight: 900; }
-    .rv-mt-w .rv-mt-res { background: #e7f6ee; color: #12804a; }
-    .rv-mt-l .rv-mt-res { background: #fdecec; color: #c73535; }
-    .rv-mt-t .rv-mt-res { background: var(--surface-3, #eef1f5); color: var(--ink-3, var(--muted)); }
-    .rv-mt-teams { display: grid; gap: 3px; min-width: 0; }
+    .rv-mt-teams { grid-area: teams; display: grid; gap: 3px; min-width: 0; }
     .rv-mt-side { display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--ink-3, var(--muted)); font-size: 12.5px; font-weight: 500; }
     .rv-mt-side .mini-badge { flex: 0 0 auto; width: 18px; height: 18px; border-radius: 5px; font-size: 9px; opacity: .65; }
     .rv-mt-side .mini-badge .team-logo { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
@@ -2836,25 +2833,16 @@
     .rv-mt-side.rv-mt-win { color: var(--ink); font-weight: 700; }
     .rv-mt-side.rv-mt-win .mini-badge { opacity: 1; }
     .rv-mt-side.rv-mt-win b { font-weight: 800; }
-    .rv-mt-meta { display: grid; justify-items: end; gap: 4px; min-width: 64px; text-align: right; }
-    .rv-mt-when { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; color: var(--ink-2, var(--ink)); white-space: nowrap; }
-    .rv-mt-when.rv-mt-po, .rv-mt-when.rv-mt-con { padding: 2px 7px; border-radius: 999px; font-size: 10px; letter-spacing: .03em; max-width: 112px; overflow: hidden; text-overflow: ellipsis; }
+    /* the week (or round) on its own line over the teams */
+    .rv-mt-meta { grid-area: meta; display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .rv-mt-when { font-size: 10.5px; font-weight: 700; letter-spacing: .02em; color: var(--ink-3, var(--muted)); white-space: nowrap; }
+    .rv-mt-when.rv-mt-po, .rv-mt-when.rv-mt-con { padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .03em; max-width: 70%; overflow: hidden; text-overflow: ellipsis; }
     .rv-mt-when.rv-mt-po { background: #fdf1d8; color: #8a5a00; box-shadow: inset 0 0 0 1px #f3d08a; }
     .rv-mt-when.rv-mt-con { background: var(--surface-3, #eef1f5); color: var(--ink-2, var(--muted)); }
-    .rv-mt-by { font-size: 11px; color: var(--ink-3, var(--muted)); font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .rv-mt-go { font-style: normal; font-size: 16px; line-height: 1; color: var(--ink-3, var(--muted)); }
+    .rv-mt-tie { font-size: 10.5px; font-weight: 700; color: var(--ink-3, var(--muted)); }
+    .rv-mt-go { grid-area: go; font-style: normal; font-size: 16px; line-height: 1; color: var(--ink-3, var(--muted)); }
     /* wide sheets: the names stay beside their scores */
-    @media (min-width: 761px) { .rv-mt { grid-template-columns: 24px minmax(0, 340px) minmax(64px, 1fr) 10px; gap: 14px; } }
-    /* narrow phones: the week (or round) and margin sit over the teams,
-       so the names keep the row's width */
-    @media (max-width: 420px) {
-      .rv-card .rv-mt { grid-template-columns: 24px minmax(0, 1fr) 10px; grid-template-areas: "res meta go" "res teams go"; gap: 5px 10px; }
-      .rv-mt-res { grid-area: res; }
-      .rv-mt-teams { grid-area: teams; }
-      .rv-mt-go { grid-area: go; }
-      .rv-mt-meta { grid-area: meta; display: flex; align-items: center; justify-content: flex-start; gap: 8px; min-width: 0; text-align: left; }
-      .rv-mt-when.rv-mt-po, .rv-mt-when.rv-mt-con { max-width: 70%; }
-    }
+    @media (min-width: 761px) { .rv-mt-teams { max-width: 420px; } }
     .rv-more summary { padding: 9px 14px; border-top: 1px solid var(--line); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--accent-ink, var(--blue-2)); list-style: none; }
     .rv-more summary::-webkit-details-marker { display: none; }
     .rv-more summary:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
@@ -2877,7 +2865,7 @@
       .rv-center { min-width: 74px; }
       .rv-center b { font-size: 28px; }
       .rv-center span { font-size: 10.5px; max-width: 96px; }
-      .rv-mt { gap: 8px; padding: 9px 10px 9px 12px; }
+      .rv-mt { gap: 5px 8px; padding: 9px 10px 9px 12px; }
       .rv-yr-head { padding: 7px 12px; }
     }
     @media (prefers-reduced-motion: no-preference) {
@@ -4410,7 +4398,7 @@
        the name gets the check's room. */
     @container (max-width: 189px) { .wi-check { display: none; } .wi-side { padding-right: 8px; } }
 
-    .wi-side.picked { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+    .wi-side.picked { background: var(--accent-soft); }
     @media (hover: hover) { .wi-side.picked:hover { background: #e3edff; } }
     .wi-side.picked .wi-team strong { color: var(--accent-ink); font-weight: 700; }
     .wi-side.picked .wi-check { background: var(--accent); border-color: var(--accent); animation: wiCheck .4s var(--spring); }
@@ -8062,26 +8050,26 @@
           ${tape("Seasons", String(ca.seasons), String(cb.seasons))}
         </div>`;
 
-      /* Every meeting, newest first, a season to a group: who won (the
-         winner's name and score in ink, the W/L from the left team's
-         side), the margin, and a playoff or consolation game's round as
-         a chip. Each opens its box score (openBox, that season's ids);
-         openRivalry greys out the ones without one. */
+      /* Every meeting, newest first, a season to a group: the week (or a
+         playoff or consolation game's round as a chip) over the two teams,
+         the winner's name and score in ink, as in the app. Each opens its
+         box score (openBox, that season's ids); openRivalry greys out the
+         ones without one. */
       const yrTeam = (year, id) => { const s = model.season(year); return s && s.teams[id] ? s.teams[id] : null; };
       const yrBadge = (t) => (t ? `<span class="mini-badge" style="--team-color:${t.color || "#304f91"}">${teamMark(t)}</span>` : '<span class="mini-badge"></span>');
       const meetRow = (m) => {
-        const res = m.winner === "a" ? "W" : m.winner === "b" ? "L" : "T";
-        const margin = fmt(Math.abs(m.aScore - m.bScore));
         const side = (k) => `<span class="rv-mt-side${m.winner === k ? " rv-mt-win" : ""}">
             ${yrBadge(yrTeam(m.year, k === "a" ? m.teamIdA : m.teamIdB))}<span class="rv-mt-name">${esc(k === "a" ? m.teamA : m.teamB)}</span><b>${k === "a" ? m.aText : m.bText}</b>
           </span>`;
-        const when = m.kind === "regular" ? `<span class="rv-mt-when">Week ${m.week}</span>`
-          : `<span class="rv-mt-when rv-mt-${m.kind === "playoffs" ? "po" : "con"}">${esc(m.label)}</span>`;
-        const said = `${m.year} ${m.kind === "regular" ? `week ${m.week}` : m.label}: ${m.teamA} ${m.aText}, ${m.teamB} ${m.bText}, ${m.winner ? `${m.winner === "a" ? m.teamA : m.teamB} by ${margin}` : "a tie"}. Box score`;
-        return `<button type="button" class="rv-mt rv-mt-${res.toLowerCase()}${m.current ? " rv-now" : ""}" data-rv-box="${m.year}" data-week="${m.week}" data-a="${m.teamIdA}" data-b="${m.teamIdB}" aria-label="${esc(said)}">
-            <span class="rv-mt-res" aria-hidden="true">${res}</span>
+        const round = m.kind === "regular" ? `Week ${m.week}` : m.label;
+        const when = m.kind === "regular" ? `<span class="rv-mt-when">${round}</span>`
+          : `<span class="rv-mt-when rv-mt-${m.kind === "playoffs" ? "po" : "con"}">${esc(round)}</span>`;
+        // Read winner first, as the app does.
+        const [first, second] = m.winner === "b" ? [[m.teamB, m.bText], [m.teamA, m.aText]] : [[m.teamA, m.aText], [m.teamB, m.bText]];
+        const said = `${m.year} ${round}: ${first[0]} ${first[1]}, ${second[0]} ${second[1]}${m.winner ? "" : ", a tie"}${m.current ? ". This game" : ""}. Box score`;
+        return `<button type="button" class="rv-mt${m.current ? " rv-now" : ""}" data-rv-box="${m.year}" data-week="${m.week}" data-a="${m.teamIdA}" data-b="${m.teamIdB}" aria-label="${esc(said)}">
+            <span class="rv-mt-meta">${when}${m.winner ? "" : '<span class="rv-mt-tie">Tie</span>'}</span>
             <span class="rv-mt-teams">${side("a")}${side("b")}</span>
-            <span class="rv-mt-meta">${when}<span class="rv-mt-by">${m.winner ? `by ${margin}` : "Tie"}</span></span>
             <i class="rv-mt-go" aria-hidden="true">›</i>
           </button>`;
       };
@@ -8095,7 +8083,7 @@
         const w = g.list.filter((m) => m.winner === "a").length, l = g.list.filter((m) => m.winner === "b").length;
         const t = g.list.length - w - l;
         return `<div class="rv-yr">
-            <div class="rv-yr-head"><span>${g.year}</span><span>${w}–${l}${t ? `–${t}` : ""}</span></div>
+            <div class="rv-yr-head"><span>${g.year}</span><span>${esc(A.team)} ${w}–${l}${t ? `–${t}` : ""}</span></div>
             ${g.list.map(meetRow).join("")}
           </div>`;
       };
@@ -8109,7 +8097,7 @@
       const later = groups.slice(cut).reduce((n, g) => n + g.list.length, 0);
       const meetings = S.meetings.length ? `
         <section class="rv-card rv-card-meet" aria-label="Every meeting">
-          <h4>Every meeting <span>${S.meetings.length} game${S.meetings.length === 1 ? "" : "s"} · W–L for ${esc(A.team)}</span></h4>
+          <h4>Every meeting <span>${S.meetings.length} game${S.meetings.length === 1 ? "" : "s"}</span></h4>
           ${groups.slice(0, cut).map(groupHtml).join("")}
           ${later ? `<details class="rv-more"><summary>Show ${later} more</summary>${groups.slice(cut).map(groupHtml).join("")}</details>` : ""}
         </section>` : "";

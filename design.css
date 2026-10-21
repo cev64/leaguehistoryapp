@@ -590,7 +590,6 @@ body:not(#_) .matchup-row .score {
 /* who went through, who went out */
 body:not(#_) .matchup-row.winner {
   background: var(--accent-soft);
-  box-shadow: inset 3px 0 0 var(--accent);
   color: var(--accent-ink);
   font-weight: 700;
 }
@@ -603,13 +602,13 @@ body:not(#_) :is(.bye, .mobile-bye-card) > .matchup-row.winner { background: non
 
 /* the title game in gold, the last-place game in red */
 body:not(#_) .championship-matchup { border: 1.5px solid var(--gold); box-shadow: 0 8px 22px -12px rgba(186, 128, 10, .45); }
-body:not(#_) .championship-matchup > .matchup-row.winner { background: #fff6e0; box-shadow: inset 3px 0 0 var(--gold); color: #7a5200; }
+body:not(#_) .championship-matchup > .matchup-row.winner { background: #fff6e0; color: #7a5200; }
 body:not(#_) .championship-matchup > .matchup-row.winner .score { color: #7a5200; }
 body:not(#_) .last-place-matchup { border: 1.5px solid #d6433d; box-shadow: 0 8px 22px -12px rgba(214, 67, 61, .4); }
 body:not(#_) .last-place-matchup > .matchup-row.winner { background: none; box-shadow: none; color: var(--ink); }
 body:not(#_) .last-place-matchup > .matchup-row.winner .score { color: var(--ink-2); }
 body:not(#_) .matchup-row.last-place-row,
-body:not(#_) .matchup:has(> .matchup-row.winner) > .matchup-row.last-place-row { color: #c2322c !important; font-weight: 700; background: #fdf1f0; box-shadow: inset 3px 0 0 #d6433d; }
+body:not(#_) .matchup:has(> .matchup-row.winner) > .matchup-row.last-place-row { color: #c2322c !important; font-weight: 700; background: #fdf1f0; }
 body:not(#_) .matchup-row.last-place-row .score { color: #c2322c !important; font-weight: 700; }
 body:not(#_) .championship-matchup::before,
 body:not(#_) .last-place-matchup::before {
@@ -992,7 +991,7 @@ body:not(#_) .game-side .mini-badge { width: 28px; height: 28px; border-radius: 
 body:not(#_) .game-side .game-team strong { color: var(--ink); font-size: 14.5px; font-weight: 600; letter-spacing: -.005em; }
 body:not(#_) .game-side .game-team span { color: var(--ink-3); font-size: 12px; font-weight: 500; }
 body:not(#_) .game-side .game-score { color: var(--ink-2); font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
-body:not(#_) .game-side.winner { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+body:not(#_) .game-side.winner { background: var(--accent-soft); }
 @media (hover: hover) {
   body:not(#_) .game-side:hover { background: var(--surface-2); }
   body:not(#_) .game-side.winner:hover { background: #e3edff; }
@@ -1495,4 +1494,22 @@ body:not(#_) .demo-strip-short { display: none; }
   body:not(#_) .demo-strip-more { display: none; }
   body:not(#_) .demo-strip-short { display: inline; }
   body:not(#_) .demo-strip a { padding: 6px 10px; font-size: 12.5px; }
+}
+
+/* A team's logo, shown bare as the app shows it: no colour, rim or tile
+   behind it, and the whole picture fitted to the badge rather than cropped
+   to a rounded square. (A badge without a logo, an emoji or initials,
+   keeps its coloured tile: it needs the colour to read at all.) */
+body:not(#_) :is(.mini-badge, .team-badge, .profile-logo):has(> img.team-logo) {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  overflow: visible;
+}
+body:not(#_) :is(.mini-badge, .team-badge, .profile-logo) > img.team-logo {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+  object-fit: contain;
 }

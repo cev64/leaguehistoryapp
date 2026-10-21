@@ -128,18 +128,18 @@ button.ch-side { cursor: pointer; touch-action: manipulation; }
 .ch-team > span, .ch-claim-copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-3, #8a94a6); font-size: 11.5px; font-variant-numeric: tabular-nums; }
 .ch-check { flex: 0 0 auto; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2, #d5dae1); background: #fff; color: #fff; transition: background-color .2s ease, border-color .2s ease; }
 .ch-check .ch-ico { width: 12px; height: 12px; stroke-width: 2.4; stroke-dasharray: 14; stroke-dashoffset: 14; transition: stroke-dashoffset .25s var(--ease, ease); }
-.ch-side.picked, .ch-nom.on { background: var(--accent-soft, #edf3ff); box-shadow: inset 3px 0 0 0 var(--accent, #1769e0); }
+.ch-side.picked, .ch-nom.on { background: var(--accent-soft, #edf3ff); }
 .ch-side.picked .ch-team strong, .ch-nom.on .ch-nom-copy strong { color: var(--accent-ink, #0f56bd); }
 .ch-side.picked .ch-check, .ch-nom.on .ch-check { background: var(--accent, #1769e0); border-color: var(--accent, #1769e0); }
 .ch-side.picked .ch-check .ch-ico, .ch-nom.on .ch-check .ch-ico { stroke-dashoffset: 0; }
-.ch-side.picked.locked { background: #fff8e8; box-shadow: inset 3px 0 0 0 #e0a21b; }
+.ch-side.picked.locked { background: #fff8e8; }
 .ch-side.picked.locked .ch-check { background: #e0a21b; border-color: #e0a21b; }
 .ch-side.picked.locked .ch-team strong { color: #8a5a00; }
 .ch-side.passed .ch-team strong { color: var(--ink-2, #475467); }
 .ch-side.passed .mini-badge { opacity: .55; }
 
 /* without pick'em (signed out, no team yet, locked): the same rows */
-.ch-side.static.mine { background: var(--accent-soft, #edf3ff); box-shadow: inset 3px 0 0 0 var(--accent, #1769e0); }
+.ch-side.static.mine { background: var(--accent-soft, #edf3ff); }
 .ch-you-tag { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; padding: 2px 6px; border-radius: 6px; background: #fff; color: var(--accent-ink, #0f56bd); font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; box-shadow: 0 0 0 1px rgba(23, 105, 224, .25); }
 .ch-you-tag .ch-ico { width: 11px; height: 11px; color: #b7791f; }
 .ch-tally { flex: 0 0 auto; display: grid; justify-items: end; min-width: 34px; color: var(--ink-3, #8a94a6); font-variant-numeric: tabular-nums; line-height: 1.1; }
@@ -190,7 +190,7 @@ button.ch-side { cursor: pointer; touch-action: manipulation; }
 .ch-score-team .mini-badge { width: 22px; height: 22px; border-radius: 6px; overflow: hidden; }
 .ch-score.best b { color: #8a5a00; }
 .ch-score.best { background: #fffaf0; }
-.ch-score.me { box-shadow: inset 3px 0 0 var(--accent, #1769e0); }
+.ch-score.me { background: var(--accent-soft, #edf3ff); }
 .ch-score em, .ch-me { color: var(--accent-ink, #0f56bd); font-size: 10.5px; font-style: normal; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
 
 /* ---- the awards ---- */
