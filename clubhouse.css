@@ -31,7 +31,7 @@
 .ch-btn:active:not(:disabled) { transform: scale(.96); }
 .ch-btn:disabled { opacity: .5; cursor: default; }
 .ch-btn:focus-visible, .ch-link:focus-visible, .ch-side:focus-visible, .ch-lock:focus-visible, .ch-nom:focus-visible,
-.ch-claim:focus-visible, .ch-switch-row:focus-visible, .ch-x:focus-visible, .ch-other select:focus-visible { outline: 2px solid var(--blue, #1769e0); outline-offset: 2px; }
+.ch-claim:focus-visible, .ch-switch-row:focus-visible, .ch-x:focus-visible, .ch-back:focus-visible, .ch-other select:focus-visible { outline: 2px solid var(--blue, #1769e0); outline-offset: 2px; }
 @media (hover: hover) {
   .ch-btn:hover:not(:disabled) { background: var(--surface-2, #f7f8fa); }
   .ch-btn.primary:hover:not(:disabled) { background: #102b43; }
@@ -245,6 +245,11 @@ html.ch-locked { overflow: hidden; }
 .ch-sheet-head > div { min-width: 0; }
 .ch-x { flex: 0 0 auto; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .26); background: rgba(255, 255, 255, .16); color: #fff; font-size: 22px; line-height: 1; cursor: pointer; }
 @media (hover: hover) { .ch-x:hover { background: rgba(255, 255, 255, .28); } }
+/* the back button of a sheet opened on top of another: the close button's glass, at the head's left */
+.ch-back { flex: 0 0 auto; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; margin-right: -2px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .26); background: rgba(255, 255, 255, .16); color: #fff; cursor: pointer; }
+.ch-back svg { width: 18px; height: 18px; margin-left: -2px; }
+@media (hover: hover) { .ch-back:hover { background: rgba(255, 255, 255, .28); } }
+.ch-back:active { transform: scale(.92); }
 .ch-sheet-body { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 14px 18px 20px; -webkit-overflow-scrolling: touch; }
 @media (max-width: 760px) {
   .ch-layer { place-items: end stretch; padding: 0; }
@@ -355,7 +360,8 @@ html.ch-locked { overflow: hidden; }
   .ch-gm-head { height: 48px; }
   .ch-lock { position: relative; height: 34px; }
   .ch-lock::after { content: ""; position: absolute; inset: -7px -4px; }
-  .ch-x { width: 44px; height: 44px; }
+  .ch-x, .ch-back { width: 44px; height: 44px; }
+  .ch-back svg { width: 20px; height: 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

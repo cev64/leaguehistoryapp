@@ -783,6 +783,9 @@
       padding-right: 46px;
     }
     .drawer-team .team-badge { width: 58px; height: 58px; font-size: 28px; }
+    .drawer-team > div { min-width: 0; }
+    /* With somewhere to go back to, the back button leads the row. */
+    .drawer-team:has(> .pp-back:not([hidden])) { gap: 12px; }
     .drawer-team h2 { margin: 0 0 4px; font-size: 25px; letter-spacing: -.04em; }
     .drawer-team p { margin: 0; color: rgba(255,255,255,.72); font-size: 13px; }
     .drawer-year {
@@ -1797,6 +1800,7 @@
       .team-drawer.compact .drawer-year { max-height: 0; opacity: 0; margin: 0; padding-top: 0; padding-bottom: 0; }
       .team-drawer.compact .drawer-team .team-badge { width: 34px; height: 34px; }
       .team-drawer.compact .drawer-team h2 { font-size: 16px; margin: 0; }
+      .drawer-team:has(> .pp-back:not([hidden])) { gap: 10px; }
     }
 
   
@@ -2998,6 +3002,7 @@
       flex: 0 0 auto;
     }
 
+    .bx-head-text { flex: 1 1 auto; min-width: 0; }
     .bx-head h3 { margin: 0; font-size: 21px; letter-spacing: -.02em; line-height: 1.1; }
     .bx-head .bx-sub:empty { display: none; }
     .bx-head .bx-sub { display: block; font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.62); margin-top: 3px; }
@@ -4584,7 +4589,8 @@
   <div class="bx-backdrop" id="bxBackdrop"></div>
   <div class="bx-modal" id="bxModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="bxTitle">
     <div class="bx-head">
-      <div>
+      <button type="button" class="pp-back" id="bxBack" hidden aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="bx-head-text">
         <h3 id="bxTitle">Box score</h3>
         <span class="bx-sub" id="bxSub"></span>
       </div>
@@ -4598,6 +4604,7 @@
     <div class="drawer-hero" id="drawerHero">
       <button class="drawer-close" id="drawerClose" aria-label="Close team schedule">×</button>
       <div class="drawer-team">
+        <button type="button" class="pp-back" id="drawerBack" hidden aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <span class="team-badge" id="drawerBadge"></span>
         <div>
           <span class="drawer-year" id="drawerYear"></span>
@@ -7854,8 +7861,30 @@
     const bxModal = document.getElementById("bxModal");
     const bxBackdrop = document.getElementById("bxBackdrop");
 
+    /* The sheet keeps a trail of where it has been, as a navigation stack
+       does on iOS. Each view is a box score, { kind: "box", week, a, b,
+       year }, or a rivalry, { kind: "rv", week, a, b }; opening one while
+       the sheet is open puts the view on show (bxNow) on the trail, and the
+       back button at the top left steps back along it. With nothing on the
+       trail over an open team drawer, back closes the sheet onto the
+       drawer. The X closes the lot, drawer included. */
+    let bxNow = null;
+    let bxTrail = [];
+    let bxTicket = 0;     // the latest view asked for; a slower load before it is dropped
+
+    const samePair = (x, y) => (x.a === y.a && x.b === y.b) || (x.a === y.b && x.b === y.a);
+    const sameView = (x, y) => !!x && !!y && x.kind === y.kind && x.week === y.week && samePair(x, y) &&
+      (x.kind === "rv" || x.year === y.year);
+    const bxTop = () => bxTrail[bxTrail.length - 1] || null;
+    // The team in the drawer under the sheet, if one is open.
+    const drawerUnder = () => (drawer.classList.contains("open") && teams[drawer.dataset.current] ? drawer.dataset.current : null);
+
     function closeBox() {
       if (!bxModal) return;
+      bxTicket++;
+      bxNow = null;
+      bxTrail = [];
+      document.getElementById("bxBack").hidden = true;
       bxModal.classList.remove("open");
       bxBackdrop.classList.remove("open");
       bxModal.setAttribute("aria-hidden", "true");
@@ -7863,13 +7892,67 @@
       rivalryClosed();
     }
 
-    /* `year`: another season's game (a meeting in the rivalry preview's
-       list, whose team ids are that season's); `back`: the rivalry preview
-       it was opened from, which its foot then leads back to. */
-    const otherBoxes = {};
-    function openBox(week, idA, idB, year = SEASON, back = null) {
+    /* Opening a view. From a closed sheet it starts a fresh trail; in an
+       open one it goes on top, unless it is the view just behind (a box
+       score's rivalry and back to the box score), which is a step back
+       rather than another step forward. */
+    function bxGo(view) {
       if (!bxModal) return;
-      year = Number(year);
+      if (!bxModal.classList.contains("open")) { bxShow(view, []); return; }
+      if (sameView(view, bxTop())) { bxBack(); return; }
+      if (sameView(view, bxNow)) return;
+      bxShow(view, bxNow ? [...bxTrail, bxNow] : bxTrail);
+    }
+
+    function bxShow(view, trail, back = false) {
+      if (view.kind === "rv") openRivalry(view, trail, back);
+      else openBox(view, trail, back);
+    }
+
+    // One step back: along the trail, or out to the drawer underneath.
+    function bxBack() {
+      const top = bxTop();
+      if (top) { bxShow(top, bxTrail.slice(0, -1), true); return; }
+      const under = drawerUnder();
+      // A player card docked beside the sheet goes with it, as on its X.
+      if (bxModal.classList.contains("bx-docked") && window.PlayerCard) PlayerCard.close();
+      closeBox();
+      if (under) {
+        const back = document.getElementById("drawerBack");
+        (back.hidden ? document.getElementById("drawerClose") : back).focus();
+      }
+    }
+
+    /* A view drawn: the back button names where it goes, the sheet opens
+       if it wasn't, and focus lands on the close button (on the way back,
+       on the back button while there is further to go). */
+    function bxShown(back) {
+      const btn = document.getElementById("bxBack");
+      const top = bxTop(), under = !top && drawerUnder();
+      const label = top
+        ? (top.kind === "rv" ? "Back to the rivalry"
+          : bxNow.kind === "rv" && samePair(top, bxNow) ? "Back to the box score"
+          : `Back to the ${top.year !== SEASON ? `${top.year} ` : ""}Week ${top.week} box score`)
+        : under ? `Back to ${teams[under].name}` : "";
+      btn.hidden = !label;
+      btn.setAttribute("aria-label", label || "Back");
+      btn.title = label;
+      bxModal.classList.add("open");
+      bxBackdrop.classList.add("open");
+      bxModal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      (back && !btn.hidden ? btn : document.getElementById("bxClose")).focus();
+    }
+
+    /* `view.year`: another season's game (a meeting in the rivalry
+       preview's list, whose team ids are that season's). The trail and the
+       back button change only once the game is drawn, so a box score that
+       fails to load leaves the sheet as it was. */
+    const otherBoxes = {};
+    function openBox(view, trail = [], back = false) {
+      if (!bxModal) return;
+      const { week, a: idA, b: idB } = view;
+      const year = view.year = Number(view.year || SEASON);
       const yrSeason = year === SEASON ? season : model.season(year);
       if (!yrSeason) return;
       const yrTeams = yrSeason.teams;
@@ -7877,11 +7960,14 @@
       const tBadge = (id) => (year === SEASON ? miniTeam(id) : `<span class="mini-badge" style="--team-color:${yrTeams[id] ? yrTeams[id].color : "#304f91"}">${teamMark(yrTeams[id])}</span>`);
       const load = year === SEASON ? boxWeek(week)
         : (otherBoxes[`${year}:${week}`] = otherBoxes[`${year}:${week}`] || Promise.resolve(model.boxWeek(year, week)).catch(() => null));
+      const ticket = ++bxTicket;
       load.then((data) => {
-        if (!data) return;
+        if (!data || ticket !== bxTicket) return;
         const game = data.games.find((g) =>
           (g.home === idA && g.away === idB) || (g.home === idB && g.away === idA));
         if (!game) return;
+        bxNow = view;
+        bxTrail = trail;
 
         const scoreOf = (id) => (game.home === id ? game.homeScore : game.awayScore);
         // Columns follow the order of the card that was clicked, so the modal
@@ -7915,35 +8001,46 @@
 
         document.getElementById("bxFoot").textContent = "The chip beside each player is his NFL club today.";
         bxModal.classList.remove("rv-mode");
-        document.getElementById("bxFoot").insertAdjacentHTML("beforeend", back
-          ? ` <button type="button" class="rv-switch" data-rv-week="${back.week}" data-rv-a="${back.a}" data-rv-b="${back.b}">‹ Back to the rivalry</button>`
-          : year === SEASON ? rivalryCue(week, idA, idB) : "");
+        // Across to this game's rivalry, unless that is where it came from
+        // (the back button goes there).
+        const from = bxTop();
+        const cameFrom = from && from.kind === "rv" && samePair(from, view) && (from.week === week || from.end === week);
+        if (year === SEASON && !cameFrom) document.getElementById("bxFoot").insertAdjacentHTML("beforeend", rivalryCue(week, idA, idB));
 
         document.getElementById("bxCols").scrollTop = 0;
-
-        bxModal.classList.add("open");
-        bxBackdrop.classList.add("open");
-        bxModal.setAttribute("aria-hidden", "false");
-        document.body.style.overflow = "hidden";
-        document.getElementById("bxClose").focus();
+        bxShown(back);
       });
     }
 
+    // A box score card's view: this season's game, the teams in its order.
+    const bxView = (el) => ({ kind: "box", week: Number(el.dataset.bxWeek), a: el.dataset.bxA, b: el.dataset.bxB, year: SEASON });
+
     if (bxModal) {
       document.addEventListener("click", (event) => {
-        if (event.target.closest("#bxClose") || event.target.closest("#bxBackdrop")) { closeBox(); return; }
+        /* The X closes the sheet and the team drawer under it. (A sheet
+           swiped away on a phone closes alone: player-card.js presses the
+           backdrop for it.) */
+        if (event.target.closest("#bxClose")) {
+          const under = drawerUnder();
+          closeBox();
+          if (under) closeTeam();
+          return;
+        }
+        if (event.target.closest("#bxBackdrop")) { closeBox(); return; }
+        if (event.target.closest("#bxBack")) { bxBack(); return; }
         // The team buttons inside a card or a bracket matchup open the team
         // drawer; leave them alone.
         if (event.target.closest("[data-team]")) return;
         const card = event.target.closest("[data-bx-week]");
-        if (card) openBox(Number(card.dataset.bxWeek), card.dataset.bxA, card.dataset.bxB);
+        if (card) bxGo(bxView(card));
       });
 
+      // Escape steps back, closing the sheet once there is nowhere further.
       document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && bxModal.classList.contains("open")) { event.stopImmediatePropagation(); closeBox(); return; }
+        if (event.key === "Escape" && bxModal.classList.contains("open")) { event.stopImmediatePropagation(); bxBack(); return; }
         if (event.key !== "Enter" && event.key !== " ") return;
         const card = event.target.closest && event.target.closest("[data-bx-week]");
-        if (card) { event.preventDefault(); openBox(Number(card.dataset.bxWeek), card.dataset.bxA, card.dataset.bxB); }
+        if (card) { event.preventDefault(); bxGo(bxView(card)); }
       });
     }
 
@@ -7958,7 +8055,6 @@
        ================================================================= */
 
     let rvOpener = null;
-    let rvShown = null;   // the game the preview shows, for a box score's way back
 
     // The visible way in, under each matchup tile.
     function rivalryButton(week, a, b) {
@@ -8126,10 +8222,17 @@
       </div>`;
     }
 
-    function openRivalry(week, a, b) {
+    // `view`: { kind: "rv", week, a, b }, drawn in the box score's sheet
+    // (its trail and back button are the box score's: bxGo, bxShown).
+    function openRivalry(view, trail = [], back = false) {
       if (!bxModal || !window.Insights || !Insights.rivalry) return;
+      const { week, a, b } = view;
       let r;
       try { r = Insights.rivalry(model, SEASON, week, a, b); } catch (err) { console.warn(err); return; }
+      bxTicket++;
+      bxNow = view;
+      bxTrail = trail;
+      view.end = r.end;   // the game's last week, which its box score is filed under
       if (!bxModal.classList.contains("open")) rvOpener = document.activeElement;
       bxModal.classList.add("rv-mode");
       document.getElementById("bxTitle").textContent = `${SEASON} · ${r.kind === "regular" ? `Week ${week}` : r.label}`;
@@ -8137,7 +8240,6 @@
       const cols = document.getElementById("bxCols");
       cols.innerHTML = rivalryHTML(r);
       cols.scrollTop = 0;
-      rvShown = { week, a, b };
       // A meeting without a box score (no lineups that week) can't open one.
       const rows = [...cols.querySelectorAll("[data-rv-box]")];
       [...new Set(rows.map((el) => Number(el.dataset.rvBox)))].forEach((year) => {
@@ -8151,17 +8253,16 @@
       });
       const foot = document.getElementById("bxFoot");
       foot.textContent = r.note;
-      if (r.played) {
+      // Across to the game's box score, unless that is where it came from.
+      const from = bxTop();
+      const cameFrom = from && from.kind === "box" && from.year === SEASON && from.week === r.end && samePair(from, view);
+      if (r.played && !cameFrom) {
         boxWeeks().then((weeks) => {
-          if (!weeks.has(r.end) || !bxModal.classList.contains("rv-mode")) return;
+          if (!weeks.has(r.end) || bxNow !== view) return;
           foot.insertAdjacentHTML("beforeend", `<button type="button" class="rv-switch" data-bx-week="${r.end}" data-bx-a="${a}" data-bx-b="${b}">‹ Box score</button>`);
         });
       }
-      bxModal.classList.add("open");
-      bxBackdrop.classList.add("open");
-      bxModal.setAttribute("aria-hidden", "false");
-      document.body.style.overflow = "hidden";
-      document.getElementById("bxClose").focus();
+      bxShown(back);
     }
 
     // The box score's way across to the same game's rivalry.
@@ -8182,11 +8283,11 @@
         if (event.target.closest("[data-team]")) return;
         const meet = event.target.closest("[data-rv-box]");
         if (meet) {
-          if (!meet.disabled) openBox(Number(meet.dataset.week), meet.dataset.a, meet.dataset.b, Number(meet.dataset.rvBox), rvShown);
+          if (!meet.disabled) bxGo({ kind: "box", week: Number(meet.dataset.week), a: meet.dataset.a, b: meet.dataset.b, year: Number(meet.dataset.rvBox) });
           return;
         }
         const el = event.target.closest("[data-rv-week]");
-        if (el) openRivalry(Number(el.dataset.rvWeek), el.dataset.rvA, el.dataset.rvB);
+        if (el) bxGo({ kind: "rv", week: Number(el.dataset.rvWeek), a: el.dataset.rvA, b: el.dataset.rvB });
       });
       // Focus stays in the sheet while it's open.
       bxModal.addEventListener("keydown", (event) => {
@@ -8386,27 +8487,55 @@
 
     /* Opening another team while the drawer is open (an opponent in the
        schedule, say) slides the current team out to the left and the new one
-       in from the right, so it is plain the page has changed. */
-    function swapTeam(teamId) {
+       in from the right, so it is plain the page has changed; going back
+       (`dir` -1) slides the other way. */
+    function swapTeam(teamId, dir = 1) {
       const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const parts = [document.getElementById("drawerHero"), document.getElementById("drawerBody")];
       const out = parts.map((el) => el.animate(
-        [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateX(-22px)" }],
+        [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${-22 * dir}px)` }],
         { duration: still ? 1 : 150, easing: "cubic-bezier(.4, 0, 1, 1)", fill: "forwards" }));
       out[0].onfinish = () => {
         drawer.dataset.current = teamId;
         openTeam(teamId);
         parts.forEach((el) => {
           el.getAnimations().forEach((a) => a.cancel());
-          el.animate([{ opacity: 0, transform: "translateX(22px)" }, { opacity: 1, transform: "none" }],
+          el.animate([{ opacity: 0, transform: `translateX(${22 * dir}px)` }, { opacity: 1, transform: "none" }],
             { duration: still ? 1 : 280, easing: "cubic-bezier(.2, .8, .2, 1)" });
         });
       };
     }
 
+    /* The teams the drawer showed before this one, newest last, for its
+       back button: opening another team puts the one on show here, and
+       back takes them off again. Opening the team just behind is a step
+       back too, so going to and fro between two teams doesn't pile up. */
+    let teamTrail = [];
+
+    function teamBackSync() {
+      const btn = document.getElementById("drawerBack");
+      const prev = teamTrail[teamTrail.length - 1];
+      const label = prev && teams[prev] ? `Back to ${teams[prev].name}` : "";
+      btn.hidden = !label;
+      btn.setAttribute("aria-label", label || "Back");
+      btn.title = label;
+    }
+
+    function teamBack() {
+      const prev = teamTrail.pop();
+      if (!prev) { closeTeam(); return; }
+      swapTeam(prev, -1);
+      // The button changes with the swap; focus stays on it while there is
+      // further to go.
+      (teamTrail.length ? document.getElementById("drawerBack") : document.getElementById("drawerClose")).focus();
+    }
+
     function openTeam(teamId) {
       if (!teams[teamId]) return;
-      if (drawer.classList.contains("open") && drawer.dataset.current && drawer.dataset.current !== teamId) {
+      const current = drawer.dataset.current;
+      if (drawer.classList.contains("open") && current && current !== teamId) {
+        if (teamTrail[teamTrail.length - 1] === teamId) { teamBack(); return; }
+        if (teamTrail[teamTrail.length - 1] !== current) teamTrail.push(current);
         swapTeam(teamId);
         return;
       }
@@ -8429,6 +8558,7 @@
       drawer.classList.remove("compact");
       document.getElementById("drawerBody").scrollTop = 0;
       document.getElementById("drawerOwner").textContent = `${t.owner}${HAS_DIVISIONS && t.division ? ` · ${divisionLabel(t.division)}` : ""}`;
+      teamBackSync();
       document.getElementById("drawerStats").innerHTML = `
         <div class="drawer-stat"><small>Record</small><strong>${FINISHED ? recordOf(t) : line.record}</strong></div>
         <div class="drawer-stat"><small>Points For</small><strong>${fmt(line.pf)}</strong></div>
@@ -8461,6 +8591,8 @@
 
     function closeTeam() {
       delete drawer.dataset.current;
+      teamTrail = [];
+      teamBackSync();
       drawer.classList.remove("open");
       backdrop.classList.remove("open");
       drawer.setAttribute("aria-hidden", "true");
@@ -8473,9 +8605,15 @@
       if (team) openTeam(team.dataset.team);
     });
 
+    // Back is one team back; the X and the backdrop close the drawer, and
+    // Escape steps back until there is nowhere further, then closes it.
+    document.getElementById("drawerBack").addEventListener("click", teamBack);
     document.getElementById("drawerClose").addEventListener("click", closeTeam);
     backdrop.addEventListener("click", closeTeam);
-    document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !document.querySelector("#bxModal.open")) closeTeam(); });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || document.querySelector("#bxModal.open") || !drawer.classList.contains("open")) return;
+      teamBack();
+    });
 
     /* ?team=<id> opens that team's drawer on arrival (the all-time page's
        Season History links here). It opens a frame after the first paint,

@@ -86,7 +86,7 @@
     color: #fff;
     pointer-events: none;   /* the part below the bar lets taps through to the content */
   }
-  .pc-hero .pc-close { pointer-events: auto; }
+  .pc-hero .pc-close, .pc-hero .pc-back { pointer-events: auto; }
   .pc-hero-bg, .pc-hero-shade {
     position: absolute; inset: 0; pointer-events: none;
     transform: translate3d(0, calc(var(--hd, 0px) * var(--p) * -1), 0); will-change: transform;
@@ -204,6 +204,24 @@
     color: #fff; font-size: 21px; line-height: 1; cursor: pointer;
   }
   .pc-close:hover { background: rgba(255,255,255,.28); }
+  /* The back button, at the left of the header, when the card was opened
+     from a window it now covers (a box score, a team's panel): it closes the
+     card alone and so shows that window again, while the close button
+     closes both. The same glass as the close button, a little smaller. */
+  .pc-back {
+    flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; margin-right: -4px;
+    border: 1px solid rgba(255,255,255,.26); border-radius: 50%; background: rgba(255,255,255,.16); color: #fff;
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 4px 12px -4px rgba(0, 0, 0, .3);
+    cursor: pointer; transition: background-color .2s ease;
+  }
+  .pc-back[hidden] { display: none; }
+  .pc-back svg { width: 18px; height: 18px; margin-left: -2px; }
+  .pc-back:hover { background: rgba(255,255,255,.28); }
+  .pc-back:active { transform: scale(.9); }
+  .pc-back:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  /* with no header (the card could not load a player) it sits in the corner */
+  .pc > .pc-back { position: absolute; z-index: 2; top: 14px; left: 14px; margin: 0; }
   .pc-tags { max-height: 60px; overflow: hidden; }
   /* The slim bar's layout. It is never shown as such: foldHeader lays the
      header out this way for a moment, unseen, to measure where each part
@@ -499,6 +517,9 @@
     .pc-champ { font-size: 9px; margin-bottom: 4px; }
     .pc-id h2.pc-gold { padding: 1px 8px 2px; border-radius: 8px; }
     .pc-close { top: 10px; right: 10px; width: 30px; height: 30px; font-size: 18px; border-radius: 50%; }
+    .pc-back { width: 30px; height: 30px; margin-right: -2px; }
+    .pc-back svg { width: 16px; height: 16px; }
+    .pc > .pc-back { top: 10px; left: 10px; }
     .pc.pc-small .pc-photo { width: 34px; height: 34px; }
     .pc.pc-small .pc-id h2 { font-size: 16px; }
     .pc.pc-small .pc-close { top: calc(50% - 15px); }
@@ -581,6 +602,9 @@
   let loading = null;
   let els = null;
   let lastFocus = null;
+  // The window the card was opened from while covering it (narrow screens):
+  // { host, label }. The card's back button returns to it.
+  let backTo = null;
 
   const fmt = (n) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmt1 = (n) => Number(n).toFixed(1);
@@ -650,8 +674,37 @@
     els.backdrop.classList.remove("open");
     els.card.setAttribute("aria-hidden", "true");
     document.documentElement.classList.remove("pc-lock");
+    backTo = null;
     undock();
     if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  /* Back and close. A card opened from a box score or a team's panel that it
+     now covers (it only docks beside them on a wide screen) has a back
+     button: back closes the card alone, so the window under it shows again,
+     and the close button closes the card and that window too. Everywhere
+     else the card has no back button and close is just close. */
+  const HOSTS = { bxModal: "#bxClose", teamDrawer: "#drawerClose", profilePanel: "#closeProfile" };
+  function backFor(from) {
+    const host = from && from.closest && from.closest("#bxModal, #teamDrawer, #profilePanel");
+    if (!host) return null;
+    const name = host.id === "bxModal" ? "the box score"
+      : ((host.querySelector("#drawerName, #profileName") || {}).textContent || "").trim() || "the team";
+    return { host, label: `Back to ${name}` };
+  }
+  const backButton = () => backTo
+    ? `<button type="button" class="pc-back" data-fold aria-label="${esc(backTo.label)}" title="${esc(backTo.label)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`
+    : "";
+  function closeAll() {
+    const from = backTo;
+    close();
+    const x = from && document.querySelector(HOSTS[from.host.id]);
+    if (x) x.click();
+  }
+  function wireButtons(card) {
+    card.querySelector(".pc-close").addEventListener("click", closeAll);
+    const back = card.querySelector(".pc-back");
+    if (back) back.addEventListener("click", close);
   }
 
   /* Docking (desktop only). Opened from inside a team panel, the card slides
@@ -757,8 +810,8 @@
     const p = data && data.byId.get(id);
     if (!p) {
       card.style.setProperty("--pc-color", "#304f91");
-      card.innerHTML = `<button class="pc-close" aria-label="Close">&times;</button><div class="pc-empty">${data ? "No league history for this player." : "Player history could not be loaded."}</div>`;
-      card.querySelector(".pc-close").addEventListener("click", close);
+      card.innerHTML = `${backButton().replace(" data-fold", "")}<button class="pc-close" aria-label="Close">&times;</button><div class="pc-empty">${data ? "No league history for this player." : "Player history could not be loaded."}</div>`;
+      wireButtons(card);
       return;
     }
 
@@ -859,6 +912,7 @@
         <header class="pc-hero">
           <div class="pc-hero-shade" aria-hidden="true"></div>
           <div class="pc-hero-bg" aria-hidden="true"><div class="pc-hero-glass"></div></div>
+          ${backButton()}
           <div class="pc-photo" data-fold>${photo}${!isDst ? `<span class="pc-club">${nfl(s.lastClub)}</span>` : ""}</div>
           <div class="pc-id">
             ${s.titles.length ? `<div class="pc-champ" data-fold title="Championship games won in the starting lineup">🏆 ${[...new Set(s.titles.map((r) => r.season))].join(" · ")}</div>` : ""}
@@ -1003,7 +1057,7 @@
       help.hidden = !help.hidden;
       info.setAttribute("aria-expanded", String(!help.hidden));
     });
-    card.querySelector(".pc-close").addEventListener("click", close);
+    wireButtons(card);
   }
 
   /* The header's fold, tied to the scroll (see .pc-hero in the CSS).
@@ -1099,6 +1153,8 @@
     // Hold the page still behind a card that covers it; a docked card sits
     // beside a window that already does.
     if (!card.classList.contains("docked")) document.documentElement.classList.add("pc-lock");
+    // Covering the window it was opened from: that window is the way back.
+    backTo = card.classList.contains("docked") ? null : backFor(from);
     card.setAttribute("aria-hidden", "false");
 
     const fill = () => {
@@ -1290,7 +1346,8 @@
     swipeToClose(document.getElementById("bxModal"), {
       scroller: () => document.getElementById("bxCols"),
       backdrop: () => document.getElementById("bxBackdrop"),
-      close: click("#bxClose"),
+      // the backdrop, not the X: the X also closes a team drawer underneath
+      close: click("#bxBackdrop"),
     });
     swipeToClose(document.getElementById("teamDrawer"), {
       scroller: () => document.getElementById("drawerBody"),
