@@ -113,8 +113,15 @@
 
   /* A sheet: a bottom sheet on a phone, a floating card wider up. Focus
      stays inside it, Escape and the backdrop close it, and focus goes back
-     to what opened it. */
-  function openSheet({ kicker = "", title, body, cls = "", onClose }) {
+     to what opened it.
+
+     A sheet opened on top of another can take back: { label, onBack,
+     onCloseAll }. It adds a back button at the left of the head and makes
+     Escape step back too (onBack, which closes just this sheet when left
+     out); the close button then calls onCloseAll, to close the whole stack
+     (this sheet when that is left out). The backdrop still closes just
+     this one. */
+  function openSheet({ kicker = "", title, body, cls = "", onClose, back }) {
     const opener = document.activeElement;
     const id = `chSheet${Math.random().toString(36).slice(2, 8)}`;
     const layer = document.createElement("div");
@@ -122,6 +129,7 @@
     layer.innerHTML = `<div class="ch-backdrop" data-ch-close></div>
       <section class="ch-sheet" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="${id}" tabindex="-1">
         <header class="ch-sheet-head">
+          ${back ? `<button type="button" class="ch-back" data-ch-back aria-label="${esc(back.label)}" title="${esc(back.label)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` : ""}
           <div>${kicker ? `<small>${kicker}</small>` : ""}<h2 id="${id}">${title}</h2></div>
           <button type="button" class="ch-x" data-ch-close aria-label="Close">&times;</button>
         </header>
@@ -140,7 +148,7 @@
     document.documentElement.classList.add("ch-locked");
     requestAnimationFrame(() => layer.classList.add("open"));
     const onKey = (e) => {
-      if (e.key === "Escape") { e.stopPropagation(); close(); return; }
+      if (e.key === "Escape") { e.stopPropagation(); stepBack(); return; }
       if (e.key !== "Tab") return;
       const f = [...sheet.querySelectorAll(FOCUSABLE)].filter((el) => el.getClientRects().length);
       if (!f.length) { e.preventDefault(); sheet.focus(); return; }
@@ -161,7 +169,14 @@
       // (without scrolling: the page stays where the reader left it)
       if (opener && opener.isConnected && opener.focus) opener.focus({ preventScroll: true });
     }
-    layer.addEventListener("click", (e) => { if (e.target.closest("[data-ch-close]")) close(); });
+    const stepBack = () => { if (back && back.onBack) back.onBack(); else close(); };
+    layer.addEventListener("click", (e) => {
+      const hit = e.target.closest("[data-ch-close], [data-ch-back]");
+      if (!hit) return;
+      if (hit.hasAttribute("data-ch-back")) stepBack();
+      else if (back && back.onCloseAll && hit.classList.contains("ch-x")) back.onCloseAll();
+      else close();
+    });
     // Back to another week or view: the sheet was about the one before.
     addEventListener("hashchange", close, { once: true });
     const firstFocus = sheet.querySelector(".ch-sheet-body " + FOCUSABLE) || sheet.querySelector(".ch-x");
@@ -592,6 +607,12 @@
         body: claimBody(),
         cls: "ch-claim-sheet",
         onClose: () => { claimSheet = null; S.pending = null; },
+        // On top of the Leaderboard: back shows it again, the close button closes both.
+        back: board ? {
+          label: "Back to the leaderboard",
+          onBack: () => claimSheet.close(),
+          onCloseAll: () => { claimSheet.close(); if (board) board.close(); },
+        } : undefined,
       });
       claimSheet.body.addEventListener("click", async (e) => {
         const b = e.target.closest("[data-ch-claim]");

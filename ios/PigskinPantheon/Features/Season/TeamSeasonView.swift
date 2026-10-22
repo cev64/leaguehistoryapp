@@ -3,8 +3,8 @@ import SwiftUI
 /// A team's season (season.html's team drawer, openTeam): the team in its
 /// colours with its record, points and seed, every week of its schedule
 /// with the box scores, its playoff games, and everyone it started with a
-/// cell per week. An opponent opens that team's season in its place (the
-/// site's swapTeam), as does the team menu.
+/// cell per week. An opponent pushes that team's season onto the stack, so
+/// back returns to this team; the team menu swaps the team shown in place.
 struct TeamSeasonView: View {
     @Environment(LeagueSession.self) private var session
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -25,7 +25,7 @@ struct TeamSeasonView: View {
                 if let season, let team = season.team(shownId) {
                     Group {
                         if let data = loaded[shownId] {
-                            TeamSeasonContent(data: data, season: season, team: team) { swap(to: $0) }
+                            TeamSeasonContent(data: data, season: season, team: team)
                         } else if let error {
                             TeamHero(team: team, yearLine: "\(String(year)) season", ownerLine: team.owner, stats: [], ownerId: team.ownerId)
                             EmptyCard(title: "This season couldn't be read", detail: error, symbol: "exclamationmark.triangle")
@@ -97,13 +97,12 @@ private struct TeamSeasonContent: View {
     let data: TeamSeason
     let season: Season
     let team: Team
-    let swap: (String) -> Void
 
     var body: some View {
         TeamHero(team: team, yearLine: data.yearLine, ownerLine: data.ownerLine, stats: data.stats, ownerId: data.ownerId)
-        TeamScheduleSection(title: "Regular Season Schedule", items: data.schedule, post: false, data: data, season: season, swap: swap)
+        TeamScheduleSection(title: "Regular Season Schedule", items: data.schedule, post: false, data: data, season: season)
         if !data.post.isEmpty {
-            TeamScheduleSection(title: data.postTitle, items: data.post, post: true, data: data, season: season, swap: swap)
+            TeamScheduleSection(title: data.postTitle, items: data.post, post: true, data: data, season: season)
         }
         if let roster = data.roster {
             TeamStartersSection(roster: roster, team: team)
@@ -205,7 +204,6 @@ private struct TeamScheduleSection: View {
     let post: Bool
     let data: TeamSeason
     let season: Season
-    let swap: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -257,9 +255,7 @@ private struct TeamScheduleSection: View {
 
     @ViewBuilder private func opponent(_ g: TeamSeason.ScheduleItem) -> some View {
         let name = season.team(g.opponent)?.name ?? g.opponent
-        Button {
-            swap(g.opponent)
-        } label: {
+        NavigationLink(value: LeagueRoute.team(year: data.year, teamId: g.opponent)) {
             Text("vs \(name)")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.ink)
@@ -268,7 +264,7 @@ private struct TeamScheduleSection: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(Felt(.plain))
         .accessibilityLabel("\(name): season and schedule")
     }
 

@@ -653,6 +653,24 @@ button, summary, [role="tab"] { touch-action: manipulation; }
 @media (hover: hover) { .drawer-close:hover, .bx-close:hover { background: rgba(255, 255, 255, .28); } }
 .drawer-close:active, .bx-close:active { transform: scale(.9); }
 
+/* The back button: the same glass as the close button, at the top left of
+   a card that has somewhere to go back to (the team before an opponent was
+   opened, the rivalry a box score came from, the card underneath). Hidden
+   until then; its aria-label names where it goes. */
+.pp-back {
+  flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
+  border-radius: 50%; border: 1px solid rgba(255, 255, 255, .26); background: rgba(255, 255, 255, .16); color: #fff;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 4px 12px -4px rgba(0, 0, 0, .3);
+  cursor: pointer; transition: background-color .2s var(--ease), transform .18s var(--ease);
+}
+.pp-back[hidden] { display: none; }
+.pp-back svg { width: 18px; height: 18px; margin-left: -2px; }
+@media (hover: hover) { .pp-back:hover { background: rgba(255, 255, 255, .28); } }
+.pp-back:active { transform: scale(.9); }
+.pp-back:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+@media (max-width: 760px) { .pp-back { width: 30px; height: 30px; } .pp-back svg { width: 16px; height: 16px; } }
+
 /* ---- what's printed on the glass ---------------------------------- */
 .drawer-body .schedule-list, .drawer-body .roster-list, .drawer-body .roster-help {
   background: var(--glass-tile); border: 1px solid var(--glass-edge); border-radius: 18px;

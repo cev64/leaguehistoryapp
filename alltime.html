@@ -1761,6 +1761,7 @@
     <div class="drawer-hero" id="profileHero">
       <button class="drawer-close" id="closeProfile" aria-label="Close team history">×</button>
       <div class="drawer-team">
+        <button type="button" class="pp-back" id="profileBack" hidden aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <span class="team-badge" id="profileBadge"></span>
         <div>
           <span class="drawer-year">All-time</span>
@@ -2231,6 +2232,9 @@
     const panelBody = document.getElementById("profileBody");
     const panelBackdrop = document.getElementById("profileBackdrop");
     let activeOwnerId = null;
+    /* The managers opened before this one (a rival picked from Head-to-Head),
+       so the back button can step back through them. */
+    let profileTrail = [];
     let h2hSort = { key: "pct", direction: "desc" };
     const h2hDefaults = { team: "asc", wins: "desc", pct: "desc", pf: "desc", pa: "asc", diff: "desc" };
 
@@ -2320,8 +2324,22 @@
     function openProfile(ownerId, options = {}) {
       const profile = profiles[ownerId];
       if (!profile) return;
+      // Opening a different manager from inside the panel leaves a way back;
+      // going back, closing, or re-opening the same one does not.
+      const wasOpen = panel.classList.contains("open");
+      const switching = wasOpen && activeOwnerId && activeOwnerId !== ownerId;
+      if (!wasOpen) profileTrail = [];
+      else if (switching && !options.back) profileTrail.push(activeOwnerId);
       activeOwnerId = ownerId;
       h2hSort = { key: "pct", direction: "desc" };
+      const backButton = document.getElementById("profileBack");
+      const previous = profiles[profileTrail[profileTrail.length - 1]];
+      backButton.hidden = !previous;
+      if (previous) {
+        const label = `Back to ${previous.currentTeam}`;
+        backButton.setAttribute("aria-label", label);
+        backButton.title = label;
+      }
 
       document.getElementById("profileHero").style.setProperty("--drawer-color", profile.color);
       panel.style.setProperty("--drawer-color", profile.color);
@@ -2402,9 +2420,29 @@
       panel.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
       document.getElementById("closeProfile").focus({ preventScroll: true });
+
+      // The new manager slides in from the right, or from the left on the way back.
+      if (switching && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const from = options.back ? "-36px" : "36px";
+        [panelBody, document.querySelector("#profilePanel .drawer-team")].forEach((el) => el.animate(
+          [{ opacity: 0, transform: `translateX(${from})` }, { opacity: 1, transform: "none" }],
+          { duration: 260, easing: "cubic-bezier(.2, .8, .2, 1)" }));
+      }
+    }
+
+    // One step back: the manager opened before this one. False when there is none.
+    function backProfile() {
+      while (profileTrail.length) {
+        const ownerId = profileTrail.pop();
+        if (!profiles[ownerId]) continue;
+        openProfile(ownerId, { scrollToTop: true, back: true });
+        return true;
+      }
+      return false;
     }
 
     function closeProfile() {
+      profileTrail = [];
       panel.classList.remove("open");
       panelBackdrop.classList.remove("open");
       panel.setAttribute("aria-hidden", "true");
@@ -2458,9 +2496,11 @@
     });
 
     document.getElementById("closeProfile").addEventListener("click", closeProfile);
+    document.getElementById("profileBack").addEventListener("click", backProfile);
     panelBackdrop.addEventListener("click", closeProfile);
+    // Escape steps back while there is somewhere to go back to, then closes.
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeProfile();
+      if (event.key === "Escape" && !backProfile()) closeProfile();
     });
 
 
