@@ -1,5 +1,33 @@
 # ESPN sign-in: the plan
 
+## Status
+
+Built, on branch `feat/espn-sign-in`:
+
+- **iOS "Sign in with ESPN"** (Phase 1): ESPN's own page in a sheet with an
+  in-memory cookie store, the key-pasting fields gone, keys mirrored to the
+  Keychain, `PP_SHEET=espn` and `PP_ESPN_FAKE=1` for the simulator.
+- **The Pigskin Pantheon Connect extension** (Phase 2): `extension/`, the
+  front page's rebuilt private panel, `espn.js` copy, `tools/pack-extension.sh`.
+  A hidden "Enter keys by hand" fallback stays on desktop web until a store
+  link is set.
+- **Copy and policy** (Phase 3): `support.html`, `privacy.html`,
+  `README.md`, the front page's FAQ, `ios/README.md`, `ios/APP_STORE.md`,
+  `ios/store/metadata.md`.
+
+Left:
+
+1. **A real ESPN sign-in test by Charlie**: Phase 0 and the Testing
+   checklist below. Nothing has been signed in to a real ESPN account yet
+   (the extension's tests run against a mocked browser; the app's against
+   made-up keys).
+2. **Publish the extension** (Publishing, below): Chrome Web Store and
+   Firefox Add-ons, then set `ESPN_EXTENSION_CHROME` and
+   `ESPN_EXTENSION_FIREFOX` (and `APP_STORE_URL`) in `account-config.js`.
+3. **Remove the hand-entry fallback** once a store link is live: delete
+   `#espnKeys`, `#espnByHandRow` and the "by hand" script in `index.html`.
+4. Screenshots of the app's panel before and after connecting, for Charlie.
+
 Today a private ESPN league opens only after the member copies the
 `espn_s2` and `SWID` cookies out of a desktop browser's developer tools and
 pastes them into the "Private league?" panel. On a phone that's impossible,
@@ -164,49 +192,49 @@ A sheet holding a `WKWebView` (`UIViewRepresentable`) and a small model.
 Today the keys live only in the engine web view's `localStorage`
 (`lh-espn-auth`), which iOS can evict. Mirror them into the Keychain:
 
-- [ ] Add a second Keychain service (`com.pigskinpantheon.espn`) next to
+- [x] Add a second Keychain service (`com.pigskinpantheon.espn`) next to
       the account's `enum Keychain` in `Features/Account/AccountStore.swift`,
       holding the JSON list of `{s2, swid}`.
-- [ ] Write it after every successful `espnSave` and `espnForget`.
-- [ ] New `Bridge.finder.espnRestore(list)` in `Engine/bridge-finder.js`
+- [x] Write it after every successful `espnSave` and `espnForget`.
+- [x] New `Bridge.finder.espnRestore(list)` in `Engine/bridge-finder.js`
       (calls `ESPN.saveAuth` for each set not already there), run once
       when the engine starts (`LeagueEngine` after the page loads, next to
       the session hand-off).
-- [ ] Account deletion and "Forget" clear the Keychain item too.
+- [x] Account deletion and "Forget" clear the Keychain item too.
 
 ### Change: `Features/Home/FinderViews.swift` and `FinderModel.swift`
 
-- [ ] `PrivatePanel`: remove `keyFields` (the three dev-tools steps, the
+- [x] `PrivatePanel`: remove `keyFields` (the three dev-tools steps, the
       `SecureField("espn_s2")`, the SWID field, Save) and `desktopSteps`
       (the "continue on a computer" steps and ShareLink). In their place:
       a short line ("Sign in to ESPN once and your private leagues open
       here.") and a prominent **Sign in with ESPN** button, plus the
       existing "Also save to my account" toggle when signed in.
-- [ ] "Add another ESPN account" opens the sheet instead of the fields.
-- [ ] Refused rows: "ESPN signed you out" + **Sign in again** (opens the
+- [x] "Add another ESPN account" opens the sheet instead of the fields.
+- [x] Refused rows: "ESPN signed you out" + **Sign in again** (opens the
       sheet) in place of "copy them again".
-- [ ] `FinderModel`: drop `s2`, `swid`, `keysAnyway`, `showDesktop`,
+- [x] `FinderModel`: drop `s2`, `swid`, `keysAnyway`, `showDesktop`,
       `showKeyFields`; add `signInOpen` and `didSignIn(s2:swid:)`
       (today's `saveKeys` body, minus the field clearing).
       `toggleSubtitle` loses "A one-time setup on a computer…" →
       "Sign in to ESPN to open private leagues and list all your ESPN
       leagues here."
-- [ ] Rewrite `fine` without "These keys work like your ESPN
+- [x] Rewrite `fine` without "These keys work like your ESPN
       password… keep them to yourself" (nobody handles them any more):
       what's kept, where, what it's used for, Forget, signing out of ESPN.
-- [ ] The wrong-ID error's `pp://private` link and the private-league
+- [x] The wrong-ID error's `pp://private` link and the private-league
       error link in the league screens open the panel with the sheet
       ready.
 
 ### Change: `Features/Account/AccountScreen.swift`
 
-- [ ] `espnSection`: "Connect ESPN" / "Add another ESPN account" open the
+- [x] `espnSection`: "Connect ESPN" / "Add another ESPN account" open the
       sign-in sheet directly; the no-keys text (line ~212) loses the
       "on a computer" wording.
 
 ### Debug and screenshots
 
-- [ ] `PP_SHEET=espn` opens the sign-in sheet (`App/DebugLaunch.swift`,
+- [x] `PP_SHEET=espn` opens the sign-in sheet (`App/DebugLaunch.swift`,
       and the list in `ios/README.md`).
 - [ ] Screenshots for Charlie: iPhone portrait and iPad **landscape**, the
       panel before and after connecting, with the demo league
@@ -283,10 +311,10 @@ asking tab's `cookieStoreId` as `storeId`.
 
 ### Change: `index.html` (the ESPN tab's private panel)
 
-- [ ] Remove `#espnKeys` (dev-tools steps, `#espnS2`, `#espnSwid`,
+- [x] Remove `#espnKeys` (dev-tools steps, `#espnS2`, `#espnSwid`,
       `#espnSave`) and `#espnDesktop` / "Have your keys already?" and their
       script (`keysAnyway`, the save handler, `#espnCopyLink`).
-- [ ] Add one block with three states, chosen in `drawPrivate`:
+- [x] Add one block with three states, chosen in `drawPrivate`:
       - **extension present** (`dataset.ppConnect`): **Connect ESPN**.
         Click → postMessage → `ESPN.saveAuth(s2, swid)` → `toAccount` if
         signed in and the box is ticked → `drawPrivate()` →
@@ -301,23 +329,23 @@ asking tab's `cookieStoreId` as `storeId`.
         app, signed in to your account, and it opens here too."
       - **touch device:** the "connect in the app or on a computer, signed
         in" note with the App Store link.
-- [ ] "+ Add another ESPN account": the extension can only read the ESPN
+- [x] "+ Add another ESPN account": the extension can only read the ESPN
       account the browser is signed in to, so it says "Sign out of ESPN in
       this browser, sign in to the other account, then Connect again."
       (The app's sign-in sheet doesn't have this problem.)
-- [ ] Refused rows: "ESPN signed you out" + **Connect again**.
-- [ ] Rewrite `#espnFine` as in the app.
-- [ ] The `#espnToAccountBox` choice stays.
+- [x] Refused rows: "ESPN signed you out" + **Connect again**.
+- [x] Rewrite `#espnFine` as in the app.
+- [x] The `#espnToAccountBox` choice stays.
 
 ### Change: `espn.js`
 
-- [ ] `privateError` copy: no "copy espn_s2 and SWID again". Desktop: "This
+- [x] `privateError` copy: no "copy espn_s2 and SWID again". Desktop: "This
       ESPN league is private. Connect ESPN on the front page to open it."
       Touch: "Connect ESPN once in the Pigskin Pantheon app or on a
       computer, signed in to your account, and it opens here too."
       Stale keys: "ESPN signed you out. Connect ESPN again on the front
       page." `linkText` to match ("Connect ESPN").
-- [ ] Keep `saveAuth`, `tidyAuth`, `savedAuths`, `accountKeys` as they are:
+- [x] Keep `saveAuth`, `tidyAuth`, `savedAuths`, `accountKeys` as they are:
       they're the sink for both methods, and keys pasted before this
       change keep working.
 
@@ -342,29 +370,31 @@ Don't remove the paste fields on the web until the extension is live in
 the stores, or desktop web has no way in at all. The iOS app can drop them
 as soon as Phase 1 ships.
 
-- [ ] `support.html` (ESPN help, ~lines 123, 143–153): the two methods;
+- [x] `support.html` (ESPN help, ~lines 123, 143–153): the two methods;
       drop the dev-tools steps.
-- [ ] `privacy.html` `#espn-keys`: the app's sign-in page (ESPN's page;
+- [x] `privacy.html` `#espn-keys`: the app's sign-in page (ESPN's page;
       we keep only `espn_s2` and `SWID` and discard the rest, the web
       view's data is wiped when it closes) and the extension (reads only
       those two cookies, only when you click Connect, only for this
       site). Check `PrivacyInfo.xcprivacy` still matches (same data, now
       also in the Keychain).
-- [ ] `README.md` "Public and private ESPN leagues": the two methods, and
+- [x] `README.md` "Public and private ESPN leagues": the two methods, and
       a pointer to `extension/README.md`.
-- [ ] `ios/README.md`: `PP_SHEET=espn`.
-- [ ] `ios/APP_STORE.md` "Still a judgement call ▸ ESPN": private leagues
+- [x] `ios/README.md`: `PP_SHEET=espn`.
+- [x] `ios/APP_STORE.md` "Still a judgement call ▸ ESPN": private leagues
       now connect through ESPN's own sign-in page in the app; the keys go
       to the account only if the member chooses; Account ▸ Forget and
       Delete Account remove them. Guideline 5.1.1(v) ("credentials or
       tokens to social networks" off the device) arguably doesn't cover
       ESPN, but say plainly in the review notes what's stored. Hiding
       private ESPN stays the fallback.
-- [ ] `ios/store/metadata.md` lines ~77–78: no "keys ESPN stores in your
+- [x] `ios/store/metadata.md` lines ~77–78: no "keys ESPN stores in your
       web browser".
-- [ ] `sw.js`: bump `CACHE_VERSION` (index.html, espn.js, support.html are
-      precached).
-- [ ] `node tools/check-scripts.mjs`.
+- [x] `sw.js`: bump `CACHE_VERSION` (index.html and espn.js are precached;
+      support.html and privacy.html are not). Bumped to v120 with the
+      extension commit; bump again when a store link goes into
+      `account-config.js`.
+- [x] `node tools/check-scripts.mjs`.
 
 ## Testing checklist
 

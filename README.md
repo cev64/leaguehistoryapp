@@ -157,13 +157,43 @@ Basic Settings) to anyone, from the browser, like Sleeper: the league ID is
 all a visitor needs.
 
 A private league opens one way: with the visitor's **ESPN keys**, the
-`espn_s2` and `SWID` cookies ESPN keeps once they're signed in. The ESPN
-tab's "Private league?" panel says where to find them (the browser's
-developer tools, on a computer) and has a box for each. On a phone or
-tablet, which has no developer tools, the panel says to connect from a
-computer once, signed in, after which the account carries the keys over.
-(`ESPN_SIGN_IN.md` is the plan to replace this with signing in to ESPN in
-the app and a browser extension.)
+`espn_s2` and `SWID` cookies ESPN keeps once they're signed in. Nobody
+copies them out of developer tools; the ESPN tab's "Private league?" panel
+connects them in one of two ways (`ESPN_SIGN_IN.md` is the build notes and
+checklist):
+
+- **iPhone and iPad app: Sign in with ESPN.** ESPN's own sign-in page opens
+  in a sheet with an in-memory cookie store, wiped when the sheet closes.
+  Once ESPN sets `espn_s2` the app takes it and `SWID`, discards the rest,
+  closes the sheet and lists the member's leagues
+  (`Bridge.finder.espnSave`, which calls `ESPN.saveAuth`). The keys are
+  mirrored into the Keychain (`com.pigskinpantheon.espn`) and put back into
+  the engine at launch (`Bridge.finder.espnRestore`), because iOS can clear
+  the engine's web storage. See `ios/README.md`.
+- **Computer: the Pigskin Pantheon Connect extension** (Chrome, Edge,
+  Firefox; `extension/`). On a click of **Connect ESPN** the extension
+  reads the two cookies (opening ESPN's sign-in in a tab first if the
+  browser isn't signed in) and hands them to the page, which calls
+  `ESPN.saveAuth`. It reads only those two cookies, only on a click, only
+  answers pigskinpantheon.com's pages and stores nothing. How it works,
+  loading it unpacked and the store notes are in `extension/README.md`;
+  `sh tools/pack-extension.sh` zips it for the Chrome and Firefox stores.
+- **Phone or tablet browser:** neither works there, so the panel says to
+  connect once in the app or on a computer, signed in to an account, and
+  private leagues open in the browser too (the account carries the keys).
+  `APP_STORE_URL` in `account-config.js` links the app; empty, the note
+  names it without a link. Safari on a Mac isn't supported yet and says so.
+
+Either way the keys then go through the same machinery as below: kept by
+`ESPN.saveAuth`, sent by the relay, and saved to the account in `espn_keys`.
+
+**Until the extension is published**, a computer's panel says it's coming
+soon and shows a small "Enter keys by hand" link with the old fields (the
+developer-tools steps and a box for each cookie). They are shown while
+`ESPN_EXTENSION_CHROME` and `ESPN_EXTENSION_FIREFOX` in `account-config.js`
+are both empty. Setting a store link switches the panel to "Add Pigskin
+Pantheon Connect" and hides the link; then delete `#espnKeys` and its
+script from `index.html`. Keys entered by hand before keep working.
 
 **Several ESPN accounts.** A member who plays on more than one ESPN account
 adds a set of keys for each ("+ Add another ESPN account"), up to ten. The
@@ -174,17 +204,17 @@ one that opened it before (or listed it) tried first.
 - **Signed in, the keys are saved to the visitor's account** as well
   (unless they untick "Also save them to my account"), so every device they
   sign in on opens their private leagues, their phone included, without
-  typing the keys again. Keys typed before signing in can be moved to the
+  connecting again. Keys connected before signing in can be moved to the
   account with "Save to my account". The relay keeps them encrypted
   (AES-GCM with `ESPN_KEYS_SECRET`, bound to the member's user id) in the
   `espn_keys` table, which only the relay can read; they never go back to
   a browser.
 - **Signed out (or in preview mode)**, they stay in that browser's
-  localStorage only.
+  localStorage only (and, in the app, the Keychain).
 - **Forget** on an account's row removes that ESPN account's keys from the
-  browser and the account.
+  browser (and the app's Keychain) and the account.
 
-**Without Supabase**, typed keys work too, kept in each visitor's browser:
+**Without Supabase**, connected keys work too, kept in each visitor's browser:
 the relay is a plain Deno program that runs anywhere, and with no Supabase
 settings it leaves account saving off.
 
@@ -200,13 +230,13 @@ When Supabase is set up later, leave `ESPN_PROXY_URL` empty (the site then
 uses the Supabase relay) and account saving switches on.
 
 `espn.js` tries a plain request first (public leagues), then the relay
-with keys typed in this browser, then the relay with the member's saved
+with keys connected in this browser, then the relay with the member's saved
 keys, and remembers which worked. The relay
 (`supabase/functions/espn-proxy`) adds the keys as cookies to a read-only
 request to ESPN's fantasy football league and player addresses and passes
 the answer straight back. It never logs the keys, and `ALLOWED_ORIGINS`
 limits it to this site. A private league the visitor has no keys for fails
-with a note that links back to the panel.
+with a note that links back to the panel ("Connect ESPN").
 
 ### Known limits
 
@@ -583,7 +613,7 @@ Going live:
    To save ESPN keys to accounts (so private leagues open on members'
    phones), also set `ESPN_KEYS_SECRET` (`supabase secrets set
    ESPN_KEYS_SECRET=$(openssl rand -base64 32)`). Keep it: changing it
-   makes every saved key unreadable, and members type theirs again.
+   makes every saved key unreadable, and members connect ESPN again.
    Run the other two migrations too: `20261001000000_espn_leagues.sql` lets
    an ESPN league (`espn-<id>`) be synced to an account, and
    `20261002000000_espn_keys.sql` adds the encrypted key store.

@@ -138,8 +138,7 @@ extension with `cookies`; submit early.
 - Privacy practices: handles "Authentication information" (the two ESPN
   cookies), transferred only to pigskinpantheon.com at the member's
   request, for the single purpose; not sold, not used for anything else.
-  Privacy policy: https://pigskinpantheon.com/privacy.html (its ESPN keys
-  section needs the extension added; see `ESPN_SIGN_IN.md` Phase 3).
+  Privacy policy: https://pigskinpantheon.com/privacy.html#espn-keys.
 
 **Firefox Add-ons (AMO)**, desktop and Android, from the `firefox` zip. The
 source is the plain files, so no source upload is needed. The manifest's

@@ -104,14 +104,14 @@
   <main class="lg-main" id="main">
     <article class="lg">
       <h1>Privacy Policy</h1>
-      <p class="lg-meta">Effective October 8, 2026 · Applies to the Pigskin Pantheon website (pigskinpantheon.com) and the Pigskin Pantheon iPhone app</p>
+      <p class="lg-meta">Effective October 21, 2026 · Applies to the Pigskin Pantheon website (pigskinpantheon.com) and the Pigskin Pantheon iPhone app</p>
 
       <div class="lg-box">
         <h2>The short version</h2>
         <ul>
           <li>You sign in with an email address and password. We store your email, a display name, the leagues you add and a few usage counts.</li>
           <li>Your league's scores, standings and history are read from Sleeper's and ESPN's own services, on your device, and cached there.</li>
-          <li>Private ESPN leagues need your ESPN <code>espn_s2</code> and <code>SWID</code> cookies. We keep them on your device, and only save them to your account (encrypted) if you choose to.</li>
+          <li>Private ESPN leagues need your ESPN <code>espn_s2</code> and <code>SWID</code> cookies. You connect through ESPN's own sign-in page in the app or the Pigskin Pantheon Connect browser extension, so we never see your ESPN password. We keep the two cookies on your device, and only save them to your account (encrypted) if you choose to.</li>
           <li>When you use Ask the League, your question and a text summary of your league are sent through our server to Google (Gemini) and, as a backup, Anthropic (Claude) to write an answer. On Gemini's free tier, Google may also use them to improve its products. The app asks your permission before your first question.</li>
           <li>If you play your league's pick'em or vote on its weekly awards, we store which team in the league is yours, your picks and your votes. If you turn on notifications, we store where to send them on that browser or device.</li>
           <li>The iPhone app has no ads, no analytics and no tracking. We do not sell your data.</li>
@@ -166,14 +166,19 @@
       <p>The website and the app keep data on your device so they work faster and remember your place: finished seasons of your leagues (cached for about a month), recently opened leagues, your sign-in session, and your Ask the League conversation for the length of a browser tab on the website. On iPhone the sign-in session is kept in the Keychain. Deleting the app (or clearing the site's data in your browser) removes these.</p>
 
       <h2 id="espn-keys">Private ESPN leagues and your ESPN keys</h2>
-      <p>A public ESPN league needs nothing but its league ID. A private ESPN league only opens with your ESPN <code>espn_s2</code> and <code>SWID</code> cookies, which work like a password to your ESPN account. We treat them that way:</p>
+      <p>A public ESPN league needs nothing but its league ID. A private ESPN league only opens with your ESPN <code>espn_s2</code> and <code>SWID</code> cookies, which work like a password to your ESPN account. You connect them in one of two ways, and we treat them like a password either way:</p>
       <ul>
-        <li>The keys you enter are kept on your device.</li>
+        <li><strong>Sign in with ESPN, in the iPhone and iPad app.</strong> The app opens ESPN's own sign-in page in a window. You sign in on ESPN's page, so we never see your ESPN password. When ESPN has signed you in, the app keeps only <code>espn_s2</code> and <code>SWID</code> and discards everything else the page set. The window keeps its data in memory only and wipes it when it closes, so nothing else from the page stays on your device.</li>
+        <li><strong>The Pigskin Pantheon Connect browser extension (Chrome, Edge and Firefox on a computer).</strong> When you click Connect ESPN on pigskinpantheon.com, the extension reads those two cookies from your browser and hands them to the Pigskin Pantheon page you clicked on. It reads nothing else, reads them only when you click, works only on pigskinpantheon.com's pages, stores nothing and sends nothing anywhere else. If you are not signed in to ESPN, it opens ESPN's sign-in page in a tab first.</li>
+      </ul>
+      <p>Once connected:</p>
+      <ul>
+        <li>The keys are kept on your device. On the iPhone and iPad app they are also kept in the device's Keychain, so they survive the system clearing the app's web storage.</li>
         <li>To read a private league, your device sends the keys to our relay, a server function that adds them as cookies to a read-only request to ESPN's fantasy football service and passes ESPN's answer straight back. The relay only talks to ESPN's fantasy football addresses, never logs your keys and never sends them anywhere but ESPN.</li>
         <li>If you are signed in, you can choose to also save the keys to your account (a box you can untick) so your private leagues open on your other devices. Saved keys are encrypted with AES-GCM by a server function before they reach our database, bound to your account, and are readable only by that function. They are never sent back to your browser or app.</li>
-        <li>You can remove them at any time with Forget on the ESPN account's row, which removes them from the device and from your account. Deleting your account removes them too.</li>
+        <li>You can remove them at any time with Forget on the ESPN account's row, which removes them from the device (including the Keychain) and from your account. Deleting your account removes them too.</li>
       </ul>
-      <p>Only enter keys for your own ESPN account. We use them only to read the league you open.</p>
+      <p>Only connect your own ESPN account. We use the keys only to read the league you open.</p>
 
       <h2 id="league-data">League data from Sleeper and ESPN</h2>
       <p>The website and the app read your league's data (managers, teams, scores, rosters, transactions) from Sleeper's public API and ESPN's fantasy API. For Sleeper leagues and public ESPN leagues, your device makes these requests directly to Sleeper or ESPN, so they see your device's IP address and the league you request, as they would if you opened their own sites. Private ESPN leagues go through our relay as described above. We do not copy a league's data to our servers, except for the AI chat described next. Sleeper's and ESPN's own privacy policies apply to what they receive: see <a href="https://sleeper.com/privacy" target="_blank" rel="noopener">Sleeper</a> and <a href="https://privacy.thewaltdisneycompany.com/en/" target="_blank" rel="noopener">ESPN (The Walt Disney Company)</a>.</p>
