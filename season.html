@@ -18,7 +18,7 @@
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <script src="pwa.js" defer></script>
-  <script src="player-card.js" defer></script>
+  <script src="player-card.js?v=2" defer></script>
   <style>
     /* Moving between pages (a season from the menu, a Season History link)
        crossfades where the browser supports it, instead of flashing white. */
@@ -2782,6 +2782,9 @@
     .rv-stake .rv-tag { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; white-space: nowrap; }
     .rv-tag.rv-hit { background: #e7f6ee; color: var(--green); }
     .rv-tag.rv-miss { background: var(--surface-2); color: var(--ink-3, var(--muted)); }
+    .rv-stake-end { display: flex; align-items: center; gap: 8px; }
+    /* one width for both tags, so the logos line up down the card */
+    .rv-stake-end .rv-tag { box-sizing: border-box; min-width: 78px; text-align: center; }
     .rv-tone-gold { --rv-soft: #fdf1d8; }
     .rv-tone-fire { --rv-soft: #fff0e5; }
     .rv-tone-blue { --rv-soft: #edf3ff; }
@@ -4461,20 +4464,20 @@
       .wi-note { font-size: 12px; }
     }
   </style>
-  <link rel="stylesheet" href="ui.css" />
-  <link rel="stylesheet" href="design.css" />
+  <link rel="stylesheet" href="ui.css?v=2" />
+  <link rel="stylesheet" href="design.css?v=2" />
   <link rel="stylesheet" href="account.css" />
   <link rel="stylesheet" href="chat.css" />
-  <link rel="stylesheet" href="clubhouse.css" />
-  <script src="account-config.js"></script>
-  <script src="account.js"></script>
+  <link rel="stylesheet" href="clubhouse.css?v=2" />
+  <script src="account-config.js?v=2"></script>
+  <script src="account.js?v=2"></script>
   <script src="chat.js" defer></script>
   <script src="ui.js"></script>
-  <script src="sleeper.js"></script>
+  <script src="sleeper.js?v=2"></script>
   <script src="espn.js"></script>
-  <script src="insights.js"></script>
-  <script src="clubhouse.js"></script>
-  <script src="clubhouse-ui.js"></script>
+  <script src="insights.js?v=2"></script>
+  <script src="clubhouse.js?v=2"></script>
+  <script src="clubhouse-ui.js?v=2"></script>
 </head>
 <body>
   <header class="topbar">
@@ -8088,8 +8091,9 @@
       const stakes = r.stakes.length
         ? `<ol class="rv-stakes">${r.stakes.map((x, i) => {
             const s = sideOf(x.side);
-            const tag = x.hit == null ? (s ? miniTeam(s.teamId) : "")
-              : `<span class="rv-tag ${x.hit ? "rv-hit" : "rv-miss"}">${x.hit ? "Happened" : "Didn’t"}</span>`;
+            const badge = s ? miniTeam(s.teamId) : "";
+            const tag = x.hit == null ? badge
+              : `<span class="rv-stake-end">${badge}<span class="rv-tag ${x.hit ? "rv-hit" : "rv-miss"}">${x.hit ? "Happened" : "Didn’t"}</span></span>`;
             return `<li class="rv-stake rv-tone-${x.tone}" style="--rv-i:${i}">
               <span class="rv-ico" aria-hidden="true">${x.icon}</span>
               <p>${esc(x.text)}</p>
