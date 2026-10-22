@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "Pigskin Pantheon Connect",
+  "short_name": "PP Connect",
+  "version": "1.0.0",
+  "description": "Connects your ESPN fantasy league to Pigskin Pantheon in one click: reads your two ESPN keys only when you click Connect ESPN.",
+  "homepage_url": "https://pigskinpantheon.com/",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": ["cookies", "scripting", "storage"],
+  "host_permissions": [
+    "https://*.espn.com/*",
+    "https://pigskinpantheon.com/*",
+    "https://www.pigskinpantheon.com/*",
+    "http://localhost:8765/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://pigskinpantheon.com/*",
+        "https://www.pigskinpantheon.com/*",
+        "http://localhost:8765/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "connect@pigskinpantheon.com",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["authenticationInfo"]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  }
+}

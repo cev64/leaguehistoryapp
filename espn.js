@@ -23,8 +23,9 @@
    on another site can't send for them. So a league is tried in turn, and
    the first that answers is kept for the visit:
      public   a plain request
-     proxy    espn_s2 and SWID, typed once on the front page and kept in
-              this browser, sent to the site's ESPN relay
+     proxy    espn_s2 and SWID, connected once on the front page (the
+              Pigskin Pantheon Connect extension, or the app's sign-in)
+              and kept in this browser, sent to the site's ESPN relay
               (supabase/functions/espn-proxy), which adds them to the request
               and passes ESPN's answer straight back
      account  a signed-in member's keys saved to their account (encrypted,
@@ -126,10 +127,10 @@
 
   /* ------------------------------------------------------------ sign-in */
 
-  /* A private league's keys: the visitor's espn_s2 and SWID cookies, typed
-     on the front page and kept in this browser only, a set per ESPN
-     account (a member can be in leagues on more than one). Pasted values
-     are tidied (a pasted "espn_s2=" or quotes come off; SWID wears its
+  /* A private league's keys: the visitor's espn_s2 and SWID cookies, from
+     the Connect extension or the app's ESPN sign-in (or typed, before
+     those), kept in this browser only, a set per ESPN account (a member
+     can be in leagues on more than one). Pasted values are tidied (a pasted "espn_s2=" or quotes come off; SWID wears its
      braces). */
   const AUTH_KEY = "lh-espn-auth";
   function tidyAuth(s2, swid) {
@@ -229,23 +230,114 @@
     throw last || Object.assign(new Error("ESPN answered 401"), { status: 401 });
   }
 
+  // A phone or tablet browser has no way to connect ESPN (no extension), but
+  // the app and a computer can, and the account carries the keys over.
+  const touchOnly = () => matchMedia("(hover: none) and (pointer: coarse)").matches && !extension.present();
+  // The iPhone app runs this file in its own web view, with its own
+  // "Sign in with ESPN".
+  const inApp = () => Boolean(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.native);
   function privateError(n) {
     const tried = PROXY && (savedAuth() || accountSaved === true);
-    const err = new Error(tried
-      ? "ESPN didn't accept the keys saved in this browser for this league. ESPN changes them when you sign out or after a while: copy espn_s2 and SWID again and enter them on the front page."
-      : PROXY
-        // A phone or tablet can't copy the keys out of ESPN: that's a job
-        // for a computer, once, and the account carries them over.
-        ? (matchMedia("(hover: none) and (pointer: coarse)").matches
-          ? "This ESPN league is private. Connect your ESPN account from a computer, once (front page ▸ ESPN ▸ Private league?, signed in to this account), and it opens here too."
-          : "This ESPN league is private. Enter your ESPN keys (espn_s2 and SWID) on the front page to open it.")
-        : "This ESPN league is private, and this site isn't set up to open private ESPN leagues yet.");
+    const err = new Error(!PROXY
+      ? "This ESPN league is private, and this site isn't set up to open private ESPN leagues yet."
+      : inApp()
+        ? (tried ? "ESPN signed you out. Sign in with ESPN again to open this league." : "This ESPN league is private. Sign in with ESPN to open it.")
+        : touchOnly()
+          ? (tried
+            ? "ESPN signed you out. Connect ESPN again once in the Pigskin Pantheon app or on a computer, signed in to your account, and it opens here too."
+            : "This ESPN league is private. Connect ESPN once in the Pigskin Pantheon app or on a computer, signed in to your account, and it opens here too.")
+          : tried
+            ? "ESPN signed you out. Connect ESPN again on the front page."
+            : "This ESPN league is private. Connect ESPN on the front page to open it.");
     err.privateLeague = true;
     err.link = `index.html?espn=${encodeURIComponent(n)}`;
-    err.linkText = !PROXY ? "Back to the front page"
-      : matchMedia("(hover: none) and (pointer: coarse)").matches ? "How to connect ESPN" : "Enter your ESPN keys";
+    err.linkText = !PROXY ? "Back to the front page" : inApp() ? "Sign in with ESPN" : "Connect ESPN";
     return err;
   }
+
+  /* Pigskin Pantheon Connect, the browser extension (extension/), the way
+     a computer connects ESPN: on a click it reads the member's espn_s2 and
+     SWID from the browser (opening ESPN's sign-in in a tab first if they
+     aren't signed in there) and hands them to the page that asked. Its
+     content script marks the page (data-pp-connect on <html>) and fires
+     pp-connect-ready on document; the page asks with a postMessage to
+     itself. It answers only pigskinpantheon.com's own pages.
+
+       ESPN.extension.present()   is it here
+       ESPN.extension.onReady(f)  f() when it arrives (added while open)
+       ESPN.extension.store()     where to add it: { browser, name, url }
+                                  (url "" until it's in that store), or
+                                  null where there's none (Safari)
+       ESPN.extension.connect({ onWaiting })
+                                  resolves { s2, swid }, or { cancelled },
+                                  { timedOut }, { needsAccess } or
+                                  { error }; onWaiting("login") once an
+                                  ESPN sign-in tab is open
+       ESPN.extension.cancel()    stops the one being asked
+
+     The store links are account-config.js's ESPN_EXTENSION_CHROME and
+     ESPN_EXTENSION_FIREFOX (Edge, Brave, Arc and Opera use Chrome's). */
+  const STORES = {
+    chrome: { name: "Chrome", url: CFG.ESPN_EXTENSION_CHROME || "" },
+    edge: { name: "Edge", url: CFG.ESPN_EXTENSION_CHROME || "" },
+    firefox: { name: "Firefox", url: CFG.ESPN_EXTENSION_FIREFOX || "" },
+  };
+  function browserKind() {
+    const ua = navigator.userAgent || "";
+    if (/Firefox\/|FxiOS\//.test(ua)) return "firefox";
+    if (/Edg\//.test(ua)) return "edge";
+    if (/Safari\//.test(ua) && !/Chrome\/|Chromium\/|CriOS\/|OPR\//.test(ua)) return "safari";
+    return "chrome";
+  }
+  let asking = null; // { id, done }
+  const extension = {
+    present: () => Boolean(document.documentElement.dataset.ppConnect),
+    published: () => Boolean(STORES.chrome.url || STORES.firefox.url),
+    browser: browserKind,
+    store() {
+      const kind = browserKind();
+      return STORES[kind] ? { browser: kind, ...STORES[kind] } : null;
+    },
+    onReady(f) { document.addEventListener("pp-connect-ready", () => f()); },
+    connect({ onWaiting } = {}) {
+      if (asking) extension.cancel();
+      const id = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      return new Promise((resolve) => {
+        let heard = false;
+        const done = (answer) => {
+          removeEventListener("message", hear);
+          clearTimeout(silent);
+          if (asking && asking.id === id) asking = null;
+          resolve(answer);
+        };
+        function hear(event) {
+          if (event.source !== window || event.origin !== location.origin) return;
+          const d = event.data;
+          if (!d || typeof d !== "object" || d.id !== id) return;
+          if (d.pp === "espn-connect-ack") heard = true;
+          else if (d.pp === "espn-connect-waiting") { heard = true; if (onWaiting) onWaiting(d.on); }
+          else if (d.pp === "espn-connect-answer") {
+            done(d.s2 && d.swid ? { s2: String(d.s2), swid: String(d.swid) }
+              : d.cancelled ? { cancelled: true, needsAccess: Boolean(d.needsAccess) }
+                : d.timedOut ? { timedOut: true }
+                  : { error: String(d.error || "Pigskin Pantheon Connect didn't answer.") });
+          }
+        }
+        addEventListener("message", hear);
+        // A page loaded before the extension was removed still wears its
+        // mark: no word back at all means it's gone.
+        const silent = setTimeout(() => { if (!heard) done({ error: "Pigskin Pantheon Connect didn't answer. Reload the page and try again." }); }, 3000);
+        asking = { id, done };
+        postMessage({ pp: "espn-connect", id }, location.origin);
+      });
+    },
+    cancel() {
+      if (!asking) return;
+      const { id, done } = asking;
+      postMessage({ pp: "espn-connect-cancel", id }, location.origin);
+      done({ cancelled: true });
+    },
+  };
 
   /* Keys saved to the member's account (see supabase/functions/espn-proxy).
      Only on a live site with accounts (Supabase) and the relay; in preview
@@ -1211,6 +1303,6 @@
   window.ESPN = {
     parseLeague, isEspnId, leagueId: (n) => `${PREFIX}${n}`,
     savedAuth, savedAuths, saveAuth, clearAuth, tidyAuth,
-    proxyAvailable: Boolean(PROXY), accountKeys, myLeagues,
+    proxyAvailable: Boolean(PROXY), accountKeys, myLeagues, extension,
   };
 })();

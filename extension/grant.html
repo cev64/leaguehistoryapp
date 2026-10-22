@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pigskin Pantheon Connect</title>
+  <!-- Opened by background.js when the browser holds back access to
+       espn.com or the site (Firefox lets members switch it off). Asking for
+       it needs a click on one of the extension's own pages. -->
+  <style>
+    :root { --ink: #0b1726; --muted: #637083; --line: #dce3eb; --navy: #071827; --gold: #f6b73c; --bg: #f5f7fa; --card: #fff; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #edf2f8; --muted: #9aa7b8; --line: #263445; --bg: #0b1726; --card: #111f30; } }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 440px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+    img { display: block; margin-bottom: 12px; }
+    h1 { margin: 0 0 8px; font-size: 20px; }
+    p { margin: 0 0 14px; color: var(--muted); }
+    button { height: 44px; padding: 0 22px; border: 0; border-radius: 12px; background: var(--navy); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+    @media (prefers-color-scheme: dark) { button { background: var(--gold); color: var(--navy); } }
+    #note { margin: 14px 0 0; color: var(--ink); }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="icons/icon-48.png" alt="" width="48" height="48" />
+    <h1>Allow Pigskin Pantheon Connect</h1>
+    <p>To connect ESPN, Connect needs to read two cookies on espn.com (espn_s2 and SWID, the keys ESPN uses to open your leagues) and to talk to pigskinpantheon.com. It reads nothing else, and only when you click Connect ESPN on the site.</p>
+    <button type="button" id="allow">Allow</button>
+    <p id="note" hidden></p>
+  </main>
+  <script src="grant.js"></script>
+</body>
+</html>

@@ -16,7 +16,7 @@
    cache first, and cache.match doesn't ignore the query, so it misses the
    new address and fetches it fresh on the first load after a deploy. */
 
-const CACHE_VERSION = 'v119';
+const CACHE_VERSION = 'v120';
 const SHELL_CACHE = `league-history-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `league-history-fonts-${CACHE_VERSION}`;
 
@@ -30,6 +30,7 @@ const PRECACHE = [
   './insights.js?v=2',
   './sleeper.js?v=2',
   './espn.js',
+  './espn.js?v=2', // the front page's: it needs ESPN.extension, so never last version's
   './player-card.js?v=2',
   './pwa.js',
   './ui.js',

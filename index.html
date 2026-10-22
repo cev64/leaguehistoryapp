@@ -1655,7 +1655,7 @@
     .espn-private ol { margin-top: 8px; }
     .espn-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #1d7a3f; font-weight: 700; }
     #espnSavedHint { margin: 0; color: var(--ink); }
-    .espn-to-account { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; color: var(--ink); cursor: pointer; }
+    .espn-to-account { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); cursor: pointer; }
     .espn-to-account input { margin-top: 3px; }
     .espn-to-account[hidden] { display: none; }
     .espn-saved button {
@@ -1713,19 +1713,22 @@
     .espn-account span { display: block; color: var(--muted); font-size: 11.5px; }
     .espn-account .is-refused { color: var(--red); font-weight: 700; }
     .espn-account-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-    .espn-account-actions button, .espn-add {
+    .espn-account-actions button, .espn-add, .espn-cancel {
       height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
       background: #fff; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
     }
-    .espn-account-actions [data-to-account] { color: var(--blue); border-color: rgba(23, 105, 224, .35); }
+    .espn-account-actions [data-to-account], .espn-account-actions [data-reconnect] { color: var(--blue); border-color: rgba(23, 105, 224, .35); }
     .espn-add { justify-self: start; color: var(--blue); border-style: dashed; border-color: rgba(23, 105, 224, .45); }
     .espn-add[hidden] { display: none; }
-    .espn-desktop { display: grid; gap: 8px; color: var(--ink); }
-    .espn-desktop ol { color: var(--muted); }
-    .espn-desktop .espn-desktop-why { color: var(--muted); }
-    .espn-desktop .espn-desktop-lead { margin: 0; }
-    .espn-desktop-actions { display: flex; }
-    .espn-desktop a { color: var(--blue); font-weight: 700; text-decoration: none; }
+    /* Connect ESPN: the extension's button on a computer, where to add it,
+       or (phones and tablets) the app or a computer. */
+    .espn-connect, .espn-touch { display: grid; gap: 8px; color: var(--ink); }
+    .espn-connect-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .espn-connect-actions .signin-go { height: 40px; padding: 0 18px; display: inline-flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; }
+    .espn-connect-actions [hidden] { display: none; }
+    .espn-connect-wait { color: var(--ink); font-weight: 700; }
+    .espn-connect p a, .espn-touch a { color: var(--blue); font-weight: 700; text-decoration: none; }
+    .espn-by-hand { font-size: 11.5px; }
 
     .league-list { display: grid; }
     .league-row {
@@ -1811,7 +1814,7 @@
   <script src="account-config.js?v=2"></script>
   <script src="account.js?v=2"></script>
   <script src="sleeper.js?v=2"></script>
-  <script src="espn.js"></script>
+  <script src="espn.js?v=2"></script>
 </head>
 <body class="lp">
   <a class="lp-skip" href="#find">Skip to opening your league</a>
@@ -2044,7 +2047,8 @@
             </form>
 
             <!-- ESPN: a league ID (or the league's address), and for a private
-                 league the visitor's own ESPN cookies, kept in this browser. -->
+                 league the visitor's own ESPN keys, connected through the
+                 Pigskin Pantheon Connect extension (or the app). -->
             <form class="signin-form" id="espnForm" autocomplete="off" hidden>
               <label class="signin-field">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h10v5a5 5 0 0 1-10 0z"/><path d="M12 13.5v3.5M8.5 20.5h7"/></svg>
@@ -2060,22 +2064,34 @@
               </button>
               <div class="espn-private" id="espnPrivate" hidden>
                 <h4>Opening a private ESPN league</h4>
-                <!-- Phones and tablets: the keys can only be copied out of a
-                     desktop browser, so the panel says where to do it. -->
-                <div class="espn-desktop" id="espnDesktop" hidden>
-                  <p class="espn-desktop-lead"><strong>Open this site on a computer and continue there.</strong> It's a one-time setup on desktop (about two minutes), and then your private leagues work on your phone too.</p>
-                  <ol>
-                    <li id="espnDesktopSignIn">On a computer, go to this site and sign in.</li>
-                    <li>Choose <strong>ESPN</strong> ▸ <strong>Private league?</strong> and follow the steps there.</li>
-                    <li>That's it. Your private leagues show up here on your phone, with nothing to type.</li>
-                  </ol>
-                  <div class="espn-desktop-actions">
-                    <button type="button" class="espn-add" id="espnCopyLink">Copy the link for your computer</button>
+                <!-- How this browser connects, chosen in drawPrivate: on a
+                     computer, the Pigskin Pantheon Connect extension's button
+                     (or where to add it; Safari has none yet); on a phone or
+                     tablet, the app or a computer, since a mobile browser
+                     can't. -->
+                <div class="espn-connect" id="espnConnect" hidden>
+                  <p id="espnConnectLead"></p>
+                  <div class="espn-connect-actions">
+                    <button class="signin-go" id="espnConnectGo" type="button" hidden>Connect ESPN</button>
+                    <a class="signin-go" id="espnStore" href="#" target="_blank" rel="noopener" hidden>Add Pigskin Pantheon Connect</a>
+                    <button type="button" class="espn-cancel" id="espnConnectCancel" hidden>Cancel</button>
                   </div>
-                  <p class="espn-desktop-why"><a href="#" id="espnKeysAnyway">Have your keys already? Enter them here</a></p>
+                  <p class="espn-connect-wait" id="espnConnectWait" hidden>Finish signing in on the ESPN tab…</p>
+                  <!-- Until the extension is published: the old cookie fields
+                       (#espnKeys), behind this link, on a computer only. Shown
+                       while account-config.js has no ESPN_EXTENSION_* link, so
+                       it goes by itself once one is set. Delete this, #espnKeys
+                       and the "by hand" script (byHand, #espnSave) then. -->
+                  <p class="espn-by-hand" id="espnByHandRow" hidden><a href="#" id="espnByHand">Enter keys by hand</a></p>
                 </div>
-                <div id="espnKeys">
-                  <p><strong>A one-time setup, on a computer.</strong> A private league opens with your ESPN keys: two values ESPN keeps in your browser once you're signed in. Save them here once and, signed in, your private leagues open on your phone too.</p>
+                <div class="espn-touch" id="espnTouch" hidden>
+                  <p><strong>A phone or tablet browser can't connect ESPN.</strong> Connect once in the Pigskin Pantheon app or on a computer, signed in to your account, and it opens here too.</p>
+                  <p id="espnTouchSignIn" hidden></p>
+                  <p id="espnTouchApp" hidden><a id="espnAppLink" href="#" target="_blank" rel="noopener">Get the Pigskin Pantheon app</a></p>
+                  <p>A league that's viewable to the public needs only its ID, here or anywhere.</p>
+                </div>
+                <div id="espnKeys" hidden>
+                  <p>A private league opens with your ESPN keys: two values ESPN keeps in your browser once you're signed in.</p>
                   <ol>
                     <li>Sign in at <a href="https://fantasy.espn.com/football/" target="_blank" rel="noopener">fantasy.espn.com</a> and open your league.</li>
                     <li>Open the browser's developer tools (F12, or ⌥⌘I on a Mac) ▸ <strong>Application</strong> (Chrome, Edge) or <strong>Storage</strong> (Firefox, Safari) ▸ Cookies ▸ espn.com.</li>
@@ -2086,11 +2102,11 @@
                     <input id="espnSwid" type="text" autocomplete="off" spellcheck="false" placeholder="SWID  {XXXXXXXX-XXXX-…}" aria-label="SWID" />
                     <button class="signin-go" id="espnSave" type="button">Save</button>
                   </div>
-                  <label class="espn-to-account" id="espnToAccountChoice" hidden>
-                    <input type="checkbox" id="espnToAccountBox" checked />
-                    <span>Also save them to my account, so my private leagues open on my phone too. Untick to keep them in this browser only.</span>
-                  </label>
                 </div>
+                <label class="espn-to-account" id="espnToAccountChoice" hidden>
+                  <input type="checkbox" id="espnToAccountBox" checked />
+                  <span>Also save my ESPN keys to my account, so my private leagues open on my phone too. Untick to keep them in this browser only.</span>
+                </label>
                 <!-- Every ESPN account with keys saved: a member can be in
                      leagues on more than one. -->
                 <div class="espn-accounts" id="espnSaved" hidden>
@@ -2316,8 +2332,9 @@
 
       /* ESPN: a league ID or link opens the league. A public league needs
          nothing more; a private one needs the visitor's ESPN keys (espn_s2
-         and SWID), typed in the private-league panel and kept in this
-         browser only (espn.js). */
+         and SWID), connected in the private-league panel through the
+         Pigskin Pantheon Connect extension and kept in this browser, and on
+         the account if they're signed in (espn.js). */
       const ESPN = window.ESPN;
       const espnForm = document.getElementById("espnForm");
       const espnInput = document.getElementById("espnLeague");
@@ -2351,10 +2368,20 @@
          too; otherwise they stay in this browser. Without the relay, keys
          can't be used, so there is nothing to enter. */
       const keys = ESPN.accountKeys;
-      // Phones and tablets: no developer tools to copy the keys from, so the
-      // panel sends them to a computer (unless they have the keys anyway).
+      const connect = ESPN.extension;
+      // Phones and tablets: a mobile browser has no way to connect ESPN, so
+      // the panel sends them to the app or a computer (unless the extension
+      // is here anyway: Firefox on Android can have it).
       const TOUCH = matchMedia("(hover: none) and (pointer: coarse)");
-      let keysAnyway = false;
+      const touchOnly = () => TOUCH.matches && !connect.present();
+      // Until the extension is published (no ESPN_EXTENSION_* link in
+      // account-config.js), a computer can still type its keys in, behind
+      // "Enter keys by hand". Delete with #espnKeys once it's in the stores.
+      const byHandAllowed = () => !connect.published() && !TOUCH.matches;
+      let byHand = false;
+      // While Connect ESPN is out: "connecting", then "login" (an ESPN
+      // sign-in tab is open) or "grant" (the extension is asking for access).
+      let waiting = null;
       let onAccountKnown = false;
       // The private-league button says where things stand even while the
       // panel is closed: not connected, or connected and where.
@@ -2368,8 +2395,8 @@
         $("espnPrivateTitle").textContent = !connected ? "Private league?" : count > 1 ? `${count} ESPN accounts connected` : "ESPN connected";
         $("espnPrivateSub").textContent = connected
           ? `Your ESPN keys are saved ${onAccountKnown ? "to your account" : "in this browser"}, so your private leagues open and are listed below. Manage them, or add another ESPN account, here.`
-          : TOUCH.matches
-            ? "A one-time setup on a computer, then it works on your phone too."
+          : touchOnly()
+            ? "Connect once in the app or on a computer, then it opens here too."
             : "Connect your ESPN account to open it, and to list all your ESPN leagues here.";
       }
       let drawing = 0;
@@ -2396,19 +2423,20 @@
         }));
         drawToggle();
         const saved = swids.length > 0;
-        const desktopOnly = relay && !saved && TOUCH.matches && !keysAnyway;
-        $("espnDesktop").hidden = !desktopOnly;
-        $("espnDesktopSignIn").innerHTML = keys.signedIn()
-          ? `On a computer, go to this site and sign in as <strong>${esc(window.Account.user.email || "you")}</strong>.`
-          : 'On a computer, go to this site and sign in (or make a free account). <a href="#" id="espnSignIn">Sign in on this phone too</a>, with the same account, so it carries over.';
-        $("espnKeys").hidden = !relay || desktopOnly || (saved && !adding);
-        // Where typed keys go: this browser, and the account if the member
-        // is signed in and leaves the box ticked.
-        $("espnToAccountChoice").hidden = !(relay && keys.signedIn());
+        const touch = touchOnly();
+        // Something to connect: nothing saved yet, or another ESPN account.
+        const connecting = relay && (!saved || adding);
+        $("espnConnect").hidden = !connecting || touch;
+        $("espnTouch").hidden = !connecting || !touch;
+        if (connecting) (touch ? drawTouch : drawConnect)();
+        $("espnKeys").hidden = !(connecting && !touch && byHand && byHandAllowed());
+        // Where new keys go: this browser, and the account if the member is
+        // signed in and leaves the box ticked.
+        $("espnToAccountChoice").hidden = !(connecting && !touch && keys.signedIn());
         $("espnSaved").hidden = !saved;
         $("espnNoRelay").hidden = relay;
         $("espnSavedText").textContent = `✓ ${swids.length === 1 ? "ESPN connected" : `${swids.length} ESPN accounts connected`}`;
-        $("espnAddAnother").hidden = !saved || adding;
+        $("espnAddAnother").hidden = !saved || adding || touch;
         drawAccountRows();
         const someLocalOnly = connectedAccounts.some((a) => !a.account);
         const hint = $("espnSavedHint");
@@ -2419,15 +2447,60 @@
             ? "Save keys to your account to open those private leagues on your phone too, just by signing in there."
             : `<a href="#" id="espnSignIn">Sign in</a> to save them to your account, so your private leagues open on your phone too.`;
         const fine = $("espnFine");
-        fine.hidden = !relay || desktopOnly;
+        fine.hidden = !relay || (connecting && touch);
         fine.innerHTML = keys.available()
-          ? "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay in this browser. Either way they're only used to read your leagues, through this site's relay to ESPN. <em>Forget</em> removes an account's keys everywhere, and signing out of ESPN ends them."
-          : "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. They stay in this browser, and are only used to read your leagues, through this site's relay to ESPN. <em>Forget</em> removes them, and signing out of ESPN ends them.";
+          ? "Connecting keeps two keys ESPN uses to open your leagues (espn_s2 and SWID), never your password. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay in this browser. Either way they're only used to read your leagues, through this site's relay to ESPN. Add a set for each ESPN account you play on. <em>Forget</em> removes an account's keys everywhere, and signing out of ESPN ends them."
+          : "Connecting keeps two keys ESPN uses to open your leagues (espn_s2 and SWID), never your password. They stay in this browser, and are only used to read your leagues, through this site's relay to ESPN. Add a set for each ESPN account you play on. <em>Forget</em> removes them, and signing out of ESPN ends them.";
+      }
+      // A computer: the Connect button with the extension here, where to add
+      // it without (Edge and the rest add Chrome's), and Safari's note.
+      function drawConnect() {
+        const here = connect.present();
+        const store = connect.store();
+        const go = $("espnConnectGo");
+        go.hidden = !here;
+        go.disabled = Boolean(waiting);
+        go.textContent = waiting ? "Connecting…" : "Connect ESPN";
+        $("espnConnectCancel").hidden = !(here && waiting);
+        const wait = $("espnConnectWait");
+        wait.hidden = !(here && (waiting === "login" || waiting === "grant"));
+        wait.textContent = waiting === "grant"
+          ? "Allow Pigskin Pantheon Connect in the tab that opened…"
+          : "Finish signing in on the ESPN tab…";
+        const link = $("espnStore");
+        link.hidden = here || !store || !store.url;
+        if (store && store.url) {
+          link.href = store.url;
+          link.textContent = `Add Pigskin Pantheon Connect to ${store.name}`;
+        }
+        $("espnConnectLead").innerHTML = here
+          ? (adding
+            ? "Pigskin Pantheon Connect reads the ESPN account this browser is signed in to. <strong>Sign out of ESPN in this browser, sign in to the other account, then Connect again.</strong>"
+            : "Pigskin Pantheon Connect reads your ESPN keys from this browser. Signed in to ESPN here, it's one click; if not, ESPN's sign-in opens in a new tab, and you're back here when you're done.")
+          : !store
+            ? "<strong>Safari isn't supported yet:</strong> connect once in Chrome, Firefox or the iPhone app, signed in to your account, and it opens here too."
+            : store.url
+              ? `<strong>Add Pigskin Pantheon Connect to ${esc(store.name)}</strong>, a small extension that reads your ESPN keys from this browser when you click Connect ESPN, and nothing else. Then come back here: the button appears by itself.`
+              : "<strong>Pigskin Pantheon Connect is coming soon.</strong> It's a small extension for Chrome and Firefox that connects ESPN in one click: it reads your ESPN keys from this browser when you click Connect ESPN, and nothing else.";
+        $("espnByHandRow").hidden = here || !byHandAllowed() || byHand;
+      }
+      // A phone or tablet: the app or a computer, with the same account.
+      function drawTouch() {
+        const who = $("espnTouchSignIn");
+        who.innerHTML = keys.signedIn()
+          ? `You're signed in here as <strong>${esc(window.Account.user.email || "you")}</strong>: use the same account there.`
+          : keys.available() ? '<a href="#" id="espnSignIn">Sign in</a> here too, with the same account, so it carries over.' : "";
+        who.hidden = !who.innerHTML;
+        const app = (window.ACCOUNT_CONFIG || {}).APP_STORE_URL || "";
+        $("espnTouchApp").hidden = !app;
+        if (app) $("espnAppLink").href = app;
       }
       // One row per connected ESPN account, named by its leagues once ESPN
-      // has listed them.
+      // has listed them. ESPN turning a set away means it signed them out:
+      // Connect again (on a computer) brings a fresh set.
       function drawAccountRows() {
         const many = connectedAccounts.length > 1;
+        const touch = touchOnly();
         $("espnAccountList").innerHTML = connectedAccounts.map((a, i) => {
           const names = leagueNamesBySwid[a.swid] || [];
           const title = names.length
@@ -2435,16 +2508,23 @@
             : many ? `ESPN account ${i + 1}` : "Your ESPN account";
           const where = a.local && a.account ? "in this browser and on your account" : a.account ? "on your account" : "in this browser";
           const refused = refusedSwids.includes(a.swid);
+          const signedOut = !refused ? "" : touch
+            ? '<b class="is-refused">ESPN signed you out: connect again in the app or on a computer.</b> '
+            : '<b class="is-refused">ESPN signed you out.</b> ';
           return `<li class="espn-account">
             <div><strong>${esc(title)}</strong>
-              <span>${refused ? '<b class="is-refused">ESPN turned these keys away: copy them again.</b> ' : ""}Keys saved ${where} · ESPN id …${esc(a.swid.slice(-6, -1))}</span></div>
+              <span>${signedOut}Keys saved ${where} · ESPN id …${esc(a.swid.slice(-6, -1))}</span></div>
             <div class="espn-account-actions">
+              ${refused && !touch ? `<button type="button" data-reconnect="${esc(a.swid)}">Connect again</button>` : ""}
               ${a.local && !a.account && keys.signedIn() ? `<button type="button" data-to-account="${esc(a.swid)}">Save to my account</button>` : ""}
               <button type="button" data-forget-keys="${esc(a.swid)}">Forget</button>
             </div>
           </li>`;
         }).join("");
       }
+      // The extension arriving while the page is open (just added): the
+      // Connect button appears with no reload.
+      connect.onReady(() => { if (!espnPrivate.hidden) drawPrivate(); else drawToggle(); });
       if (window.Account && window.Account.on) window.Account.on(() => { if (!espnPrivate.hidden) drawPrivate(); loadEspnLeagues(); });
 
       /* With ESPN keys (in this browser, or saved to the signed-in member's
@@ -2501,11 +2581,18 @@
         try { await keys.save(swid); }
         catch (err) { say(`Your keys are saved in this browser, but your account couldn't save them: ${err.message}`, { error: true }); }
       }
-      // An account's row: save its keys to the account, or forget them
-      // (here and on the account).
+      // An account's row: save its keys to the account, forget them (here
+      // and on the account), or connect again after ESPN signed them out.
       $("espnAccountList").addEventListener("click", async (event) => {
         const save = event.target.closest("[data-to-account]");
         const forget = event.target.closest("[data-forget-keys]");
+        const again = event.target.closest("[data-reconnect]");
+        if (again) {
+          if (connect.present()) { connectEspn(); return; }
+          adding = true;
+          drawPrivate();
+          return;
+        }
         if (!save && !forget) return;
         event.target.closest("button").disabled = true;
         if (save) {
@@ -2523,11 +2610,11 @@
         }
         drawPrivate();
       });
+      // Another ESPN account: the extension reads whichever one this browser
+      // is signed in to, so the panel says to switch ESPN accounts first.
       $("espnAddAnother").addEventListener("click", () => {
         adding = true;
-        keysAnyway = true;
-        drawPrivate();
-        $("espnS2").focus();
+        drawPrivate().then(() => { if (!$("espnConnectGo").hidden) $("espnConnectGo").focus(); });
       });
       function openPrivate(open = true) {
         espnPrivate.hidden = !open;
@@ -2535,24 +2622,6 @@
         if (open) drawPrivate();
       }
       $("espnPrivateToggle").addEventListener("click", () => openPrivate(espnPrivate.hidden));
-      // The site's address, to open on a computer.
-      $("espnCopyLink").addEventListener("click", async () => {
-        const btn = $("espnCopyLink");
-        const link = `${location.origin}${location.pathname.replace(/[^/]*$/, "")}`;
-        try {
-          if (navigator.share) { await navigator.share({ title: "Pigskin Pantheon", text: "Finish connecting my ESPN league on a computer", url: link }); return; }
-          await navigator.clipboard.writeText(link);
-          btn.textContent = "Link copied. Open it on your computer";
-        } catch (err) {
-          if (err && err.name === "AbortError") return;
-          btn.textContent = link;
-        }
-      });
-      $("espnKeysAnyway").addEventListener("click", (event) => {
-        event.preventDefault();
-        keysAnyway = true;
-        drawPrivate();
-      });
       // The note is redrawn after an error, so its link is listened for here.
       espnNote.addEventListener("click", (event) => {
         if (!event.target.closest("#espnPrivateLink")) return;
@@ -2560,20 +2629,70 @@
         openPrivate(espnPrivate.hidden);
       });
 
+      // New keys, however they came: kept in this browser (a set for an ESPN
+      // account already here replaces it), on the account if the box is
+      // ticked, and the member's leagues listed; or the league typed above
+      // opened.
+      async function keysArrived(added) {
+        adding = false;
+        byHand = false;
+        if ($("espnToAccountBox").checked) await toAccount(added.swid);
+        await drawPrivate();
+        loadEspnLeagues({ force: true });
+        if (espnInput.value.trim()) { espnForm.requestSubmit(); return true; }
+        return false;
+      }
+      // Connect ESPN: the extension hands over the keys this browser has,
+      // after ESPN's sign-in in a tab of its own if the member isn't signed
+      // in to ESPN here.
+      async function connectEspn() {
+        if (waiting || !connect.present()) return;
+        waiting = "connecting";
+        drawConnect();
+        const got = await connect.connect({ onWaiting: (on) => { waiting = on; drawConnect(); } });
+        waiting = null;
+        drawConnect();
+        if (!got.s2) {
+          if (got.needsAccess) say("Pigskin Pantheon Connect needs your OK to read your ESPN keys. Click Connect ESPN again and choose Allow.", { error: true });
+          else if (got.cancelled) say(espnDefault, { html: true });
+          else if (got.timedOut) say("Signing in to ESPN took more than ten minutes. Click Connect ESPN again when you're ready.", { error: true });
+          else say(`ESPN didn't connect: ${got.error}`, { error: true });
+          return;
+        }
+        // The same keys ESPN already turned away: this browser is still
+        // holding a set ESPN has ended.
+        const tidy = ESPN.tidyAuth(got.s2, got.swid);
+        const stale = tidy && refusedSwids.includes(tidy.swid) && ESPN.savedAuths().some((a) => a.swid === tidy.swid && a.s2 === tidy.s2);
+        const added = ESPN.saveAuth(got.s2, got.swid);
+        if (!added) {
+          say("ESPN's keys didn't come through right. Click Connect ESPN to try again.", { error: true });
+          return;
+        }
+        if (await keysArrived(added)) return;
+        if (stale) say("ESPN still has the keys it turned away in this browser. Sign out of ESPN on espn.com and back in, then click Connect again.", { error: true });
+        else say("✓ ESPN connected. Your ESPN leagues are listed below; or enter a league's ID or link above.");
+        espnInput.focus();
+      }
+      $("espnConnectGo").addEventListener("click", connectEspn);
+      $("espnConnectCancel").addEventListener("click", () => connect.cancel());
+
+      // Until the extension is published: the keys typed by hand. Delete
+      // with #espnKeys and #espnByHandRow.
+      $("espnByHand").addEventListener("click", (event) => {
+        event.preventDefault();
+        byHand = true;
+        drawPrivate().then(() => $("espnS2").focus());
+      });
       $("espnSave").addEventListener("click", async () => {
         const s2 = $("espnS2"), swid = $("espnSwid");
-        if (!ESPN.saveAuth(s2.value, swid.value)) {
+        const added = ESPN.saveAuth(s2.value, swid.value);
+        if (!added) {
           say("Those don't look like ESPN's keys: espn_s2 is a long string of letters and numbers, and SWID looks like {1A2B3C4D-…}.", { error: true });
           return;
         }
-        const added = ESPN.tidyAuth(s2.value, swid.value);
         s2.value = "";
         swid.value = "";
-        adding = false;
-        if ($("espnToAccountBox").checked) await toAccount(added && added.swid);
-        await drawPrivate();
-        loadEspnLeagues({ force: true });
-        if (espnInput.value.trim()) { espnForm.requestSubmit(); return; }
+        if (await keysArrived(added)) return;
         say("✓ Keys saved. Your ESPN leagues are listed below; or enter a league's ID or link above.");
         espnInput.focus();
       });
