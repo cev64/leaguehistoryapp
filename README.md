@@ -162,6 +162,8 @@ tab's "Private league?" panel says where to find them (the browser's
 developer tools, on a computer) and has a box for each. On a phone or
 tablet, which has no developer tools, the panel says to connect from a
 computer once, signed in, after which the account carries the keys over.
+(`ESPN_SIGN_IN.md` is the plan to replace this with signing in to ESPN in
+the app and a browser extension.)
 
 **Several ESPN accounts.** A member who plays on more than one ESPN account
 adds a set of keys for each ("+ Add another ESPN account"), up to ten. The
