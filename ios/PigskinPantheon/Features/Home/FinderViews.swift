@@ -332,7 +332,7 @@ private struct EspnForm: View {
                 privateToggle
                 if finder.privateOpen {
                     Divider().padding(.leading, 16)
-                    PrivatePanel(finder: finder, focus: $focus, signIn: signIn)
+                    PrivatePanel(finder: finder, signIn: signIn)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
@@ -345,7 +345,8 @@ private struct EspnForm: View {
         noteView(finder.espnNote, standard: standard)
             .environment(\.openURL, OpenURLAction { url in
                 if url.host == "private" {
-                    finder.setPrivateOpen(!finder.privateOpen)
+                    focus = nil
+                    finder.showSignIn()
                     return .handled
                 }
                 return .systemAction
@@ -393,12 +394,11 @@ private struct EspnForm: View {
     }
 }
 
-/// "Opening a private ESPN league": where the keys are, the boxes for them,
-/// the ESPN accounts connected, and what the keys are used for.
+/// "Opening a private ESPN league": "Sign in with ESPN", the ESPN accounts
+/// connected, and what the keys are used for.
 private struct PrivatePanel: View {
     @Environment(AppModel.self) private var app
     @Bindable var finder: FinderModel
-    var focus: FocusState<EspnFormFocus?>.Binding
     var signIn: () -> Void
 
     var body: some View {
@@ -412,9 +412,7 @@ private struct PrivatePanel: View {
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink2)
             } else {
-                if finder.showDesktop { desktopSteps }
-                if finder.showKeyFields { keyFields }
-                if !finder.connected.isEmpty { savedAccounts }
+                if finder.connected.isEmpty { connect } else { savedAccounts }
                 if let hint = finder.savedHint {
                     Text(hint).font(.footnote).foregroundStyle(Theme.ink2)
                 } else if !finder.connected.isEmpty && finder.accountsAvailable && !finder.espnSignedIn {
@@ -424,12 +422,10 @@ private struct PrivatePanel: View {
                             .font(.footnote).foregroundStyle(Theme.ink2)
                     }
                 }
-                if !finder.showDesktop {
-                    Text(fine)
-                        .font(.caption)
-                        .foregroundStyle(Theme.ink3)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(fine)
+                    .font(.caption)
+                    .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(16)
@@ -437,140 +433,75 @@ private struct PrivatePanel: View {
 
     private var fine: AttributedString {
         let text = finder.accountsAvailable
-            ? "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay on this device. Either way they're only used to read your leagues, through our secure relay to ESPN. *Forget* removes an account's keys everywhere, and signing out of ESPN ends them."
-            : "These keys work like your ESPN password, so keep them to yourself. Add a set for each ESPN account you play on. They stay on this device, and are only used to read your leagues, through our secure relay to ESPN. *Forget* removes them, and signing out of ESPN ends them."
+            ? "From your ESPN sign-in, Pigskin Pantheon keeps two keys (espn_s2 and SWID), never your password. Sign in once for each ESPN account you play on. Signed in here, the keys are saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay on this device. Either way they're only used to read your leagues, through our secure relay to ESPN. *Forget* removes an account's keys everywhere, and signing out of ESPN ends them."
+            : "From your ESPN sign-in, Pigskin Pantheon keeps two keys (espn_s2 and SWID), never your password. Sign in once for each ESPN account you play on. The keys stay on this device, and are only used to read your leagues, through our secure relay to ESPN. *Forget* removes them, and signing out of ESPN ends them."
         return (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 
+    /// Nothing connected yet: one line and the button.
     @ViewBuilder
-    private var keyFields: some View {
-        Text((try? AttributedString(markdown: "**A one-time setup, on a computer.** A private league opens with your ESPN keys: two values ESPN keeps in your browser once you're signed in. Save them here once and, signed in, your private leagues open on every device you sign in on.")) ?? AttributedString())
+    private var connect: some View {
+        Text("Sign in to ESPN once and your private leagues open here.")
             .font(.subheadline)
             .foregroundStyle(Theme.ink2)
             .fixedSize(horizontal: false, vertical: true)
-        VStack(alignment: .leading, spacing: 8) {
-            step(1, "Sign in at [fantasy.espn.com](https://fantasy.espn.com/football/) and open your league.")
-            step(2, "Open the browser's developer tools (F12, or ⌥⌘I on a Mac) ▸ **Application** (Chrome, Edge) or **Storage** (Firefox, Safari) ▸ Cookies ▸ espn.com.")
-            step(3, "Copy the values of `espn_s2` and `SWID` into the boxes below.")
-        }
-        VStack(spacing: 8) {
-            FieldBox(symbol: "key") {
-                SecureField("espn_s2", text: $finder.s2)
-                    .textContentType(.oneTimeCode)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused(focus, equals: .s2)
-                    .submitLabel(.next)
-                    .onSubmit { focus.wrappedValue = .swid }
-                    .accessibilityLabel("espn_s2")
+        if finder.espnSignedIn && finder.accountsAvailable {
+            Toggle(isOn: $finder.toAccount) {
+                Text("Also save them to my account, so my private leagues open on my other devices too. Turn off to keep them on this device only.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.ink2)
             }
-            FieldBox(symbol: "person.badge.key") {
-                TextField("SWID  {XXXXXXXX-XXXX-…}", text: $finder.swid)
-                    .textInputAutocapitalization(.characters)
-                    .autocorrectionDisabled()
-                    .focused(focus, equals: .swid)
-                    .submitLabel(.done)
-                    .onSubmit { save() }
-                    .accessibilityLabel("SWID")
+            .toggleStyle(.switch)
+            .padding(.vertical, 2)
+        }
+        Button {
+            finder.signInOpen = true
+        } label: {
+            ZStack {
+                Label("Sign in with ESPN", systemImage: "person.crop.circle.badge.checkmark")
+                    .opacity(finder.connecting ? 0 : 1)
+                if finder.connecting { ProgressView() }
             }
-            if finder.espnSignedIn && finder.accountsAvailable {
-                Toggle(isOn: $finder.toAccount) {
-                    Text("Also save them to my account, so my private leagues open on my other devices too. Untick to keep them on this device only.")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.ink2)
-                }
-                .toggleStyle(.switch)
-                .padding(.vertical, 2)
-            }
-            Button(action: save) {
-                ZStack {
-                    Text("Save").opacity(finder.savingKeys ? 0 : 1)
-                    if finder.savingKeys { ProgressView() }
-                }
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(Felt(.glassProminent))
-            .controlSize(.large)
-            .disabled(finder.savingKeys || finder.s2.isEmpty || finder.swid.isEmpty)
+            .font(.headline)
+            .frame(maxWidth: .infinity)
         }
-    }
-
-    /// Phones and tablets (index.html #espnDesktop): the keys are copied out
-    /// of a desktop browser, once, and the account brings them here.
-    @ViewBuilder
-    private var desktopSteps: some View {
-        Text((try? AttributedString(markdown: "**Open Pigskin Pantheon on a computer and continue there.** It's a one-time setup on desktop (about two minutes), and then your private leagues work on your phone too.")) ?? AttributedString())
-            .font(.subheadline)
-            .foregroundStyle(Theme.ink2)
-            .fixedSize(horizontal: false, vertical: true)
-        VStack(alignment: .leading, spacing: 8) {
-            if finder.espnSignedIn, let email = app.account.user?.email {
-                step(1, "On a computer, go to pigskinpantheon.com and sign in as **\(email)**.")
-            } else {
-                step(1, "On a computer, go to pigskinpantheon.com and sign in (or make a free account). [Sign in on this phone too](pp://signin), with the same account, so it carries over.")
-            }
-            step(2, "Choose **ESPN** ▸ **Private league?** and follow the steps there.")
-            step(3, "That's it. Your private leagues show up here on your phone, with nothing to type.")
-        }
-        .environment(\.openURL, OpenURLAction { url in
-            if url.host == "signin" { signIn(); return .handled }
-            return .systemAction
-        })
-        ShareLink(item: LeagueEngine.siteURL, subject: Text("Pigskin Pantheon"),
-                  message: Text("Finish connecting my ESPN league on a computer")) {
-            Label("Send the link to your computer", systemImage: "laptopcomputer.and.arrow.down")
-                .font(.footnote.weight(.semibold))
-        }
-        .buttonStyle(Felt(.glass))
-        Button("Have your keys already? Enter them here") {
-            withAnimation(.smooth) { finder.keysAnyway = true }
-            focus.wrappedValue = .s2
-        }
-        .font(.footnote.weight(.semibold))
-        .buttonStyle(Felt(.plain))
-        .foregroundStyle(Theme.accentInk)
-    }
-
-    private func save() {
-        focus.wrappedValue = nil
-        Task { await finder.saveKeys(app: app, account: app.account) }
-    }
-
-    private func step(_ n: Int, _ markdown: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("\(n)")
-                .font(.caption.weight(.heavy))
-                .foregroundStyle(.white)
-                .frame(width: 20, height: 20)
-                .background(Theme.accent, in: Circle())
-            Text((try? AttributedString(markdown: markdown)) ?? AttributedString(markdown))
-                .font(.footnote)
-                .foregroundStyle(Theme.ink2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        .buttonStyle(Felt(.glassProminent))
+        .controlSize(.large)
+        .disabled(finder.connecting)
     }
 
     private var savedAccounts: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(finder.connected.count == 1 ? "ESPN connected" : "\(finder.connected.count) ESPN accounts connected",
-                  systemImage: "checkmark.circle.fill")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(Theme.green)
+            HStack(spacing: 8) {
+                Label(finder.connected.count == 1 ? "ESPN connected" : "\(finder.connected.count) ESPN accounts connected",
+                      systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Theme.green)
+                // keys from the sign-in sheet, being saved
+                if finder.connecting { ProgressView() }
+            }
             ForEach(Array(finder.connected.enumerated()), id: \.element.id) { index, row in
+                let refused = finder.refusedSwids.contains(row.swid)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(finder.title(for: row, index: index))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.ink)
                     Group {
-                        if finder.refusedSwids.contains(row.swid) {
-                            Text("\(Text("ESPN turned these keys away: copy them again. ").bold().foregroundStyle(Theme.red))\(finder.detail(for: row))")
+                        if refused {
+                            Text("\(Text("ESPN signed you out. ").bold().foregroundStyle(Theme.red))\(finder.detail(for: row))")
                         } else {
                             Text(finder.detail(for: row))
                         }
                     }
                     .font(.caption)
                     .foregroundStyle(Theme.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    if refused {
+                        Button("Sign in again") { finder.signInOpen = true }
+                            .buttonStyle(Felt(.glassProminent))
+                            .font(.footnote.weight(.semibold))
+                            .disabled(finder.busySwid != nil || finder.connecting)
+                    }
                     HStack(spacing: 8) {
                         if row.local && !row.account && finder.espnSignedIn {
                             Button("Save to my account") { Task { await finder.saveToAccount(row.swid, account: app.account) } }
@@ -580,27 +511,25 @@ private struct PrivatePanel: View {
                     }
                     .buttonStyle(Felt(.glass))
                     .font(.footnote.weight(.semibold))
-                    .disabled(finder.busySwid != nil)
+                    .disabled(finder.busySwid != nil || finder.connecting)
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.surface3, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            if !finder.adding {
-                Button {
-                    withAnimation(.smooth) { finder.adding = true; finder.keysAnyway = true }
-                    focus.wrappedValue = .s2
-                } label: {
-                    Label("Add another ESPN account", systemImage: "plus")
-                        .font(.footnote.weight(.semibold))
-                }
-                .buttonStyle(Felt(.glass))
+            Button {
+                finder.signInOpen = true
+            } label: {
+                Label("Add another ESPN account", systemImage: "plus")
+                    .font(.footnote.weight(.semibold))
             }
+            .buttonStyle(Felt(.glass))
+            .disabled(finder.connecting)
         }
     }
 }
 
-enum EspnFormFocus: Hashable { case league, s2, swid }
+enum EspnFormFocus: Hashable { case league }
 
 // MARK: Leagues found
 

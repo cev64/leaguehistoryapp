@@ -124,9 +124,11 @@ final class AccountStore {
 
     init() {
         // The Keychain outlives the app: a session left by an earlier
-        // install (deleted and installed again) isn't picked up.
+        // install (deleted and installed again) isn't picked up, nor are
+        // its ESPN keys.
         if !UserDefaults.standard.bool(forKey: Self.installedKey) {
             Keychain.delete()
+            EspnKeychain.delete()
             UserDefaults.standard.set(true, forKey: Self.installedKey)
         }
         if let saved = Keychain.load(), let session = try? JSONDecoder().decode(StoredSession.self, from: saved) {
@@ -608,17 +610,25 @@ enum PostgREST {
 
 // MARK: Keychain
 
-/// The session, kept where iOS keeps passwords: this device only, readable
+/// What the app keeps where iOS keeps passwords: this device only, readable
 /// after the first unlock (so a token refresh can run in the background).
+/// The session by default; `EspnKeychain` keeps the ESPN keys beside it.
 enum Keychain {
-    private static let base: [String: Any] = [
-        kSecClass as String: kSecClassGenericPassword,
-        kSecAttrService as String: "com.pigskinpantheon.account",
-        kSecAttrAccount as String: "supabase-session",
-    ]
+    struct Item {
+        let service: String
+        let account: String
 
-    static func load() -> Data? {
-        var query = base
+        fileprivate var query: [String: Any] {
+            [kSecClass as String: kSecClassGenericPassword,
+             kSecAttrService as String: service,
+             kSecAttrAccount as String: account]
+        }
+    }
+
+    static let session = Item(service: "com.pigskinpantheon.account", account: "supabase-session")
+
+    static func load(_ item: Item = session) -> Data? {
+        var query = item.query
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var out: AnyObject?
@@ -626,17 +636,44 @@ enum Keychain {
         return out as? Data
     }
 
-    static func save(_ data: Data) {
+    static func save(_ data: Data, _ item: Item = session) {
         let attributes: [String: Any] = [
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
-        if SecItemUpdate(base as CFDictionary, attributes as CFDictionary) == errSecItemNotFound {
-            SecItemAdd(base.merging(attributes) { $1 } as CFDictionary, nil)
+        if SecItemUpdate(item.query as CFDictionary, attributes as CFDictionary) == errSecItemNotFound {
+            SecItemAdd(item.query.merging(attributes) { $1 } as CFDictionary, nil)
         }
     }
 
+    static func delete(_ item: Item = session) {
+        SecItemDelete(item.query as CFDictionary)
+    }
+}
+
+/// The ESPN keys on this device (`[{s2, swid}]`, as espn.js keeps them in
+/// the engine's localStorage), copied to the Keychain, which iOS doesn't
+/// clear when it clears a web view's storage. Each engine's page puts back
+/// any set it's missing when it starts (`Bridge.finder.espnRestore`), and
+/// the copy is written again after every save and Forget.
+enum EspnKeychain {
+    struct KeySet: Codable, Equatable {
+        let s2: String
+        let swid: String
+    }
+
+    private static let item = Keychain.Item(service: "com.pigskinpantheon.espn", account: "espn-keys")
+
+    static func load() -> [KeySet] {
+        Keychain.load(item).flatMap { try? JSONDecoder().decode([KeySet].self, from: $0) } ?? []
+    }
+
+    static func save(_ sets: [KeySet]) {
+        guard !sets.isEmpty, let data = try? JSONEncoder().encode(sets) else { return delete() }
+        if Keychain.load(item) != data { Keychain.save(data, item) }
+    }
+
     static func delete() {
-        SecItemDelete(base as CFDictionary)
+        Keychain.delete(item)
     }
 }

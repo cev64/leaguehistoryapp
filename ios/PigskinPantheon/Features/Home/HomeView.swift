@@ -15,6 +15,7 @@ struct HomeView: View {
         case gate(AccountStore.PendingLeague)
         case account
         case about
+        case espnSignIn
 
         var id: String {
             switch self {
@@ -22,6 +23,7 @@ struct HomeView: View {
             case .gate(let p): return "gate-\(p.id)"
             case .account: return "account"
             case .about: return "about"
+            case .espnSignIn: return "espnSignIn"
             }
         }
     }
@@ -50,6 +52,14 @@ struct HomeView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .background(Theme.page)
+                // "Private league?" from a note, or a private league that
+                // wouldn't open: down to the panel once it's drawn.
+                .onChange(of: finder.showPrivate) {
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(200))
+                        withAnimation(.smooth(duration: 0.5)) { proxy.scrollTo("espnPrivate", anchor: .top) }
+                    }
+                }
                 .task {
                     // Launch settings for checks (debug builds only).
                     #if DEBUG
@@ -77,6 +87,7 @@ struct HomeView: View {
         .accountToast()
         .sheet(item: $sheet, onDismiss: {
             if !app.account.isSignedIn { app.account.pending = nil }
+            finder.signInOpen = false
         }) { sheet in
             switch sheet {
             case .auth(let mode):
@@ -95,7 +106,14 @@ struct HomeView: View {
                     self.sheet = nil
                     app.open("demo")
                 })
+            case .espnSignIn:
+                EspnSignInSheet { keys in
+                    Task { await finder.didSignIn(keys, app: app, account: app.account) }
+                }
             }
+        }
+        .onChange(of: finder.signInOpen) { _, open in
+            if open && sheet == nil { sheet = .espnSignIn }
         }
         .onChange(of: app.account.pending) { _, new in
             if let new { sheet = .gate(new) }
@@ -111,6 +129,7 @@ struct HomeView: View {
         .task {
             finder.start(account: app.account)
             if let pending = app.account.pending { sheet = .gate(pending) }
+            if finder.signInOpen && sheet == nil { sheet = .espnSignIn }
             // PP_HOME opens a sheet or a league at launch (debug builds only).
             #if DEBUG
             switch ProcessInfo.processInfo.environment["PP_HOME"] {
@@ -119,28 +138,33 @@ struct HomeView: View {
             case "account": sheet = .account
             case "about": sheet = .about
             case "gate": app.open("1312115646644912128", name: "D201: History of a Decade of Dynasty!", avatar: nil)
-            case "espn", "espnkeys":
+            case "espn":
                 finder.platform = .espn
-                finder.keysAnyway = ProcessInfo.processInfo.environment["PP_HOME"] == "espnkeys"
                 finder.setPrivateOpen(true)
                 await debugEspnKeys()
             default: break
+            }
+            // PP_SHEET=espn: the ESPN sign-in sheet over the private-league panel.
+            if DebugLaunch.espnSignIn {
+                finder.showSignIn()
+                finder.signInOpen = true
             }
             #endif
         }
     }
 
     /// Debug builds: PP_ESPN_KEYS=<n> saves n made-up sets of ESPN keys on
-    /// this device (ESPN turns them away), and PP_ESPN_FORGET=1 then forgets
-    /// the first, to see the private panel with several accounts.
+    /// this device, as the sign-in sheet would (ESPN turns them away), and
+    /// PP_ESPN_FORGET=1 then forgets the first, to see the private panel
+    /// with several accounts.
     private func debugEspnKeys() async {
         #if DEBUG
         let env = ProcessInfo.processInfo.environment
         guard let n = env["PP_ESPN_KEYS"].flatMap(Int.init), n > 0 else { return }
         for i in 1...n {
-            finder.s2 = "AEBfake" + String(repeating: "\(i)", count: 60)
-            finder.swid = "{0000000\(i)-AAAA-BBBB-CCCC-DDDDEEEEFFF\(i)}"
-            await finder.saveKeys(app: app, account: app.account)
+            let keys = EspnSignIn.Keys(s2: "AEBfake" + String(repeating: "\(i)", count: 60),
+                                       swid: "{0000000\(i)-AAAA-BBBB-CCCC-DDDDEEEEFFF\(i)}")
+            await finder.didSignIn(keys, app: app, account: app.account)
         }
         if env["PP_ESPN_FORGET"] == "1", let first = finder.connected.first {
             await finder.forget(first, account: app.account)
@@ -480,7 +504,7 @@ private struct AboutSheet: View {
 
     private let faq = [
         ("Do I need an account?", "No. Any league opens without one. An account keeps your leagues on every device you sign in on, saves private ESPN keys, and is needed to ask the AI."),
-        ("Do you need my Sleeper or ESPN password?", "No. Sleeper's league data is public, so your username is enough. A public ESPN league needs only its ID. A private ESPN league needs two keys ESPN keeps in your web browser, which are encrypted if you save them to your account."),
+        ("Do you need my Sleeper or ESPN password?", "No. Sleeper's league data is public, so your username is enough. A public ESPN league needs only its ID. A private ESPN league opens once you sign in on ESPN's own page in the app: your password goes to ESPN alone, and the app keeps only the two keys ESPN hands back, encrypted if you save them to your account."),
         ("Which leagues work?", "Sleeper and ESPN leagues: redraft, keeper and dynasty, with or without divisions, any scoring. The history goes back as far as each platform keeps it."),
         ("What does the AI know?", "Only your league: every score, standing, trade, waiver claim, draft and lineup the app has read. It quotes the numbers, and it can be wrong now and then, so the record book has the final word."),
         ("Is this made by Sleeper or ESPN?", "No. Pigskin Pantheon is independent and isn't affiliated with or endorsed by Sleeper or ESPN. It reads each platform's league data to build your history."),

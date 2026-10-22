@@ -12,7 +12,10 @@ import Foundation
 ///                                          rivalry:<year>:<week>:<a>:<b>
 ///   SIMCTL_CHILD_PP_WEEK=9                 the season screen's week
 ///   SIMCTL_CHILD_PP_VIEW=panel-standings   the season screen's view (a panel id)
-///   SIMCTL_CHILD_PP_SHEET=chat             chat | account | leaderboard | claim
+///   SIMCTL_CHILD_PP_SHEET=chat             chat | account | leaderboard | claim; or, on the
+///                                          home screen (no PP_LEAGUE), espn: ESPN's sign-in
+///   SIMCTL_CHILD_PP_ESPN_FAKE=1            the ESPN sign-in sheet sets made-up keys itself
+///                                          once its page loads (ESPN turns them away)
 ///   SIMCTL_CHILD_PP_CLUBHOUSE_ME=<owner>   the demo's clubhouse: that manager claimed
 ///                                          ("none" lets the claim go)
 ///   SIMCTL_CHILD_PP_CLUBHOUSE_PICKS=r3*,r1 with it, the pick week's picks (* the lock)
@@ -52,6 +55,8 @@ enum DebugLaunch {
     /// SIMCTL_CHILD_PP_SIDEBAR=hidden opens the wide layout with its sidebar folded.
     static var sidebarHidden: Bool { env["PP_SIDEBAR"] == "hidden" }
     static var sheet: LeagueSheet? { env["PP_SHEET"].flatMap(LeagueSheet.init(rawValue:)) }
+    /// SIMCTL_CHILD_PP_SHEET=espn opens the home screen's ESPN sign-in sheet.
+    static var espnSignIn: Bool { env["PP_SHEET"] == "espn" }
 
     /// The demo clubhouse's manager, claimed at launch (an owner id, or "none").
     static var clubhouseMe: String? { env["PP_CLUBHOUSE_ME"] }

@@ -44,6 +44,18 @@ JavaScript and draws what it answers natively.
   Unlike the site, the app doesn't ask for an account to open a league
   (App Review 5.1.1(v)): signed out, any league opens without being
   synced; an account syncs it, saves ESPN keys and unlocks Ask the League.
+- **Private ESPN leagues** connect with "Sign in with ESPN"
+  (`Features/Home/EspnSignIn.swift`): ESPN's own sign-in page in a sheet,
+  in a web view with a cookie store of its own that lives only as long as
+  the sheet. Once ESPN sets `espn_s2` (a visitor who isn't signed in has
+  only `SWID`), the app takes those two cookies, closes the sheet and
+  saves them as the site does (`Bridge.finder.espnSave`: the engine's
+  localStorage, and the account if the member chooses). The page stays on
+  espn.com, go.com, disney.com and disneyplus.com; other links open in
+  Safari. iOS can clear a web view's storage, so the keys on the device
+  are copied to the Keychain too (`EspnKeychain`), and every engine page
+  puts back any set it's missing when it starts
+  (`Bridge.finder.espnRestore`).
 
 `tools/bridgetest.js` runs the engine and every bridge in Node, for trying a
 bridge function without the app:
@@ -80,8 +92,16 @@ For screenshots and checks, launch settings open the app on a screen
 `PP_TAB` (season, records, office, trophy, search), `PP_ROUTE`
 (`player:<id>`, `team:<year>:<teamId>`, `manager:<ownerId>`,
 `box:<year>:<week>:<a>:<b>`), `PP_WEEK`, `PP_VIEW` (a panel id such as
-`panel-standings`), `PP_SHEET` (chat, account, leaderboard, claim) and
-`PP_RAIL=1` (force the side rail). For the demo's clubhouse:
+`panel-standings`), `PP_SHEET` (chat, account, leaderboard, claim; or
+`espn`, without `PP_LEAGUE`: the home screen's ESPN sign-in sheet) and
+`PP_RAIL=1` (force the side rail). `PP_ESPN_FAKE=1` makes the ESPN
+sign-in sheet set made-up keys itself once ESPN's page loads, so
+capturing, saving and listing can be tried with no ESPN account (ESPN
+turns them away, which shows the "ESPN signed you out" row; they're kept
+on the device only, never sent to the account). Forget them afterwards:
+
+    SIMCTL_CHILD_PP_SHEET=espn SIMCTL_CHILD_PP_ESPN_FAKE=1 \
+      xcrun simctl launch booted com.pigskinpantheon.app For the demo's clubhouse:
 `PP_CLUBHOUSE_ME=<owner id>` claims a team (`none` lets it go),
 `PP_CLUBHOUSE_PICKS=r3*,r4` makes the pick week's picks (`*` the lock),
 `PP_SHARE=1` opens a Recap's "Share the week" (the picture is also

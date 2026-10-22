@@ -75,7 +75,7 @@ YOUR ACCOUNT (OPTIONAL, FREE)
 An account keeps your leagues on every device, saves your ESPN keys and unlocks Ask the League. Skip it and every league still opens. You can delete your account, and everything saved to it, from inside the app.
 
 PRIVATE ESPN LEAGUES
-A private ESPN league opens with two keys ESPN stores in your web browser. The app shows you where to find them, and you copy them from a computer once. If you save them to your account, they are stored encrypted.
+A private ESPN league opens once you sign in on ESPN's own page, right in the app. Your password goes to ESPN alone; the app keeps only the two keys ESPN hands back to open your leagues. If you save them to your account, they are stored encrypted.
 
 Pigskin Pantheon is not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA.
 
@@ -147,7 +147,7 @@ Apple's 2025+ questionnaire. These are the honest answers for what the app does 
 | Simulated gambling | None | No casino-style games, no betting, no wagering |
 | Real-money gambling | No | |
 | Contests | None | The app runs no contests or prizes. It reads leagues that people play on other platforms |
-| Unrestricted web access | No | No browser. The only web views are a hidden engine for league data and links to the legal pages |
+| Unrestricted web access | No | No browser. The only web views are a hidden engine for league data and ESPN's own sign-in page, which stays on ESPN's and Disney's sites (any other link opens in Safari). The legal pages open in Safari |
 | User-generated content | No | Nothing a user writes or posts is shown to any other user. Team names and avatars come from Sleeper and ESPN |
 | Messaging and chat (users communicating with each other) | No | Ask the League is a chatbot, not user-to-user messaging. Each conversation is private to the person asking |
 | Advertising | No | No ads, no ad SDKs |
