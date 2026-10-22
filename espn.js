@@ -234,8 +234,10 @@
   // the app and a computer can, and the account carries the keys over.
   const touchOnly = () => matchMedia("(hover: none) and (pointer: coarse)").matches && !extension.present();
   // The iPhone app runs this file in its own web view, with its own
-  // "Sign in with ESPN".
-  const inApp = () => Boolean(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.native);
+  // "Sign in with ESPN": the app's engine (engine-core.js, loaded first)
+  // opens window.Bridge, which no page of the site has.
+  const inApp = () => Boolean(window.Bridge && typeof window.Bridge.post === "function"
+    && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.native);
   function privateError(n) {
     const tried = PROXY && (savedAuth() || accountSaved === true);
     const err = new Error(!PROXY
@@ -268,11 +270,15 @@
        ESPN.extension.store()     where to add it: { browser, name, url }
                                   (url "" until it's in that store), or
                                   null where there's none (Safari)
-       ESPN.extension.connect({ onWaiting })
+       ESPN.extension.connect({ onWaiting, fresh })
                                   resolves { s2, swid }, or { cancelled },
                                   { timedOut }, { needsAccess } or
                                   { error }; onWaiting("login") once an
-                                  ESPN sign-in tab is open
+                                  ESPN sign-in tab is open. fresh: ESPN's
+                                  sign-in opens even with keys here, and
+                                  only new ones (another espn_s2) come
+                                  back, for keys ESPN has ended that the
+                                  browser still holds
        ESPN.extension.cancel()    stops the one being asked
 
      The store links are account-config.js's ESPN_EXTENSION_CHROME and
@@ -299,7 +305,7 @@
       return STORES[kind] ? { browser: kind, ...STORES[kind] } : null;
     },
     onReady(f) { document.addEventListener("pp-connect-ready", () => f()); },
-    connect({ onWaiting } = {}) {
+    connect({ onWaiting, fresh = false } = {}) {
       if (asking) extension.cancel();
       const id = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
       return new Promise((resolve) => {
@@ -328,7 +334,7 @@
         // mark: no word back at all means it's gone.
         const silent = setTimeout(() => { if (!heard) done({ error: "Pigskin Pantheon Connect didn't answer. Reload the page and try again." }); }, 3000);
         asking = { id, done };
-        postMessage({ pp: "espn-connect", id }, location.origin);
+        postMessage(fresh ? { pp: "espn-connect", id, fresh: true } : { pp: "espn-connect", id }, location.origin);
       });
     },
     cancel() {
@@ -367,8 +373,12 @@
      of keys in this browser, and every set saved to their account,
      together. Each league says which ESPN account (swid) it came from, and
      is remembered as that account's, so it opens with the right keys
-     first. Null when there are no keys to ask with; ESPN accounts whose
-     keys were turned away are in the list's `refused`. */
+     first. Null when there are no keys to ask with. ESPN accounts whose
+     keys were turned away are in the list's `refused`, and a list ESPN
+     turned every set away from is empty, with all of them there; only a
+     failure that isn't ESPN's refusal (the relay or ESPN not answering),
+     with nothing listed, throws. */
+  const REFUSED = "ESPN refused these keys"; // the relay's words for a 401 from ESPN
   async function myLeagues() {
     if (!PROXY) return null;
     const local = savedAuths();
@@ -380,18 +390,37 @@
       const answer = await res.json().catch(() => ({}));
       // No keys on the account is no list, not a failure.
       if (fromAccount && res.status === 401 && /no ESPN keys/.test(answer.error || "")) return null;
-      if (!res.ok) throw new Error(answer.error || `The relay answered ${res.status}`);
+      if (!res.ok) {
+        const err = new Error(answer.error || `The relay answered ${res.status}`);
+        err.status = res.status;
+        // ESPN turning the keys away (the account's, when every set it
+        // holds was) as against the relay or ESPN not answering.
+        err.refused = res.status === 401 && answer.error === REFUSED;
+        throw err;
+      }
       return answer;
     };
     const asks = local.map((set) => ask({
       "x-espn-s2": set.s2, "x-espn-swid": set.swid,
       ...(CFG.SUPABASE_ANON_KEY ? { Authorization: `Bearer ${CFG.SUPABASE_ANON_KEY}` } : {}),
-    }, false).catch((err) => ({ failed: err, swid: set.swid })));
-    if (token) asks.push(ask({ "x-lh-account": "1", Authorization: `Bearer ${token}` }, true).catch((err) => ({ failed: err })));
+    }, false).catch((err) => ({ failed: err, swids: [set.swid] })));
+    if (token) {
+      asks.push(ask({ "x-lh-account": "1", Authorization: `Bearer ${token}` }, true).catch(async (err) => {
+        // The relay names no accounts when it turns every one away: they're
+        // the ones the account holds.
+        let swids = [];
+        if (err.refused) {
+          try { swids = ((await accountKeys.status()).accounts || []).map((a) => a.swid); } catch (e) { swids = []; }
+        }
+        return { failed: err, swids };
+      }));
+    }
     const answers = (await Promise.all(asks)).filter(Boolean);
     if (!answers.length) return null;
     const good = answers.filter((a) => !a.failed);
-    if (!good.length) throw answers[0].failed;
+    const failures = answers.filter((a) => a.failed);
+    const other = failures.find((a) => !a.failed.refused);
+    if (!good.length && other) throw other.failed;
     const byId = new Map();
     good.forEach((a) => (a.leagues || []).forEach((l) => {
       const had = byId.get(l.id);
@@ -401,7 +430,7 @@
     list.forEach((l) => rememberKeyset(l.id, l.swid));
     list.refused = [...new Set([
       ...good.flatMap((a) => a.refused || []),
-      ...answers.filter((a) => a.failed && a.swid).map((a) => a.swid),
+      ...failures.filter((a) => a.failed.refused).flatMap((a) => a.swids),
     ])];
     return list;
   }

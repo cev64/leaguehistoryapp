@@ -19,6 +19,8 @@ const EXT = "ppconnecttestid";
 const SITE = "http://localhost:8765";
 const S2 = "AEB" + "x".repeat(120);
 const SWID = "{1A2B3C4D-1111-2222-3333-444455556666}";
+const SWID2 = "{9F8E7D6C-1111-2222-3333-444455556666}";
+const S2B = "AEC" + "y".repeat(120);
 const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms));
 const settle = async () => { for (let i = 0; i < 20; i++) await tick(1); await tick(700); for (let i = 0; i < 20; i++) await tick(1); };
 
@@ -49,11 +51,13 @@ class Browser {
     this.focused = [];
     this.startBackground();
   }
+  // Long timers (the ten-minute give-up) wait for advance(); short ones
+  // (the pause for ESPN's cookies to settle) run in real time.
   fakeClock(ctx) {
     const b = this;
     ctx.Date = class extends Date { static now() { return b.now; } };
     ctx.setTimeout = (fn, ms) => {
-      if (!ms || ms <= 1000) return setTimeout(fn, 0);
+      if (!ms || ms <= 1000) return setTimeout(fn, ms || 0);
       const t = { fn, at: b.now + ms, id: Symbol("t") };
       b.timers.push(t);
       return t.id;
@@ -123,7 +127,7 @@ class Browser {
         executeScript: async ({ target, files }) => { b.injected.push({ tabId: target.tabId, files }); b.loadContent(target.tabId); return []; },
       },
     };
-    const ctx = { chrome: api, console, URL, Promise, Object, JSON, String, Number, Boolean, Array, Set, Map, Error, RegExp };
+    const ctx = { chrome: api, console, URL, Promise, Object, JSON, String, Number, Boolean, Array, Set, Map, Error, RegExp, crypto, TextEncoder, Uint8Array };
     this.fakeClock(ctx);
     vm.runInNewContext(BACKGROUND, ctx, { filename: "background.js" });
     return bg;
@@ -195,8 +199,9 @@ class Browser {
       runtimeOnMessage: event(),
       dataset: {},
       // The page script asking, as espn.js does.
-      ask(id, { source = window, from = origin, type = "espn-connect" } = {}) {
-        setTimeout(() => listeners.slice().forEach((l) => l({ source, origin: from, data: { pp: type, id } })), 0);
+      ask(id, { source = window, from = origin, type = "espn-connect", fresh = false } = {}) {
+        const data = fresh ? { pp: type, id, fresh: true } : { pp: type, id };
+        setTimeout(() => listeners.slice().forEach((l) => l({ source, origin: from, data: clone(data) })), 0);
       },
       of: (id) => page.posted.filter((m) => m.id === id && !/^espn-connect(-cancel)?$/.test(m.pp)),
       answer: (id) => page.posted.find((m) => m.id === id && m.pp === "espn-connect-answer"),
@@ -360,9 +365,59 @@ test("after ten minutes it gives up", async () => {
   const page = b.sitePage();
   page.ask("t1");
   await settle();
+  assert.equal(b.loginTabs().length, 1);
   await b.advance(10 * 60 * 1000 + 1500);
   assert.deepEqual(page.answer("t1"), { pp: "espn-connect-answer", id: "t1", timedOut: true });
   assert.deepEqual(b.session.pending, {});
+  assert.equal(b.loginTabs().length, 0, "the ESPN tab it opened closed");
+});
+
+test("ESPN rewrites SWID just after espn_s2: the keys wait for the last change", async () => {
+  const b = new Browser();
+  b.setCookie("SWID", SWID);
+  const page = b.sitePage();
+  page.ask("d1");
+  await settle();
+  b.setCookie("espn_s2", S2);
+  await tick(400);
+  b.setCookie("SWID", SWID2);
+  await tick(400); // past the first change's pause, not the last's
+  assert.equal(page.answer("d1"), undefined, "nothing read while the pair is still changing");
+  await settle();
+  assert.deepEqual(page.answer("d1"), { pp: "espn-connect-answer", id: "d1", s2: S2, swid: SWID2 });
+  assert.equal(b.loginTabs().length, 0);
+});
+
+test("SWID alone is signed out: no answer, the sign-in tab stays", async () => {
+  const b = new Browser();
+  const page = b.sitePage();
+  page.ask("w1");
+  await settle();
+  b.setCookie("SWID", SWID);
+  await settle();
+  assert.equal(page.answer("w1"), undefined);
+  assert.equal(b.loginTabs().length, 1);
+  assert.equal(Object.keys(b.session.pending).length, 1, "still waiting");
+});
+
+test("fresh: ESPN's sign-in opens with keys here, and only a new espn_s2 comes back", async () => {
+  const b = new Browser();
+  b.setCookie("espn_s2", S2);
+  b.setCookie("SWID", SWID);
+  const page = b.sitePage();
+  page.ask("e1", { fresh: true });
+  await settle();
+  assert.deepEqual(page.of("e1").map((m) => m.pp), ["espn-connect-ack", "espn-connect-waiting"]);
+  assert.equal(b.loginTabs().length, 1, "a sign-in tab, though keys are here");
+  assert.ok(!JSON.stringify(b.session).includes(S2), "the old espn_s2 isn't kept, only its digest");
+  b.setCookie("SWID", SWID);
+  b.setCookie("espn_s2", S2); // written again, the same value
+  await settle();
+  assert.equal(page.answer("e1"), undefined, "the old keys aren't handed back");
+  b.setCookie("espn_s2", S2B);
+  await settle();
+  assert.deepEqual(page.answer("e1"), { pp: "espn-connect-answer", id: "e1", s2: S2B, swid: SWID });
+  assert.equal(b.loginTabs().length, 0);
 });
 
 test("the keys never go to a tab that left the site", async () => {

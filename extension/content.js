@@ -9,7 +9,9 @@
               pp-connect-ready event on document (the page may have loaded
               already, so it can check the attribute too)
      page     window.postMessage({ pp: "espn-connect", id }, location.origin)
-              from a click; { pp: "espn-connect-cancel", id } to stop
+              from a click (with fresh: true, ESPN's sign-in opens even
+              with keys here, for keys ESPN has ended);
+              { pp: "espn-connect-cancel", id } to stop
      back     { pp: "espn-connect-ack", id } at once, then
               { pp: "espn-connect-waiting", id, on: "login" | "grant" } if
               a tab opened for the member, and last
@@ -51,7 +53,7 @@
     try { return Promise.resolve(api.runtime.sendMessage(message)); } catch (err) { return Promise.reject(err); }
   }
 
-  function ask(id) {
+  function ask(id, fresh) {
     if (open.has(id)) return;
     const activation = navigator.userActivation;
     if (activation && !activation.isActive) {
@@ -60,7 +62,7 @@
     }
     open.set(id, setTimeout(() => { answer(id, { timedOut: true }); send({ type: "espn-cancel", id }).catch(() => {}); }, WAIT_MS));
     toPage("espn-connect-ack", id);
-    send({ type: "espn-keys", id }).then((reply) => {
+    send(fresh ? { type: "espn-keys", id, fresh: true } : { type: "espn-keys", id }).then((reply) => {
       if (reply && reply.waiting) toPage("espn-connect-waiting", id, { on: reply.waiting === "grant" ? "grant" : "login" });
       else answer(id, reply);
     }, () => answer(id, { error: "Pigskin Pantheon Connect didn't answer. Reload the page and try again." }));
@@ -82,7 +84,7 @@
       toPage("espn-connect-answer", d.id, { error: "Pigskin Pantheon Connect was updated. Reload the page and try again." });
       return;
     }
-    if (d.pp === "espn-connect") ask(d.id); else cancel(d.id);
+    if (d.pp === "espn-connect") ask(d.id, d.fresh === true); else cancel(d.id);
   }
   // From the background only: a tab opened for the member, or the answer.
   function onBackground(msg, sender) {

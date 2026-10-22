@@ -112,35 +112,31 @@
     return ESPN().savedAuths().map((a) => ({ s2: a.s2, swid: a.swid }));
   }
 
-  /* The Keychain's copy, put back when a page starts: each set this browser
-     doesn't have (a set it has is as new or newer). Answers the sets here
-     now, for the Keychain in turn (keys pasted before there was a copy). */
+  /* The Keychain's copy, put back when a page starts, only into a browser
+     with no sets at all: that's what iOS clearing the web view's storage
+     looks like. A browser with any set is the newer word (a set it lacks
+     was forgotten here, even if the Keychain hasn't caught up), so nothing
+     is put back. Answers the sets here now, for the Keychain in turn (keys
+     pasted before there was a copy). */
   function espnRestore(list) {
     const E = ESPN();
-    const here = new Set(E.savedAuths().map((a) => a.swid));
-    (Array.isArray(list) ? list : []).forEach((x) => {
-      const a = x && E.tidyAuth(x.s2, x.swid);
-      if (a && !here.has(a.swid)) {
-        E.saveAuth(a.s2, a.swid);
-        here.add(a.swid);
-      }
-    });
+    if (!E.savedAuths().length) {
+      (Array.isArray(list) ? list : []).forEach((x) => {
+        const a = x && E.tidyAuth(x.s2, x.swid);
+        if (a) E.saveAuth(a.s2, a.swid);
+      });
+    }
     return espnLocalSets();
   }
 
   /* The member's own ESPN leagues (null: no keys to ask with). The list's
-     `refused` (ESPN accounts whose keys were turned away) comes along. When
-     ESPN turned every set away, the relay's 401 says so: each of this
-     device's sets is refused, so its row offers to sign in again. */
+     `refused` (ESPN accounts whose keys were turned away, set by set) comes
+     along, so each of those rows offers to sign in again; signedOut is
+     ESPN having turned every set away, so nothing is listed. */
   async function espnLeagues() {
-    let list;
-    try {
-      list = await ESPN().myLeagues();
-    } catch (err) {
-      if (!/refused/i.test((err && err.message) || "")) throw err;
-      return { leagues: [], refused: ESPN().savedAuths().map((a) => a.swid), signedOut: true };
-    }
+    const list = await ESPN().myLeagues();
     if (list === null) return null;
+    const refused = list.refused || [];
     return {
       leagues: list.map((l) => ({
         id: ESPN().leagueId(l.id),
@@ -151,7 +147,8 @@
         logo: l.logo || null,
         swid: l.swid || null,
       })),
-      refused: list.refused || [],
+      refused,
+      signedOut: !list.length && refused.length > 0,
     };
   }
 

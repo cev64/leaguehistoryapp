@@ -1654,6 +1654,7 @@
     .espn-private code { font-size: 12px; padding: 0 4px; border-radius: 4px; background: rgba(11, 23, 38, .06); color: var(--ink); }
     .espn-private ol { margin-top: 8px; }
     .espn-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #1d7a3f; font-weight: 700; }
+    .espn-saved.is-refused { color: var(--red); }
     #espnSavedHint { margin: 0; color: var(--ink); }
     .espn-to-account { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); cursor: pointer; }
     .espn-to-account input { margin-top: 3px; }
@@ -2389,15 +2390,20 @@
         const local = ESPN.proxyAvailable && Boolean(ESPN.savedAuth());
         const connected = local || onAccountKnown;
         const toggle = $("espnPrivateToggle");
-        toggle.classList.toggle("is-connected", connected);
         toggle.setAttribute("aria-expanded", String(!espnPrivate.hidden));
         const count = Math.max(connectedAccounts.length, ESPN.savedAuths().length);
-        $("espnPrivateTitle").textContent = !connected ? "Private league?" : count > 1 ? `${count} ESPN accounts connected` : "ESPN connected";
-        $("espnPrivateSub").textContent = connected
-          ? `Your ESPN keys are saved ${onAccountKnown ? "to your account" : "in this browser"}, so your private leagues open and are listed below. Manage them, or add another ESPN account, here.`
-          : touchOnly()
-            ? "Connect once in the app or on a computer, then it opens here too."
-            : "Connect your ESPN account to open it, and to list all your ESPN leagues here.";
+        // ESPN turned every set away: it signed the member out.
+        const sets = connectedAccounts.length ? connectedAccounts : ESPN.savedAuths();
+        const out = connected && sets.length > 0 && sets.every((a) => refusedSwids.includes(a.swid));
+        toggle.classList.toggle("is-connected", connected && !out);
+        $("espnPrivateTitle").textContent = !connected ? "Private league?" : out ? "ESPN signed you out" : count > 1 ? `${count} ESPN accounts connected` : "ESPN connected";
+        $("espnPrivateSub").textContent = out
+          ? (touchOnly() ? "Connect again once in the app or on a computer, then it opens here too." : "Connect again here to open your private leagues and list them below.")
+          : connected
+            ? `Your ESPN keys are saved ${onAccountKnown ? "to your account" : "in this browser"}, so your private leagues open and are listed below. Manage them, or add another ESPN account, here.`
+            : touchOnly()
+              ? "Connect once in the app or on a computer, then it opens here too."
+              : "Connect your ESPN account to open it, and to list all your ESPN leagues here.";
       }
       let drawing = 0;
       // The ESPN accounts with keys, as last drawn: [{ swid, local, account }].
@@ -2407,6 +2413,11 @@
       let leagueNamesBySwid = {};
       let refusedSwids = [];
       let adding = false;
+      // Connect again, for an ESPN account ESPN signed out: its swid. And
+      // fresh: this browser handed back the very keys ESPN ended, so the
+      // next Connect ESPN opens ESPN's sign-in for new ones.
+      let again = null;
+      let fresh = false;
       async function drawPrivate() {
         const relay = ESPN.proxyAvailable;
         const turn = ++drawing;
@@ -2424,19 +2435,20 @@
         drawToggle();
         const saved = swids.length > 0;
         const touch = touchOnly();
-        // Something to connect: nothing saved yet, or another ESPN account.
-        const connecting = relay && (!saved || adding);
+        // Something to connect: nothing saved yet, another ESPN account, or
+        // one ESPN signed out again.
+        const connecting = relay && (!saved || adding || Boolean(again));
         $("espnConnect").hidden = !connecting || touch;
         $("espnTouch").hidden = !connecting || !touch;
         if (connecting) (touch ? drawTouch : drawConnect)();
-        $("espnKeys").hidden = !(connecting && !touch && byHand && byHandAllowed());
+        $("espnKeys").hidden = !(connecting && !touch && byHand && byHandAllowed() && !connect.present());
         // Where new keys go: this browser, and the account if the member is
-        // signed in and leaves the box ticked.
-        $("espnToAccountChoice").hidden = !(connecting && !touch && keys.signedIn());
+        // signed in and leaves the box ticked. Only with something here to
+        // bring keys: the extension, or the fields typed into.
+        $("espnToAccountChoice").hidden = !(connecting && !touch && keys.signedIn() && (connect.present() || !$("espnKeys").hidden));
         $("espnSaved").hidden = !saved;
         $("espnNoRelay").hidden = relay;
-        $("espnSavedText").textContent = `✓ ${swids.length === 1 ? "ESPN connected" : `${swids.length} ESPN accounts connected`}`;
-        $("espnAddAnother").hidden = !saved || adding || touch;
+        $("espnAddAnother").hidden = !saved || adding || Boolean(again) || touch;
         drawAccountRows();
         const someLocalOnly = connectedAccounts.some((a) => !a.account);
         const hint = $("espnSavedHint");
@@ -2474,9 +2486,13 @@
           link.textContent = `Add Pigskin Pantheon Connect to ${store.name}`;
         }
         $("espnConnectLead").innerHTML = here
-          ? (adding
-            ? "Pigskin Pantheon Connect reads the ESPN account this browser is signed in to. <strong>Sign out of ESPN in this browser, sign in to the other account, then Connect again.</strong>"
-            : "Pigskin Pantheon Connect reads your ESPN keys from this browser. Signed in to ESPN here, it's one click; if not, ESPN's sign-in opens in a new tab, and you're back here when you're done.")
+          ? (fresh
+            ? "<strong>ESPN signed you out, but this browser still holds the keys it ended.</strong> Connect ESPN opens ESPN's sign-in in a new tab: if it shows you signed in, sign out there and sign back in, and you're back here when you're done."
+            : again
+              ? "<strong>ESPN signed you out.</strong> Connect ESPN reads your ESPN keys from this browser again; if ESPN's sign-in opens, sign in to the same ESPN account."
+              : adding
+                ? "Pigskin Pantheon Connect reads the ESPN account this browser is signed in to. <strong>Sign out of ESPN in this browser, sign in to the other account, then Connect again.</strong>"
+                : "Pigskin Pantheon Connect reads your ESPN keys from this browser. Signed in to ESPN here, it's one click; if not, ESPN's sign-in opens in a new tab, and you're back here when you're done.")
           : !store
             ? "<strong>Safari isn't supported yet:</strong> connect once in Chrome, Firefox or the iPhone app, signed in to your account, and it opens here too."
             : store.url
@@ -2500,6 +2516,9 @@
       // Connect again (on a computer) brings a fresh set.
       function drawAccountRows() {
         const many = connectedAccounts.length > 1;
+        const out = connectedAccounts.length > 0 && connectedAccounts.every((a) => refusedSwids.includes(a.swid));
+        $("espnSavedText").textContent = out ? "ESPN signed you out" : `✓ ${many ? `${connectedAccounts.length} ESPN accounts connected` : "ESPN connected"}`;
+        $("espnSavedText").classList.toggle("is-refused", out);
         const touch = touchOnly();
         $("espnAccountList").innerHTML = connectedAccounts.map((a, i) => {
           const names = leagueNamesBySwid[a.swid] || [];
@@ -2515,7 +2534,7 @@
             <div><strong>${esc(title)}</strong>
               <span>${signedOut}Keys saved ${where} · ESPN id …${esc(a.swid.slice(-6, -1))}</span></div>
             <div class="espn-account-actions">
-              ${refused && !touch ? `<button type="button" data-reconnect="${esc(a.swid)}">Connect again</button>` : ""}
+              ${refused && !touch && again !== a.swid ? `<button type="button" data-reconnect="${esc(a.swid)}">Connect again</button>` : ""}
               ${a.local && !a.account && keys.signedIn() ? `<button type="button" data-to-account="${esc(a.swid)}">Save to my account</button>` : ""}
               <button type="button" data-forget-keys="${esc(a.swid)}">Forget</button>
             </div>
@@ -2551,10 +2570,11 @@
         }
         if (turn !== espnAsked) return;
         if (list === null) { showListing("espn", null); return; }
+        refusedSwids = list.refused || [];
         if (!local) { onAccountKnown = true; drawToggle(); }
         leagueNamesBySwid = {};
         list.forEach((l) => { if (l.swid) (leagueNamesBySwid[l.swid] = leagueNamesBySwid[l.swid] || []).push(l.name); });
-        refusedSwids = list.refused || [];
+        drawToggle();
         if (!espnPrivate.hidden) drawAccountRows();
         showListing("espn", {
           count: list.length,
@@ -2567,7 +2587,12 @@
               </span>
               <span class="league-go" aria-hidden="true">›</span>
             </a>`).join(""),
-          note: list.length ? "" : "ESPN has no football leagues on the profile your keys belong to. You can still open one by its ID or link on the ESPN tab.",
+          note: list.length ? ""
+            : refusedSwids.length
+              ? (touchOnly()
+                ? "ESPN signed you out, so it didn't list your leagues. Connect again once in the Pigskin Pantheon app or on a computer, signed in to your account."
+                : "ESPN signed you out, so it didn't list your leagues. Connect again on the ESPN tab.")
+              : "ESPN has no football leagues on the profile your keys belong to. You can still open one by its ID or link on the ESPN tab.",
         });
       }
       espnPrivate.addEventListener("click", (event) => {
@@ -2586,11 +2611,9 @@
       $("espnAccountList").addEventListener("click", async (event) => {
         const save = event.target.closest("[data-to-account]");
         const forget = event.target.closest("[data-forget-keys]");
-        const again = event.target.closest("[data-reconnect]");
-        if (again) {
-          if (connect.present()) { connectEspn(); return; }
-          adding = true;
-          drawPrivate();
+        const redo = event.target.closest("[data-reconnect]");
+        if (redo) {
+          reconnect(redo.dataset.reconnect);
           return;
         }
         if (!save && !forget) return;
@@ -2601,6 +2624,7 @@
           const swid = forget.dataset.forgetKeys;
           const row = connectedAccounts.find((a) => a.swid === swid);
           ESPN.clearAuth(swid);
+          if (again === swid) { again = null; fresh = false; }
           if (row && row.account && keys.signedIn()) {
             try { await keys.forget(swid); }
             catch (err) { say(`Removed from this browser, but your account couldn't forget them: ${err.message}`, { error: true }); }
@@ -2635,6 +2659,8 @@
       // opened.
       async function keysArrived(added) {
         adding = false;
+        again = null;
+        fresh = false;
         byHand = false;
         if ($("espnToAccountBox").checked) await toAccount(added.swid);
         await drawPrivate();
@@ -2649,7 +2675,7 @@
         if (waiting || !connect.present()) return;
         waiting = "connecting";
         drawConnect();
-        const got = await connect.connect({ onWaiting: (on) => { waiting = on; drawConnect(); } });
+        const got = await connect.connect({ fresh, onWaiting: (on) => { waiting = on; drawConnect(); } });
         waiting = null;
         drawConnect();
         if (!got.s2) {
@@ -2660,18 +2686,36 @@
           return;
         }
         // The same keys ESPN already turned away: this browser is still
-        // holding a set ESPN has ended.
+        // holding a set ESPN has ended. Nothing is saved, and the next
+        // Connect ESPN asks for a fresh sign-in.
         const tidy = ESPN.tidyAuth(got.s2, got.swid);
         const stale = tidy && refusedSwids.includes(tidy.swid) && ESPN.savedAuths().some((a) => a.swid === tidy.swid && a.s2 === tidy.s2);
+        if (stale) {
+          again = tidy.swid;
+          fresh = true;
+          await drawPrivate();
+          say("This browser still holds the keys ESPN ended, so nothing changed. Click Connect ESPN to sign in to ESPN again.", { error: true });
+          return;
+        }
         const added = ESPN.saveAuth(got.s2, got.swid);
         if (!added) {
           say("ESPN's keys didn't come through right. Click Connect ESPN to try again.", { error: true });
           return;
         }
         if (await keysArrived(added)) return;
-        if (stale) say("ESPN still has the keys it turned away in this browser. Sign out of ESPN on espn.com and back in, then click Connect again.", { error: true });
-        else say("✓ ESPN connected. Your ESPN leagues are listed below; or enter a league's ID or link above.");
+        say("✓ ESPN connected. Your ESPN leagues are listed below; or enter a league's ID or link above.");
         espnInput.focus();
+      }
+      // Connect again, from the row of an ESPN account ESPN signed out: the
+      // connect section opens for it (its Cancel and "finish signing in"
+      // with it), and with the extension here, Connect ESPN runs at once.
+      function reconnect(swid) {
+        again = swid;
+        adding = false;
+        // Asked first, while the click still counts as one (the extension
+        // answers only a click).
+        if (connect.present()) connectEspn();
+        drawPrivate();
       }
       $("espnConnectGo").addEventListener("click", connectEspn);
       $("espnConnectCancel").addEventListener("click", () => connect.cancel());

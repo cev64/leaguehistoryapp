@@ -11,14 +11,19 @@
                             site's; once ESPN sets espn_s2 that tab closes,
                             the site's tab comes back to the front, and the
                             keys go to it
+     fresh: true            (the page's keys were ended by ESPN, and this
+                            browser still holds them) ESPN's sign-in opens
+                            even with both cookies there, and only a new
+                            espn_s2 is handed over
      ESPN tab closed first  { cancelled: true }
-     ten minutes pass       { timedOut: true }
+     ten minutes pass       { timedOut: true }, and the ESPN tab closes
      no access to espn.com  (Firefox lets a member switch it off) a page of
                             ours asks for it on a click, then the above
 
-   Nothing is stored but which tab is waiting on which sign-in tab
-   (storage.session, so it outlives the background being shut down while
-   the member types their password, and is gone when the browser closes).
+   Nothing is stored but which tab is waiting on which sign-in tab, in
+   storage.session (so it outlives the background being shut down while
+   the member types their password, and is gone when the browser closes),
+   with, for a fresh sign-in, a SHA-256 digest of the espn_s2 to wait past.
    The cookies themselves are never stored, never logged, and never sent
    anywhere but the tab that asked, and only while that tab is still on the
    site. Nothing but those two cookies is read.
@@ -85,6 +90,18 @@ async function readKeys(storeId) {
   if (!s2 || !s2.value || !swid || !swid.value) return null;
   return { s2: s2.value, swid: swid.value };
 }
+// A fresh sign-in waits for espn_s2 to change; only a digest of the old
+// one is kept to tell.
+async function digest(value) {
+  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+// The keys, unless they're the ones a fresh sign-in waits past.
+async function newKeys(storeId, not) {
+  const keys = await readKeys(storeId);
+  if (!keys || (not && (await digest(keys.s2)) === not)) return null;
+  return keys;
+}
 async function hasEspnAccess() {
   try { return await api.permissions.contains({ origins: ESPN_ORIGINS }); } catch (err) { return true; }
 }
@@ -92,7 +109,8 @@ async function hasEspnAccess() {
 /* ------------------------------------------------------------ who's waiting */
 
 /* "<tab id>:<page's id>" -> { tabId, id, frameId, documentId, windowId,
-   storeId, waitFor: "login" | "grant", waitTab, deadline }. Read and
+   storeId, waitFor: "login" | "grant", waitTab, deadline, fresh, not }
+   (not: the digest of the espn_s2 a fresh sign-in waits past). Read and
    written one change at a time, so two events can't undo each other. */
 let chain = Promise.resolve();
 function withState(change) {
@@ -142,7 +160,7 @@ async function openNextTo(tab, url) {
 // The member has something to do in another tab first: ESPN's sign-in, or
 // our page asking for access to espn.com. One such tab per asking tab: a
 // second click reuses it.
-async function waitOn(waitFor, tab, sender, id, storeId) {
+async function waitOn(waitFor, tab, sender, id, storeId, { fresh = false, not = null } = {}) {
   const key = `${tab.id}:${id}`;
   const replaced = await withState(async (state) => {
     const older = Object.entries(state).filter(([k, p]) => p.tabId === tab.id && k !== key);
@@ -162,6 +180,7 @@ async function waitOn(waitFor, tab, sender, id, storeId) {
     state[key] = {
       tabId: tab.id, id, frameId: 0, documentId: (sender && sender.documentId) || null,
       windowId: tab.windowId, storeId: storeId || null, waitFor, waitTab, deadline: Date.now() + WAIT_MS,
+      fresh, not,
     };
     // The older asks from this tab are answered: this one takes over.
     return older.map(([, p]) => p);
@@ -171,16 +190,22 @@ async function waitOn(waitFor, tab, sender, id, storeId) {
   return { waiting: waitFor };
 }
 
-// Gives up on anything waiting more than ten minutes. Run on every wake as
-// well as by the timer, since the timer dies with the background.
+// Gives up on anything waiting more than ten minutes, closing the tab
+// opened for it (as Cancel does). Run on every wake as well as by the
+// timer, since the timer dies with the background.
 async function sweep() {
   const now = Date.now();
   const expired = await withState((state) => {
     const out = [];
     Object.entries(state).forEach(([k, p]) => { if (p.deadline <= now) { delete state[k]; out.push(p); } });
+    // A tab another ask still waits on stays open.
+    out.forEach((p) => { if (Object.values(state).some((o) => o.waitTab === p.waitTab)) p.waitTab = null; });
     return out;
   });
-  expired.forEach((p) => answer(p, { timedOut: true }));
+  for (const p of expired) {
+    await closeTab(p.waitTab);
+    await answer(p, { timedOut: true });
+  }
 }
 
 /* ------------------------------------------------------------ asking */
@@ -190,10 +215,11 @@ async function ask(msg, sender) {
   if (!tab || !ID.test(String(msg.id || ""))) return { error: "Not allowed." };
   sweep();
   const storeId = await storeFor(tab);
-  if (!(await hasEspnAccess())) return waitOn("grant", tab, sender, msg.id, storeId);
+  const fresh = msg.fresh === true;
+  if (!(await hasEspnAccess())) return waitOn("grant", tab, sender, msg.id, storeId, { fresh });
   const keys = await readKeys(storeId);
-  if (keys) return keys;
-  return waitOn("login", tab, sender, msg.id, storeId);
+  if (keys && !fresh) return keys;
+  return waitOn("login", tab, sender, msg.id, storeId, { fresh, not: keys ? await digest(keys.s2) : null });
 }
 
 // The page's Cancel: forget the ask and close the tab we opened for it.
@@ -211,17 +237,17 @@ async function cancel(msg, sender) {
   return { cancelled: true };
 }
 
-// ESPN set (or changed) a key: anyone waiting on a sign-in in that cookie
-// store with both keys now there is answered. A moment's pause first, so a
-// pair being written isn't read half-done.
+// The cookies settled after ESPN set (or changed) a key: anyone waiting on
+// a sign-in in that cookie store with both keys now there (espn_s2 is the
+// signed-in one: SWID alone is a visitor) is answered, and for a fresh
+// sign-in only with a new espn_s2.
 async function signedIn(storeId) {
-  await new Promise((resolve) => setTimeout(resolve, 600));
   const done = await withState(async (state) => {
     const out = [];
     for (const [k, p] of Object.entries(state)) {
       if (p.waitFor !== "login") continue;
       if (p.storeId && storeId && p.storeId !== storeId) continue;
-      const keys = await readKeys(p.storeId || undefined);
+      const keys = await newKeys(p.storeId || undefined, p.not);
       if (!keys) continue;
       delete state[k];
       out.push([p, keys]);
@@ -247,11 +273,11 @@ async function granted() {
     await closeTab(p.waitTab);
     await focus(p);
     const keys = await readKeys(p.storeId || undefined);
-    if (keys) { await answer(p, keys); continue; }
+    if (keys && !p.fresh) { await answer(p, keys); continue; }
     let tab;
     try { tab = await api.tabs.get(p.tabId); } catch (err) { continue; }
     if (!tab || !onSite(tab.url)) continue;
-    await waitOn("login", tab, { documentId: p.documentId }, p.id, p.storeId);
+    await waitOn("login", tab, { documentId: p.documentId }, p.id, p.storeId, { fresh: p.fresh, not: keys ? await digest(keys.s2) : null });
     await deliver(p, { type: "espn-waiting", on: "login" });
   }
 }
@@ -273,12 +299,19 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return undefined;
 });
 
+// ESPN writes the pair (and often rewrites SWID) over a moment: the keys
+// are read once a cookie store has been quiet for SETTLE_MS after its last
+// change, so a pair being written isn't read half-done.
+const SETTLE_MS = 600;
+const settling = new Map(); // cookie store -> its timer
 api.cookies.onChanged.addListener((change) => {
   const c = change && change.cookie;
-  if (!c || change.removed) return;
+  if (!c) return;
   if (c.name !== "espn_s2" && c.name !== "SWID") return;
   if (!/(^|\.)espn\.com$/.test(String(c.domain || "").replace(/^\./, ""))) return;
-  signedIn(c.storeId);
+  const store = c.storeId || "";
+  clearTimeout(settling.get(store));
+  settling.set(store, setTimeout(() => { settling.delete(store); signedIn(c.storeId); }, SETTLE_MS));
 });
 
 // The member closed a tab: the ESPN tab (or our grant page) means they
