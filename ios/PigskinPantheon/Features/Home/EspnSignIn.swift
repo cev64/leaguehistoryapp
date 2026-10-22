@@ -48,6 +48,7 @@ final class EspnSignIn: NSObject {
     @ObservationIgnored private let store = WKWebsiteDataStore.nonPersistent()
     @ObservationIgnored private var progressWatch: NSKeyValueObservation?
     @ObservationIgnored private var settle: Task<Void, Never>?
+    @ObservationIgnored private var opened = false
     @ObservationIgnored private var closed = false
     #if DEBUG
     /// PP_ESPN_FAKE=1: made-up keys instead of a real sign-in.
@@ -72,6 +73,13 @@ final class EspnSignIn: NSObject {
             let value = view.estimatedProgress
             Task { @MainActor in self?.progress = value }
         }
+    }
+
+    /// ESPN's page loading: once, by the sheet that keeps this sign-in (so
+    /// one made and dropped never goes to ESPN).
+    func open() {
+        guard !opened, !closed else { return }
+        opened = true
         webView.load(URLRequest(url: Self.start))
     }
 
@@ -236,10 +244,13 @@ extension EspnSignIn: WKNavigationDelegate, WKUIDelegate {
 /// The sheet: ESPN's page under a bar with Cancel, its progress, and a line
 /// on what's kept. Closes itself once ESPN has set the keys, handing them to
 /// `done`; closed without signing in, nothing happens.
+///
+/// The sign-in is made once the sheet is up, not as the view is (a view is
+/// made again whenever its parent draws, and `@State`'s first value with it).
 struct EspnSignInSheet: View {
     let done: (EspnSignIn.Keys) -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var model = EspnSignIn()
+    @State private var model: EspnSignIn?
 
     var body: some View {
         NavigationStack {
@@ -251,14 +262,16 @@ struct EspnSignInSheet: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                ProgressView(value: model.progress)
+                ProgressView(value: model?.progress ?? 0)
                     .progressViewStyle(.linear)
-                    .opacity(model.loading ? 1 : 0)
-                    .animation(.easeOut(duration: 0.2), value: model.loading)
+                    .opacity(model?.loading ?? true ? 1 : 0)
+                    .animation(.easeOut(duration: 0.2), value: model?.loading ?? true)
                 ZStack {
-                    EspnWebView(webView: model.webView)
-                        .opacity(model.failed ? 0 : 1)
-                    if model.failed {
+                    if let model {
+                        EspnWebView(webView: model.webView)
+                            .opacity(model.failed ? 0 : 1)
+                    }
+                    if let model, model.failed {
                         ContentUnavailableView {
                             Label("ESPN's sign-in page didn't load", systemImage: "wifi.exclamationmark")
                         } description: {
@@ -282,12 +295,21 @@ struct EspnSignInSheet: View {
         }
         .presentationSizing(.form)
         .presentationDetents([.large])
-        .onChange(of: model.keys) { _, keys in
+        .onAppear {
+            guard model == nil else { return }
+            let signIn = EspnSignIn()
+            model = signIn
+            signIn.open()
+        }
+        .onChange(of: model?.keys) { _, keys in
             guard let keys else { return }
             done(keys)
             dismiss()
         }
-        .onDisappear { model.close() }
+        .onDisappear {
+            model?.close()
+            model = nil
+        }
     }
 }
 

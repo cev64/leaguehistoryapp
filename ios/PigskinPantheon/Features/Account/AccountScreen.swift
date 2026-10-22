@@ -345,8 +345,12 @@ private struct AccountPanel: View {
     }
 
     /// Gone on the server first; only then signed out here, and the sheet
-    /// shows the signed-out account (the sign-in dialog).
+    /// shows the signed-out account (the sign-in dialog). The ESPN keys'
+    /// Keychain copy goes before anything waits, so no page starting
+    /// meanwhile is given them back; if the account stays (no connection),
+    /// the page's keys are copied to the Keychain again.
     private func deleteAccount() async {
+        EspnKeychain.delete()
         deleting = true
         deleteError = nil
         defer { deleting = false }
@@ -356,6 +360,7 @@ private struct AccountPanel: View {
             await finder.forgetDevice(account: account)
             account.say("Your account has been deleted.")
         } catch {
+            await finder.engine.keepEspnKeys()
             deleteError = error.localizedDescription
         }
     }

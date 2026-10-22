@@ -374,6 +374,9 @@ final class FinderModel {
     }
 
     func forget(_ row: EspnAccount, account: AccountStore) async {
+        // Out of the Keychain before anything waits, so a page that starts
+        // meanwhile isn't given the keys back.
+        EspnKeychain.remove(swid: row.swid)
         busySwid = row.swid
         defer { busySwid = nil }
         await sendSession(account)
@@ -384,7 +387,7 @@ final class FinderModel {
         } else if !connected.contains(where: { $0.swid != row.swid }) {
             espnNote = .standard
         }
-        await engine.keepEspnKeys()
+        await engine.keepEspnKeys(without: row.swid)
         // Where the keys stand first, so the list is asked for (or not)
         // with the keys that are left.
         await drawPrivate()
@@ -392,10 +395,12 @@ final class FinderModel {
     }
 
     /// Deleting the account: every ESPN account's keys off this device and
-    /// the Keychain too, as well as off the account.
+    /// the Keychain too, as well as off the account. The Keychain goes
+    /// first, before anything waits, so no page is given the keys back.
     func forgetDevice(account: AccountStore) async {
+        EspnKeychain.delete()
         try? await engine.run("Bridge.finder.espnForgetDevice()")
-        await engine.keepEspnKeys()
+        EspnKeychain.delete()
         espnNote = .standard
         await drawPrivate()
         await loadEspnLeagues(account: account, force: true)
@@ -430,8 +435,9 @@ final class FinderModel {
 
     private struct EspnListing: Decodable {
         let leagues: [EspnLeague]
-        let refused: [String]
-        /// ESPN turned every set of keys away.
+        /// The ESPN accounts whose keys ESPN turned away.
+        var refused: [String]?
+        /// ESPN turned every set of keys away (when the page says so).
         var signedOut: Bool?
     }
 
@@ -460,10 +466,13 @@ final class FinderModel {
             var names: [String: [String]] = [:]
             list.leagues.forEach { l in if let s = l.swid { names[s, default: []].append(l.name) } }
             leagueNamesBySwid = names
-            refusedSwids = list.refused
+            let refused = list.refused ?? []
+            refusedSwids = refused
+            // Without the page's word for it: nothing listed and keys refused.
+            let signedOut = list.signedOut ?? (list.leagues.isEmpty && !refused.isEmpty)
             withAnimation(.smooth) {
                 espnLeagues = list.leagues
-                espnListNote = list.signedOut == true
+                espnListNote = signedOut
                     ? "ESPN signed you out, so it didn't list your leagues. Sign in again on the ESPN tab, under ESPN connected."
                     : list.leagues.isEmpty
                     ? "ESPN has no football leagues on the profile your keys belong to. You can still open one by its ID or link on the ESPN tab."

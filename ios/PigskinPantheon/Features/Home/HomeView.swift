@@ -9,6 +9,9 @@ struct HomeView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var finder = FinderModel.shared
     @State private var sheet: HomeSheet?
+    /// The sheet last up, so its dismissal knows whether it was the ESPN
+    /// sign-in or another one the sign-in was waiting on.
+    @State private var shownSheet: String?
 
     enum HomeSheet: Identifiable {
         case auth(AuthView.Mode)
@@ -87,7 +90,13 @@ struct HomeView: View {
         .accountToast()
         .sheet(item: $sheet, onDismiss: {
             if !app.account.isSignedIn { app.account.pending = nil }
-            finder.signInOpen = false
+            // The ESPN sign-in asked for over another sheet: up now that
+            // that one has gone.
+            if finder.signInOpen && shownSheet != HomeSheet.espnSignIn.id && sheet == nil {
+                sheet = .espnSignIn
+            } else {
+                finder.signInOpen = false
+            }
         }) { sheet in
             switch sheet {
             case .auth(let mode):
@@ -112,8 +121,14 @@ struct HomeView: View {
                 }
             }
         }
+        .onChange(of: sheet?.id) { _, id in
+            if let id { shownSheet = id }
+        }
+        // Over another sheet, that one goes first (onDismiss brings the
+        // sign-in up), so the request isn't lost.
         .onChange(of: finder.signInOpen) { _, open in
-            if open && sheet == nil { sheet = .espnSignIn }
+            guard open else { return }
+            if sheet == nil { sheet = .espnSignIn } else if sheet?.id != HomeSheet.espnSignIn.id { sheet = nil }
         }
         .onChange(of: app.account.pending) { _, new in
             if let new { sheet = .gate(new) }

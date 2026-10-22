@@ -654,8 +654,9 @@ enum Keychain {
 /// The ESPN keys on this device (`[{s2, swid}]`, as espn.js keeps them in
 /// the engine's localStorage), copied to the Keychain, which iOS doesn't
 /// clear when it clears a web view's storage. Each engine's page puts back
-/// any set it's missing when it starts (`Bridge.finder.espnRestore`), and
-/// the copy is written again after every save and Forget.
+/// its sets when it starts with none (`Bridge.finder.espnRestore`), and
+/// the copy is written again after every save. A Forget takes keys out of
+/// the copy first, before the page.
 enum EspnKeychain {
     struct KeySet: Codable, Equatable {
         let s2: String
@@ -671,6 +672,13 @@ enum EspnKeychain {
     static func save(_ sets: [KeySet]) {
         guard !sets.isEmpty, let data = try? JSONEncoder().encode(sets) else { return delete() }
         if Keychain.load(item) != data { Keychain.save(data, item) }
+    }
+
+    /// One ESPN account's keys out of the copy, as Forget starts: before
+    /// any wait, so a page started meanwhile can't be given them back.
+    static func remove(swid: String) {
+        let sets = load()
+        if sets.contains(where: { $0.swid == swid }) { save(sets.filter { $0.swid != swid }) }
     }
 
     static func delete() {

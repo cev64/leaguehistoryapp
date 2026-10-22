@@ -99,9 +99,11 @@ final class LeagueEngine: NSObject {
 
     // MARK: ESPN keys
 
-    /// The Keychain's copy of the ESPN keys back in the page (sets it's
-    /// missing), and the page's sets kept in the Keychain in turn, so keys
-    /// pasted before there was a copy get one too.
+    /// The Keychain's copy of the ESPN keys back in a page that has none
+    /// (iOS cleared its storage), and the page's sets kept in the Keychain
+    /// in turn, so keys saved before there was a copy get one too. A Forget
+    /// takes its keys out of the Keychain before the page, so they aren't
+    /// given back here.
     private func restoreEspnKeys() async {
         let saved = EspnKeychain.load().map { ["s2": $0.s2, "swid": $0.swid] }
         guard let data = try? await evaluate("Bridge.finder.espnRestore(list)", ["list": saved]),
@@ -109,10 +111,11 @@ final class LeagueEngine: NSObject {
         EspnKeychain.save(sets)
     }
 
-    /// After a save or a Forget: the Keychain's copy made the page's again.
-    func keepEspnKeys() async {
+    /// After a save or a Forget: the Keychain's copy made the page's again,
+    /// less any ESPN account just forgotten (should the page still have it).
+    func keepEspnKeys(without forgotten: String? = nil) async {
         guard let sets = try? await call([EspnKeychain.KeySet].self, "Bridge.finder.espnLocalSets()") else { return }
-        EspnKeychain.save(sets)
+        EspnKeychain.save(sets.filter { $0.swid != forgotten })
     }
 
     private func makeWebView() {
