@@ -330,13 +330,22 @@ private struct StakesCard: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let hit = stake.hit {
-                Text(hit ? "Happened" : "Didn’t")
-                    .font(.system(size: 10.5, weight: .heavy))
-                    .textCase(.uppercase)
-                    .foregroundStyle(hit ? Theme.green : Theme.ink3)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(hit ? Theme.green.opacity(0.12) : Theme.surface2, in: Capsule())
+                // The side's logo stays beside the result, so it's plain whose
+                // line it was; one width for both capsules lines the logos up.
+                HStack(spacing: 8) {
+                    if let side, let team = season.team(side.teamId) {
+                        TeamBadge(team: team, size: 22, corner: 6)
+                            .accessibilityHidden(true)
+                    }
+                    Text(hit ? "Happened" : "Didn’t")
+                        .font(.system(size: 10.5, weight: .heavy))
+                        .textCase(.uppercase)
+                        .foregroundStyle(hit ? Theme.green : Theme.ink3)
+                        .lineLimit(1)
+                        .padding(.vertical, 4)
+                        .frame(width: 80)
+                        .background(hit ? Theme.green.opacity(0.12) : Theme.surface2, in: Capsule())
+                }
             } else if let side, let team = season.team(side.teamId) {
                 TeamBadge(team: team, size: 22, corner: 6)
                     .accessibilityHidden(true)
@@ -346,7 +355,7 @@ private struct StakesCard: View {
         .padding(.vertical, 11)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(stake.text)
-        .accessibilityValue(stake.hit.map { $0 ? "Happened" : "Didn't happen" } ?? (side.map { $0.team } ?? ""))
+        .accessibilityValue([side.map { $0.team }, stake.hit.map { $0 ? "Happened" : "Didn't happen" }].compactMap { $0 }.joined(separator: ", "))
     }
 }
 

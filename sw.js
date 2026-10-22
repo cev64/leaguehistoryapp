@@ -1,14 +1,22 @@
 /* Service worker for Pigskin Pantheon.
    Strategy:
-     - navigations (the pages): network first, cached copy as fallback
-     - same-origin assets: cache first, refreshed in the background
+     - navigations (the pages) and same-origin CSS and JS: network first,
+       cached copy as the offline fallback, so a new page never runs with
+       the last version's stylesheets or scripts
+     - everything else same-origin (images, icons, the vendored three.js,
+       which never changes): cache first, refreshed in the background
      - Google Fonts: stale-while-revalidate in a separate cache
      - Sleeper's and ESPN's APIs and images, and data/ (the daily players
        file): left to the browser; sleeper.js and espn.js keep their own
        copies in IndexedDB
-   Bump CACHE_VERSION whenever the precache list or these rules change. */
+   Bump CACHE_VERSION whenever the precache list or these rules change.
 
-const CACHE_VERSION = 'v118';
+   A shared file that changes gets a new ?v= on every page that links it
+   and here in PRECACHE: a worker from before this rule serves CSS and JS
+   cache first, and cache.match doesn't ignore the query, so it misses the
+   new address and fetches it fresh on the first load after a deploy. */
+
+const CACHE_VERSION = 'v119';
 const SHELL_CACHE = `league-history-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `league-history-fonts-${CACHE_VERSION}`;
 
@@ -19,25 +27,25 @@ const PRECACHE = [
   './alltime.html',
   './trophy.html',
   './moves.html',
-  './insights.js',
-  './sleeper.js',
+  './insights.js?v=2',
+  './sleeper.js?v=2',
   './espn.js',
-  './player-card.js',
+  './player-card.js?v=2',
   './pwa.js',
   './ui.js',
-  './ui.css',
-  './design.css',
-  './account.js',
+  './ui.css?v=2',
+  './design.css?v=2',
+  './account.js?v=2',
   './account.css',
-  './account-config.js',
+  './account-config.js?v=2',
   './chat.js',
   './chat.css',
   './landing.css',
   './demo.js',
   // The clubhouse: pick'em, the week's awards, the share card.
-  './clubhouse.js',
-  './clubhouse-ui.js',
-  './clubhouse.css',
+  './clubhouse.js?v=2',
+  './clubhouse-ui.js?v=2',
+  './clubhouse.css?v=2',
   // The trophy room's modules and its copy of three.js. Precaching them keeps
   // the hall openable offline, the same as every other page here.
   './trophy/app.js',
@@ -151,8 +159,11 @@ async function networkFirst(request) {
   } catch (err) {
     // A page with a league in its address is cached per address; offline, any
     // other copy of the same page (another league, another season) beats none.
+    // Only a page falls back that way: a stylesheet or script just misses.
     const url = new URL(request.url);
-    const cached = await cache.match(request) || await cache.match(`.${url.pathname.slice(url.pathname.lastIndexOf('/'))}`, { ignoreSearch: true });
+    const isPage = request.mode === 'navigate' || url.pathname.endsWith('.html');
+    const cached = await cache.match(request)
+      || (isPage && await cache.match(`.${url.pathname.slice(url.pathname.lastIndexOf('/'))}`, { ignoreSearch: true }));
     if (cached) return cached;
     throw err;
   }
@@ -206,8 +217,13 @@ self.addEventListener('fetch', (event) => {
   // The players file changes every morning; never serve yesterday's.
   if (url.pathname.includes('/data/')) return;
 
-  // Pages come from the network first, so a new version shows at once.
+  // Pages come from the network first, so a new version shows at once, and
+  // so do their stylesheets and scripts, so it never shows with old ones.
   if (request.mode === 'navigate' || url.pathname.endsWith('.html')) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+  if (/\.(css|js)$/.test(url.pathname) && !url.pathname.includes('/vendor/')) {
     event.respondWith(networkFirst(request));
     return;
   }
