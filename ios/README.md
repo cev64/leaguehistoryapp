@@ -101,7 +101,16 @@ turns them away, which shows the "ESPN signed you out" row; they're kept
 on the device only, never sent to the account). Forget them afterwards:
 
     SIMCTL_CHILD_PP_SHEET=espn SIMCTL_CHILD_PP_ESPN_FAKE=1 \
-      xcrun simctl launch booted com.pigskinpantheon.app For the demo's clubhouse:
+      xcrun simctl launch booted com.pigskinpantheon.app
+
+`PP_ESPN_START=<url>` opens the sign-in sheet on another ESPN page. In
+debug builds the sheet logs the pages it opens, every frame's console
+errors and the names (never the values) of the cookies ESPN sets:
+
+    xcrun simctl spawn booted log stream --level debug \
+      --predicate 'category == "espn-sign-in"'
+
+For the demo's clubhouse:
 `PP_CLUBHOUSE_ME=<owner id>` claims a team (`none` lets it go),
 `PP_CLUBHOUSE_PICKS=r3*,r4` makes the pick week's picks (`*` the lock),
 `PP_SHARE=1` opens a Recap's "Share the week" (the picture is also

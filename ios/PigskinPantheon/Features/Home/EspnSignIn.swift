@@ -1,6 +1,9 @@
 import SwiftUI
 import UIKit
 import WebKit
+#if DEBUG
+import os
+#endif
 
 /// "Sign in with ESPN": ESPN's own sign-in page in a sheet. The member signs
 /// in as they always do; the app watches the page's cookies and, once ESPN
@@ -19,8 +22,33 @@ final class EspnSignIn: NSObject {
         let swid: String
     }
 
-    /// Where the sheet opens: ESPN's sign-in page (Disney's OneID, in a frame).
-    static let start = URL(string: "https://www.espn.com/login")!
+    /// Where the sheet opens: ESPN's fantasy football page, whose OneID (v4)
+    /// signs in inside a web view. (espn.com/login is OneID v2, whose sign-in
+    /// never reached ESPN's cookies in one.) `launch` opens its sign-in.
+    static let start = URL(string: "https://www.espn.com/fantasy/football/")!
+
+    /// On ESPN's pages: opens OneID's sign-in (what ESPN's own Log In does).
+    /// ESPN makes `window.did` before OneID has started, and `launchLogin()`
+    /// rejects until it has, so it's tried every half second for up to 20
+    /// seconds. Says when OneID signs in or closes. Nothing once signed in.
+    static let launch = """
+        (() => {
+          if (!/(^|\\.)espn\\.com$/.test(location.hostname) || /(^|; )espn_s2=/.test(document.cookie)) return;
+          const post = (event) => { try { webkit.messageHandlers.espnSignIn.postMessage(event); } catch (e) {} };
+          let tries = 0, heard = false;
+          const retry = () => { if (++tries < 40) setTimeout(go, 500); };
+          const go = () => {
+            const did = window.did;
+            if (!did || typeof did.launchLogin !== "function") return retry();
+            if (!heard && typeof did.on === "function") {
+              heard = true;
+              ["login", "close"].forEach((name) => did.on(name, () => post(name)));
+            }
+            Promise.resolve().then(() => did.launchLogin()).catch(retry);
+          };
+          go();
+        })();
+        """
 
     /// The sites a sign-in moves between, and their subdomains (OneID is on
     /// registerdisney.go.com). Anything else the page links to opens in Safari.
@@ -48,11 +76,18 @@ final class EspnSignIn: NSObject {
     @ObservationIgnored private let store = WKWebsiteDataStore.nonPersistent()
     @ObservationIgnored private var progressWatch: NSKeyValueObservation?
     @ObservationIgnored private var settle: Task<Void, Never>?
+    @ObservationIgnored private var watch: Task<Void, Never>?
+    /// The last pair read: keys are taken when two reads in a row agree (a
+    /// first sign-in can set espn_s2 before ESPN swaps the visitor's SWID).
+    @ObservationIgnored private var candidate: Keys?
     @ObservationIgnored private var opened = false
     @ObservationIgnored private var closed = false
     #if DEBUG
     /// PP_ESPN_FAKE=1: made-up keys instead of a real sign-in.
     @ObservationIgnored private var faked = false
+    @ObservationIgnored private var lastSeen = ""
+    /// `log stream --predicate 'category == "espn-sign-in"' --level debug`
+    static let log = Logger(subsystem: "com.pigskinpantheon.app", category: "espn-sign-in")
     #endif
 
     override init() {
@@ -60,13 +95,31 @@ final class EspnSignIn: NSObject {
         config.websiteDataStore = store
         config.applicationNameForUserAgent = Self.safariName
         config.defaultWebpagePreferences.allowsContentJavaScript = true
+        let scripts = WKUserContentController()
+        scripts.addUserScript(WKUserScript(source: Self.launch, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        config.userContentController = scripts
+        #if DEBUG
+        // Every frame's console errors and warnings (OneID's included), to the
+        // debug log. Messages only: nothing typed into the page.
+        scripts.addUserScript(WKUserScript(source: """
+            (() => {
+              const send = (level, args) => { try { webkit.messageHandlers.espnDebug.postMessage(`${location.host} ${level}: ${[...args].map(String).join(" ").slice(0, 400)}`); } catch (e) {} };
+              ["error", "warn"].forEach((level) => { const was = console[level]; console[level] = (...a) => { send(level, a); was.apply(console, a); }; });
+              addEventListener("error", (e) => send("uncaught", [e.message]));
+              addEventListener("unhandledrejection", (e) => send("rejection", [e.reason && e.reason.message || e.reason]));
+              if (document.hasStorageAccess) document.hasStorageAccess().then((ok) => send("storage-access", [ok]));
+            })();
+            """, injectionTime: .atDocumentStart, forMainFrameOnly: false))
+        #endif
         webView = WKWebView(frame: .zero, configuration: config)
         super.init()
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = true
+        scripts.add(WeakMessageHandler(self), name: "espnSignIn")
         #if DEBUG
         webView.isInspectable = true
+        scripts.add(WeakMessageHandler(self), name: "espnDebug")
         #endif
         store.httpCookieStore.add(self)
         progressWatch = webView.observe(\.estimatedProgress, options: [.new]) { [weak self] view, _ in
@@ -80,7 +133,21 @@ final class EspnSignIn: NSObject {
     func open() {
         guard !opened, !closed else { return }
         opened = true
-        webView.load(URLRequest(url: Self.start))
+        var start = Self.start
+        #if DEBUG
+        // PP_ESPN_START=<url>: try another first page.
+        if let other = ProcessInfo.processInfo.environment["PP_ESPN_START"].flatMap(URL.init(string:)) { start = other }
+        #endif
+        webView.load(URLRequest(url: start))
+        // The cookie observer doesn't always hear about cookies set inside
+        // OneID's frame, so the store is read every second as well.
+        watch = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                guard let self, !self.closed, self.keys == nil else { return }
+                await self.readKeys()
+            }
+        }
     }
 
     func retry() {
@@ -94,8 +161,10 @@ final class EspnSignIn: NSObject {
         guard !closed else { return }
         closed = true
         settle?.cancel()
+        watch?.cancel()
         progressWatch = nil
         store.httpCookieStore.remove(self)
+        webView.configuration.userContentController.removeAllScriptMessageHandlers()
         webView.stopLoading()
         webView.navigationDelegate = nil
         webView.uiDelegate = nil
@@ -119,13 +188,30 @@ final class EspnSignIn: NSObject {
     private func readKeys() async {
         let cookies = await store.httpCookieStore.allCookies()
         guard !closed, keys == nil else { return }
+        #if DEBUG
+        // Names and domains only, never values: what ESPN has set so far.
+        let seen = cookies.map { "\($0.name)@\($0.domain)\($0.isHTTPOnly ? " httpOnly" : "")" }.sorted().joined(separator: ", ")
+        if seen != lastSeen {
+            lastSeen = seen
+            Self.log.debug("cookies: \(seen, privacy: .public)")
+        }
+        #endif
         let espn = cookies.filter { c in
             let domain = c.domain.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
             return domain == "espn.com" || domain.hasSuffix(".espn.com")
         }
         guard let s2 = espn.first(where: { $0.name == "espn_s2" })?.value, !s2.isEmpty,
-              let swid = espn.first(where: { $0.name == "SWID" })?.value, !swid.isEmpty else { return }
-        keys = Keys(s2: s2, swid: swid)
+              let swid = espn.first(where: { $0.name == "SWID" })?.value,
+              swid.range(of: #"^\{[0-9A-Fa-f-]{36}\}$"#, options: .regularExpression) != nil else {
+            candidate = nil
+            return
+        }
+        let pair = Keys(s2: s2, swid: swid)
+        guard pair == candidate else {
+            candidate = pair
+            return
+        }
+        keys = pair
     }
 
     #if DEBUG
@@ -151,6 +237,7 @@ final class EspnSignIn: NSObject {
         #if DEBUG
         fakeIfAsked()
         #endif
+        Task { await readKeys() }
     }
 
     private func failedToLoad(_ error: Error) {
@@ -171,6 +258,21 @@ final class EspnSignIn: NSObject {
     }
 }
 
+/// OneID saying it signed in (the keys are read straight away) or closed;
+/// in debug builds, the page's console too.
+extension EspnSignIn: WKScriptMessageHandler {
+    nonisolated func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        let name = message.name
+        let text = String(describing: message.body)
+        MainActor.assumeIsolated {
+            #if DEBUG
+            Self.log.debug("\(name == "espnSignIn" ? "oneid" : "console", privacy: .public) \(text, privacy: .public)")
+            #endif
+            if name == "espnSignIn", text == "login" { Task { await readKeys() } }
+        }
+    }
+}
+
 extension EspnSignIn: WKHTTPCookieStoreObserver {
     nonisolated func cookiesDidChange(in cookieStore: WKHTTPCookieStore) {
         Task { @MainActor in self.cookiesChanged() }
@@ -184,12 +286,17 @@ extension EspnSignIn: WKNavigationDelegate, WKUIDelegate {
                              decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
         MainActor.assumeIsolated {
             let url = action.request.url
+            #if DEBUG
+            if let url, action.targetFrame?.isMainFrame == false {
+                Self.log.debug("frame: \(url.scheme ?? "", privacy: .public)://\(url.host ?? "", privacy: .public)\(url.path, privacy: .public)")
+            }
+            #endif
             guard action.targetFrame?.isMainFrame ?? true, let url, url.scheme != "about" else {
                 decisionHandler(.allow)
                 return
             }
             #if DEBUG
-            print("[espn sign-in] \(Self.allows(url) ? "page" : "Safari"): \(url.scheme ?? "")://\(url.host ?? url.absoluteString)")
+            Self.log.debug("\(Self.allows(url) ? "page" : "Safari", privacy: .public): \(url.scheme ?? "", privacy: .public)://\(url.host ?? "", privacy: .public)\(url.path, privacy: .public)")
             #endif
             if Self.allows(url) {
                 decisionHandler(.allow)

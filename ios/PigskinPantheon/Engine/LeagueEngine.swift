@@ -358,7 +358,7 @@ extension LeagueEngine: WKNavigationDelegate, WKScriptMessageHandler {
 
 /// WKUserContentController keeps its handlers strongly; this keeps the
 /// engine out of that cycle.
-private final class WeakMessageHandler: NSObject, WKScriptMessageHandler {
+final class WeakMessageHandler: NSObject, WKScriptMessageHandler {
     weak var target: (any WKScriptMessageHandler)?
     init(_ target: any WKScriptMessageHandler) { self.target = target }
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {

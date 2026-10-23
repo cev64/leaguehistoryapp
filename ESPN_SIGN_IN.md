@@ -15,12 +15,29 @@ Built, on branch `feat/espn-sign-in`:
   `README.md`, the front page's FAQ, `ios/README.md`, `ios/APP_STORE.md`,
   `ios/store/metadata.md`.
 
+**A real sign-in works in the app** (2026-10-22, iPhone simulator, MyDisney
+email sign-in): the sheet closed by itself, the keys were saved and the
+league was listed. What it took:
+
+- `https://www.espn.com/login` is OneID **v2**. Signing in there in a web
+  view never reached ESPN's cookies: no `espn_s2`, and OneID logged
+  "Session not established" on the next page. The page also sends you
+  to espn.com whether you signed in or closed the box.
+- `https://www.espn.com/fantasy/football/` is OneID **v4** (MyDisney),
+  which works. A user script calls `window.did.launchLogin()`, retrying
+  every half second while it rejects (OneID starts after `did` exists),
+  and posts OneID's `login` / `close` to the app.
+- The cookie store is read on the observer, after every page load, every
+  second, and on OneID's `login`. Keys are taken when two reads in a row
+  agree and `SWID` is a real `{GUID}`.
+
 Left:
 
-1. **A real ESPN sign-in test by Charlie**: Phase 0 and the Testing
-   checklist below. Nothing has been signed in to a real ESPN account yet
-   (the extension's tests run against a mocked browser; the app's against
-   made-up keys).
+1. **A real sign-in through the extension** (Chrome, then Firefox), and the
+   rest of the Testing checklist below. The extension still opens
+   `espn.com/login` (v2) in a normal tab; if that sign-in doesn't stick
+   (Firefox's cookie partitioning is the likely place), open the fantasy
+   page and run the same `launchLogin()` script there.
 2. **Publish the extension** (Publishing, below): Chrome Web Store and
    Firefox Add-ons, then set `ESPN_EXTENSION_CHROME` and
    `ESPN_EXTENSION_FIREFOX` (and `APP_STORE_URL`) in `account-config.js`.
