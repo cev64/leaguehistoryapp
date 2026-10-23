@@ -285,7 +285,14 @@ final class AccountStore {
         _ = try await GoTrue.post("recover", ["email": email], redirect: true)
     }
 
+    /// Signs out, and this device forgets the member's ESPN keys (the
+    /// engine's localStorage and the Keychain copy), so the next person here
+    /// can't open their private leagues. Keys saved to the account stay
+    /// there: signing in again brings them back. The Keychain goes first,
+    /// before anything waits, so no page starting meanwhile is given them
+    /// back (`FinderModel.forgetDevice` clears it again after the page).
     func signOut() async {
+        EspnKeychain.delete()
         if stored != nil {
             // A token good for the calls below (a session that had run out
             // is refreshed; offline, the old one is tried all the same).
@@ -305,6 +312,7 @@ final class AccountStore {
         hints = [:]
         // The league AI conversations were the member's.
         ChatConversation.forgetAll()
+        await FinderModel.shared.forgetDevice(account: self)
     }
 
     /// delete_my_account(): the account and everything on it (its synced

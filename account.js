@@ -628,8 +628,17 @@
     await dropPushDevice();
     try { await backend.signOut(); } catch (err) { toast(explain(err)); }
     state.user = null;
+    // ESPN keys leave with the member, so the next person on this browser
+    // can't open their private leagues; keys saved to the account come back
+    // when they sign in again.
+    const hadEspn = Boolean(window.ESPN && ESPN.savedAuth());
+    try {
+      if (window.ESPN) ESPN.clearAuth();
+      localStorage.removeItem("lh-espn-auth");
+      localStorage.removeItem("lh-espn-keyset");
+    } catch (err) { /* private mode: nothing was kept */ }
     await refresh();
-    toast("Signed out.");
+    toast(hadEspn ? "Signed out. Your ESPN sign-in was removed from this browser too." : "Signed out.");
     relock();
   }
 
