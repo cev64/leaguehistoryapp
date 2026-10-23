@@ -104,7 +104,7 @@
   <main class="lg-main" id="main">
     <article class="lg">
       <h1>Privacy Policy</h1>
-      <p class="lg-meta">Effective October 21, 2026 · Applies to the Pigskin Pantheon website (pigskinpantheon.com) and the Pigskin Pantheon iPhone app</p>
+      <p class="lg-meta">Effective October 22, 2026 · Applies to the Pigskin Pantheon website (pigskinpantheon.com) and the Pigskin Pantheon iPhone app</p>
 
       <div class="lg-box">
         <h2>The short version</h2>
@@ -112,7 +112,7 @@
           <li>You sign in with an email address and password. We store your email, a display name, the leagues you add and a few usage counts.</li>
           <li>Your league's scores, standings and history are read from Sleeper's and ESPN's own services, on your device, and cached there.</li>
           <li>Private ESPN leagues need your ESPN <code>espn_s2</code> and <code>SWID</code> cookies. You connect through ESPN's own sign-in page in the app or the Pigskin Pantheon Connect browser extension, so we never see your ESPN password. We keep the two cookies on your device, and only save them to your account (encrypted) if you choose to.</li>
-          <li>When you use Ask the League, your question and a text summary of your league are sent through our server to Google (Gemini) and, as a backup, Anthropic (Claude) to write an answer. On Gemini's free tier, Google may also use them to improve its products. The app asks your permission before your first question.</li>
+          <li>When you use Ask the League, your question and a text summary of your league are sent through our server to Anthropic (Claude) to write an answer. The app and the website ask your permission before your first question.</li>
           <li>If you play your league's pick'em or vote on its weekly awards, we store which team in the league is yours, your picks and your votes. If you turn on notifications, we store where to send them on that browser or device.</li>
           <li>The iPhone app has no ads, no analytics and no tracking. We do not sell your data.</li>
           <li>You can delete your account in the app (Account, then Delete Account) or by emailing <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a>.</li>
@@ -190,9 +190,9 @@
         <li>a text summary of the league, written on your device from the data it already loaded: manager and team display names, scores, records, standings, champions, head-to-head results, transactions such as trades and waiver pickups, and player names and points; and</li>
         <li>if the AI asks for more detail, the extra league information it requests (for example one week's lineups).</li>
       </ul>
-      <p>Our server adds our instructions and an API key and forwards this to <strong>Google's Gemini API</strong>, a third-party AI provider, to generate the answer. If Google cannot answer (for example, when it is overloaded or a daily limit is reached), the same material is sent instead to <strong>Anthropic's Claude API</strong>, another third-party AI provider. The answer is streamed back to you.</p>
-      <p>Both providers receive the text described above and act as our service providers. They have their own privacy practices: see <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a> and the <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Gemini API Additional Terms</a>, and <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic's Privacy Policy</a>. We use Gemini's free (unpaid) tier. Under Google's terms for unpaid services, Google may use content sent to it, and human reviewers may read it, to provide, improve and develop its products and machine-learning technologies. For that reason, the league summary and your questions may be used by Google in this way. Do not put sensitive personal information in your questions.</p>
-      <p>The app asks for your permission before your first question and names these providers; if you decline, nothing is sent. Our server does not store the text of your questions or the answers, and does not keep the league summary after the request is finished. It records only the daily question count described above. (Providers may keep what they receive for the periods in their own policies.) On the website your conversation is kept in your browser tab and disappears when you close the tab.</p>
+      <p>Our server adds our instructions and an API key and forwards this to <strong>Anthropic's Claude API</strong> (the Claude Haiku model), a third-party AI provider, to generate the answer. The answer is streamed back to you.</p>
+      <p>Anthropic receives the text described above and acts as our service provider. It has its own privacy practices: see <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic's Privacy Policy</a>. Do not put sensitive personal information in your questions.</p>
+      <p>The app and the website ask for your permission before your first question and name this provider; if you decline, nothing is sent. Our server does not store the text of your questions or the answers, and does not keep the league summary after the request is finished. It records only the daily question count described above. (Providers may keep what they receive for the periods in their own policies.) On the website your conversation is kept in your browser tab and disappears when you close the tab.</p>
       <p>AI answers are generated automatically and can be wrong. See our <a href="terms.html">Terms of Service</a>.</p>
 
       <h2 id="tracking">Analytics, ads and tracking</h2>
@@ -219,7 +219,7 @@
       <p>We share personal information only with service providers who help us run the service, and only as needed:</p>
       <ul>
         <li><strong>Supabase</strong>: accounts, our database and server functions (<a href="https://supabase.com/privacy" target="_blank" rel="noopener">privacy policy</a>).</li>
-        <li><strong>Google</strong> (Gemini API) and <strong>Anthropic</strong> (Claude API): the AI chat, as described above.</li>
+        <li><strong>Anthropic</strong> (Claude API): the AI chat, as described above.</li>
         <li><strong>Stripe</strong>: payments on the website, if plans are offered.</li>
         <li><strong>Cloudflare</strong>: cookieless website analytics (<a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">privacy policy</a>).</li>
         <li><strong>GitHub</strong>: hosts the website's static files (<a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">privacy statement</a>).</li>
@@ -231,7 +231,7 @@
 
       <h2 id="retention">Retention and deletion</h2>
       <p>We keep your account information and synced leagues while your account exists. You can delete your account in the iPhone app (Account, then Delete Account) or by emailing <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> from the address on the account. Deletion removes your profile, your synced leagues and league change log, any ESPN keys saved to your account, and your chat usage counts, the teams you claimed in leagues with your picks and award votes, your notification settings and push subscriptions, plus any League Pass you own and your seat on any pass. Deletion does not cancel a paid subscription held with Stripe (none exist while everything is free); cancel it there first. Backups may keep copies for a short time before they are overwritten. Payment records held by Stripe may be kept as the law requires.</p>
-      <p>Data cached on your device is not on our servers; it is removed when you delete the app or clear the site's data in your browser. Content sent to Google or Anthropic for the AI chat is kept by them under their own policies, and deleting your account here does not change that.</p>
+      <p>Data cached on your device is not on our servers; it is removed when you delete the app or clear the site's data in your browser. Content sent to Anthropic for the AI chat is kept by them under their own policies, and deleting your account here does not change that.</p>
 
       <h2 id="rights">Your rights and choices</h2>
       <p>Depending on where you live (for example under the GDPR or the California Consumer Privacy Act) you may have the right to know what personal information we hold about you, to get a copy, to correct it, to delete it, to object to or restrict some uses, and not to be discriminated against for using these rights. You can edit your display name in the account screen, and delete your account yourself. For anything else, email <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> and we will respond within the time the law allows (generally 30 days). We may need to confirm that the request comes from the account's owner. If you are in the European Economic Area or the United Kingdom, you may also complain to your local data protection authority.</p>

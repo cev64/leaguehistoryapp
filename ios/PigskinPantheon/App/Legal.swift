@@ -13,10 +13,5 @@ enum Legal {
     static let disclaimer = "Not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA."
 
     /// Who answers Ask the League (league-chat), named before the first question.
-    static let aiProviders = "Google Gemini, with Anthropic Claude as a backup"
-
-    /// What Google may do with it, said in the consent sheet: the app uses
-    /// Gemini's free tier, and Google's terms for unpaid services let it use
-    /// what it's sent (the privacy policy's "Ask the League" section).
-    static let aiTraining = "On Gemini's free tier, Google may also use it to improve its products."
+    static let aiProviders = "Anthropic's Claude"
 }

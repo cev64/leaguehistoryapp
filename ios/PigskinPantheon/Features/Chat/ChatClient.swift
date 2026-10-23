@@ -17,7 +17,7 @@ enum ChatStreamEvent {
 
 /// The finished turn: why it stopped, and the whole message as content
 /// blocks, kept exactly as they came (they go back with the next turn,
-/// Gemini's thought signatures and all).
+/// thinking blocks and all).
 struct ChatTurn {
     let stop: String
     let content: [[String: Any]]
