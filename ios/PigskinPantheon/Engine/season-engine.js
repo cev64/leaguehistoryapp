@@ -500,15 +500,16 @@
     function scenarioCard(week) {
       const sc = playoffScenarios(week);
       if (!sc || !sc.rows.length) return "";
+      const info = infoNote("What the scenarios leave out", `Only results that settle it outright are listed. A tie on record goes to points for${MEDIAN ? ", and the median game is still to be played," : ","} which can't be known in advance, so a team can also get in on points.`);
       return `<article class="card scenario-card">
-        ${cardHead(`What's at stake · Week ${sc.week}`, "shield", "Playoff scenarios")}
+        ${cardHead(`What's at stake · Week ${sc.week} ${info.button}`, "shield")}
+        ${info.note}
         <div class="scenario-list">${sc.rows.map((r) => `
           <div class="scenario-row">
             <span class="scenario-team">${miniTeam(r.id)}<strong>${nameOf(r.id)}</strong></span>
             <ul>${r.lines.map((l) => `<li>${l}.</li>`).join("")}</ul>
           </div>`).join("")}
         </div>
-        <p class="scenario-note">Only results that settle it outright are listed. A tie on record goes to points for${MEDIAN ? ", and the median game is still to be played," : ","} which can't be known in advance, so a team can also get in on points.</p>
       </article>`;
     }
 

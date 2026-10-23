@@ -3126,6 +3126,7 @@
       font-size: 10px;
       color: var(--muted);
     }
+    .bx-foot:empty { display: none; }
 
     @media (max-width: 760px) {
       /* Phones: a bottom sheet, like the player card. */
@@ -3342,8 +3343,7 @@
     .why-pop .why-team { margin-top: 8px; font-size: 12px; color: var(--muted); }
 
     .standings-note .legend-key .seed-tag,
-    .standings-note .legend-key .clinch-tag,
-    .standings-note .legend-key .why-btn { margin-right: 2px; }
+    .standings-note .legend-key .clinch-tag { margin-right: 2px; }
 
     td.gb, th.gb { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
@@ -3697,7 +3697,6 @@
       line-height: 1.45;
     }
     .roster-help[hidden] { display: none; }
-    .roster-help p { margin: 0 0 6px; font-weight: 700; }
     .roster-help .roster-help-foot { margin: 8px 0 0; color: var(--muted); font-weight: 600; }
     .roster-help ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
     .roster-help li { display: flex; align-items: flex-start; gap: 8px; }
@@ -3902,14 +3901,6 @@
       letter-spacing: -.02em;
     }
 
-    .live-status p {
-      margin: 0;
-      max-width: 40ch;
-      color: rgba(255, 255, 255, .72);
-      font-size: 14.5px;
-      line-height: 1.45;
-    }
-
     .live-panel { display: none; }
     .live-panel.active { display: block; }
 
@@ -4110,10 +4101,13 @@
     .scenario-team { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13.5px; }
     .scenario-team strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .scenario-row ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; color: var(--ink-2, #475467); font-size: 13px; line-height: 1.45; }
-    .scenario-note { margin: 0; padding: 10px 16px 14px; color: var(--muted); font-size: 12px; line-height: 1.5; border-top: 1px solid var(--line); }
+    /* The note an (i) in a card's head opens (infoNote). */
+    .info-note { margin: 0; padding: 10px 16px; color: var(--ink-2); font-size: 12.5px; line-height: 1.5; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .info-note[hidden] { display: none; }
+    .card-head h3 .info-toggle { margin-left: -2px; }
     @media (max-width: 700px) {
       .scenario-row { grid-template-columns: minmax(0, 1fr); padding: 10px 12px; }
-      .scenario-note { padding: 10px 12px 12px; }
+      .info-note { padding: 10px 12px; }
     }
     .recap-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 16px 14px; border-top: 1px solid var(--line); }
     .recap-link { padding: 0; border: 0; background: none; color: var(--blue-2); font: 700 13px/1.3 inherit; text-decoration: none; cursor: pointer; }
@@ -4162,7 +4156,6 @@
     .rc-share-opt svg { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px; fill: none; stroke: #f6b73c; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     .rc-share-opt span { display: grid; gap: 2px; min-width: 0; }
     .rc-share-opt strong { font-size: 13.5px; font-weight: 800; }
-    .rc-share-opt small { color: rgba(219, 229, 238, .78); font-size: 12px; line-height: 1.35; }
 
     .rc-team { display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
     .rc-team > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
@@ -4504,7 +4497,6 @@
       <div class="live-status">
         <span class="live-badge"><span class="live-dot" aria-hidden="true"></span><span>Loading</span></span>
         <h1>&nbsp;</h1>
-        <p></p>
       </div>
     </div>
     <!-- Ads: 300×250 in the desktop sidebar, and a banner at the top and the
@@ -5161,15 +5153,16 @@
     function scenarioCard(week) {
       const sc = playoffScenarios(week);
       if (!sc || !sc.rows.length) return "";
+      const info = infoNote("What the scenarios leave out", `Only results that settle it outright are listed. A tie on record goes to points for${MEDIAN ? ", and the median game is still to be played," : ","} which can't be known in advance, so a team can also get in on points.`);
       return `<article class="card scenario-card">
-        ${cardHead(`What's at stake · Week ${sc.week}`, "shield", "Playoff scenarios")}
+        ${cardHead(`What's at stake · Week ${sc.week} ${info.button}`, "shield")}
+        ${info.note}
         <div class="scenario-list">${sc.rows.map((r) => `
           <div class="scenario-row">
             <span class="scenario-team">${miniTeam(r.id)}<strong>${nameOf(r.id)}</strong></span>
             <ul>${r.lines.map((l) => `<li>${l}.</li>`).join("")}</ul>
           </div>`).join("")}
         </div>
-        <p class="scenario-note">Only results that settle it outright are listed. A tie on record goes to points for${MEDIAN ? ", and the median game is still to be played," : ","} which can't be known in advance, so a team can also get in on points.</p>
       </article>`;
     }
 
@@ -5600,7 +5593,7 @@
       const n = r.numbers;
       const parts = [];
       parts.push(`<article class="card rc-lead">
-        <div class="rc-kicker">${r.playoff ? "Playoffs · " : ""}Week ${r.week} recap · ${r.season}</div>
+        <div class="rc-kicker">${r.playoff ? "Playoff recap" : "Recap"}</div>
         ${r.headline ? `<h3 class="rc-title">${esc(r.headline.title)}</h3><p class="rc-dek">${esc(r.headline.dek)}</p>` : ""}
         ${r.also.length ? `<ul class="rc-also">${r.also.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
         <div class="rc-actions">
@@ -5610,11 +5603,11 @@
             <div class="rc-share-menu" id="rcShare${r.week}" hidden>
               <button type="button" class="rc-share-opt" data-ch-share="${r.week}">
                 <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.6" y="3" width="10.8" height="10" rx="1.8"/><path d="m13.4 10.6-3.2-3.2-5.6 5.6"/></svg>
-                <span><strong>The week card</strong><small>One picture for the group chat: scores, standings, awards</small></span>
+                <span><strong>Week card</strong></span>
               </button>
               <button type="button" class="rc-share-opt" data-recap="${r.week}">
                 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.6 3.4h8.8M3.6 6.4h8.8M3.6 9.4h8.8M3.6 12.4h5.2"/></svg>
-                <span><strong>The recap story</strong><small>This write-up and the power rankings, as pictures or text</small></span>
+                <span><strong>Recap story</strong></span>
               </button>
             </div>`}
         </div>
@@ -5641,8 +5634,10 @@
         const riser = r.power.slice().sort((a, b) => b.move - a.move)[0];
         const faller = r.power.slice().sort((a, b) => a.move - b.move)[0];
         const best = Math.max(...r.power.map((x) => x.score), 1);
+        const info = infoNote("How the power rankings are figured", "Ranked on all-play record (every team against every other team's score, every week), the actual record, the last three weeks and points per game.");
         parts.push(`<article class="card">
-          ${cardHead("Power rankings", "standings", `After week ${r.week}`)}
+          ${cardHead(`Power rankings ${info.button}`, "standings")}
+          ${info.note}
           <div class="rc-power">
             <div class="rc-prow head"><span>#</span><span></span><span>Team</span><span>Record</span><span title="Record against every team, every week">All-play</span><span>PF/G</span></div>
             ${r.power.map((p) => `
@@ -5652,7 +5647,7 @@
               <span>${p.record}</span><span>${p.apRecord}</span><span>${fmt1(p.pfg)}</span>
             </div>`).join("")}
           </div>
-          <p class="rc-foot">${esc(plain(top.id))} ${top.move > 0 ? `climb to the top` : "hold the top spot"}${riser && riser.move >= 2 ? `; ${esc(plain(riser.id))} jump ${riser.move}` : ""}${faller && faller.move <= -2 ? `; ${esc(plain(faller.id))} slide ${-faller.move}` : ""}. Ranked on all-play record (every team against every other team's score, every week), the actual record, the last three weeks and points per game.</p>
+          <p class="rc-foot">${esc(plain(top.id))} ${top.move > 0 ? `climb to the top` : "hold the top spot"}${riser && riser.move >= 2 ? `; ${esc(plain(riser.id))} jump ${riser.move}` : ""}${faller && faller.move <= -2 ? `; ${esc(plain(faller.id))} slide ${-faller.move}` : ""}.</p>
         </article>`);
       }
 
@@ -5671,12 +5666,12 @@
         if (L.worst.left > 0) tile("Most left on the bench", nameOf(L.worst.teamId), `${fmt(L.worst.left)} points`);
         tile("Left on benches", `${fmt1(L.left)} points`, L.perfect.length ? `${plural(L.perfect.length, "perfect lineup")}` : "no perfect lineups");
       }
-      parts.push(`<article class="card">${cardHead("By the numbers", "notes", "All-play and luck")}<div class="summary-superlatives">${tiles.join("")}</div></article>`);
+      parts.push(`<article class="card">${cardHead("By the numbers", "notes")}<div class="summary-superlatives">${tiles.join("")}</div></article>`);
 
       const P = r.players;
       if (P.mvp) {
         parts.push(`<article class="card">
-          ${cardHead("Players of the week", "notes", "Starters only")}
+          ${cardHead("Players of the week", "notes")}
           <div class="rc-mvp">
             <small>Player of the week</small>
             <div>${playerChip(P.mvp)} <b>${fmt(P.mvp.pts)}</b></div>
@@ -5699,8 +5694,8 @@
         office.push(`<div class="rc-item block"><span class="rc-tag bad">Bench blunder</span><div><p><strong>${nameOf(r.lineup.blunder.teamId)}</strong> benched ${esc(M.pname(b.benched.pid))} (${fmt(b.benched.pts)})${b.started ? ` and started ${esc(M.pname(b.started.pid))} (${fmt(b.started.pts)})` : ""}${r.lineup.blunder.costGame ? ". It cost them the game" : ""}.</p></div></div>`);
       }
       if (M.adds) office.push(`<div class="rc-item block"><span class="rc-tag soft">Waiver wire</span><div><p>${plural(M.adds, "pickup")} this week${M.busiest ? `; ${nameOf(M.busiest[0])} made ${M.busiest[1]}` : ""}.${M.bids.length ? ` Biggest bid: ${nameOf(M.bids[0].id)}, $${M.bids[0].bid} on ${esc(M.pname(M.bids[0].pid))}.` : ""}</p></div></div>`);
-      if (office.length) parts.push(`<article class="card">${cardHead("Front office", "document", `Week ${r.week} moves`)}<div class="rc-list">${office.join("")}</div>
-        <a class="rc-more" href="${League.url("moves", {}, `lineups/${SEASON}`)}">Every lineup, trade and pickup, graded →</a></article>`);
+      if (office.length) parts.push(`<article class="card">${cardHead("Front office", "document")}<div class="rc-list">${office.join("")}</div>
+        <a class="rc-more" href="${League.url("moves", {}, `lineups/${SEASON}`)}">Every move, graded →</a></article>`);
 
       if (r.race) {
         const R = r.race;
@@ -5720,7 +5715,7 @@
         const X = r.next, g = X.gotw;
         const rk = (n) => (n < 99 ? `#${n}` : "");
         parts.push(`<article class="card">
-          ${cardHead(`Next up · Week ${X.week}`, "versus", "Game of the week first")}
+          ${cardHead(`Next up · Week ${X.week}`, "versus")}
           ${g ? `<div class="rc-gotw">
             <small>Game of the week</small>
             <div class="rc-gotw-teams">
@@ -5741,7 +5736,7 @@
     function renderRecapPanel(week) {
       const panel = document.getElementById("panel-recap");
       if (!panel) return;
-      panel.innerHTML = `<div class="card"><div class="empty-state lh-status"><span class="lh-spinner" aria-hidden="true"></span><strong>Writing the week ${week} recap</strong><p>Reading every lineup and every move&hellip;</p></div></div>`;
+      panel.innerHTML = `<div class="card"><div class="empty-state lh-status"><span class="lh-spinner" aria-hidden="true"></span><strong>Writing the week ${week} recap&hellip;</strong></div></div>`;
       weekRecap(week).then((r) => {
         if (state.week !== week || !panel.isConnected) return;
         panel.innerHTML = recapHtml(r);
@@ -5999,7 +5994,7 @@
           <div class="recap-card" role="dialog" aria-modal="true" aria-label="Week ${week} recap">
             <button type="button" class="recap-close" data-close aria-label="Close">&times;</button>
             <div class="recap-shots">${urls.map((u, i) => `<img src="${u}" alt="Week ${week} recap${urls.length > 1 ? `, page ${i + 1} of ${urls.length}` : ""}" />`).join("")}</div>
-            ${urls.length > 1 ? `<p class="recap-hint">${urls.length} pictures: the week, then the power rankings. Swipe to see both.</p>` : ""}
+            ${urls.length > 1 ? `<p class="recap-hint">Swipe for the power rankings</p>` : ""}
             <div class="recap-actions">
               ${canShare ? '<button type="button" class="recap-btn primary" data-act="share">Share</button>' : ""}
               ${urls.map((u, i) => `<a class="recap-btn${canShare || i ? "" : " primary"}" href="${u}" download="${files[i].name}">Save${urls.length > 1 ? ` ${i + 1}` : " image"}</a>`).join("")}
@@ -6111,7 +6106,7 @@
     function renderSosPanel() {
       const panel = document.getElementById("panel-sos");
       if (!PRIOR || !Object.keys(schedule).length) {
-        panel.innerHTML = emptyState("No schedule to rate yet", "Strength of schedule needs this season's slate and a season before it to read records from.");
+        panel.innerHTML = emptyState("No schedule to rate yet");
         return;
       }
       const rows = strengthOfSchedule();
@@ -6168,8 +6163,8 @@
             </div>
             <div class="superlative">
               <small>Spread</small>
-              <strong>${pct3(hardest.sos - easiest.sos)} of win percentage</strong>
-              <span>between the hardest and easiest schedules</span>
+              <strong>${pct3(hardest.sos - easiest.sos)}</strong>
+              <span>hardest to easiest</span>
             </div>
           </div>
         </div>`;
@@ -6289,7 +6284,7 @@
     }
 
     function emptyState(title, copy) {
-      return `<div class="empty-state"><strong>${title}</strong><p>${copy}</p></div>`;
+      return `<div class="empty-state"><strong>${title}</strong>${copy ? `<p>${copy}</p>` : ""}</div>`;
     }
 
     /* Card icons. Each names what its card is showing, so a header reads
@@ -6319,6 +6314,25 @@
       </div>`;
     }
 
+    /* How a card's numbers are reached, for whoever asks: an (i) for the
+       card's title and the note it opens under the head (the Starters
+       strip's (i) works the same way). */
+    let infoCount = 0;
+    function infoNote(label, text) {
+      const id = `infoNote${++infoCount}`;
+      return {
+        button: `<button type="button" class="why-btn info-toggle" aria-expanded="false" aria-controls="${id}" aria-label="${label}">i</button>`,
+        note: `<p class="info-note" id="${id}" hidden>${text}</p>`,
+      };
+    }
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest(".info-toggle");
+      const note = button && document.getElementById(button.getAttribute("aria-controls"));
+      if (!note) return;
+      note.hidden = !note.hidden;
+      button.setAttribute("aria-expanded", String(!note.hidden));
+    });
+
     // "NFL Week 15", or "NFL Weeks 17–18" for a round played over two.
     const weeksText = (weeks) => (weeks.length > 1 ? `NFL Weeks ${weeks[0]}–${weeks[weeks.length - 1]}` : `NFL Week ${weeks[0]}`);
 
@@ -6341,28 +6355,16 @@
 
       hero.classList.add("live-hero");
       inner.className = "hero-inner";
-      const n = TEAM_IDS.length;
-      const P = PLAYOFF_TEAMS;
-      const out = LB.length ? n - P : 0;
-      let badge, sub;
-      if (latestWeek > REGULAR_WEEKS) {
-        badge = `Playoffs · Week ${latestWeek}`;
-        sub = `The regular season is over. ${capital(numberWord(P))} teams made the playoffs.`;
-      } else if (lastPlayedWeek) {
-        badge = `Through Week ${lastPlayedWeek}`;
-        sub = `Week ${lastPlayedWeek} of ${REGULAR_WEEKS}.${P ? ` ${capital(numberWord(P))} make the playoffs${out ? `, ${numberWord(out)} play in the losers bracket` : ""}.` : ""}`;
-      } else if (season.unplayed) {
-        badge = "Not played";
-        sub = `${League.sourceName()} closed this season before a single game was scored.`;
-      } else {
-        badge = "Preseason";
-        sub = `${capital(numberWord(n))} teams. ${REGULAR_WEEKS} weeks.${P ? ` ${capital(numberWord(P))} make the playoffs.` : ""}`;
-      }
+      // The badge says where the season stands; the week rail and the
+      // Playoffs tab carry the format.
+      const badge = latestWeek > REGULAR_WEEKS ? `Playoffs · Week ${latestWeek}`
+        : lastPlayedWeek ? `Through Week ${lastPlayedWeek}`
+        : season.unplayed ? "Not played"
+        : "Preseason";
       inner.innerHTML = `
         <div class="live-status">
           <span class="live-badge"><span class="live-dot" aria-hidden="true"></span><span id="liveBadgeText">${badge}</span></span>
           <h1 id="liveHeadline">${SEASON} Season</h1>
-          <p id="liveSubhead">${sub}</p>
         </div>`;
     }
 
@@ -6459,8 +6461,7 @@
 
     function standingsLegend(picture) {
       const anyFlag = TEAM_IDS.some((id) => picture.flags[id]);
-      const anyWhy = TEAM_IDS.some((id) => (picture.reasons[id] || []).length);
-      if (!HAS_PLAYOFFS && !anyWhy) return "";
+      if (!HAS_PLAYOFFS) return "";
       const firstOther = BYES + (HAS_DIVISIONS ? Math.max(0, picture.leaders.length - BYES) : 0) + 1;
       return `<div class="standings-note">
         ${HAS_PLAYOFFS && BYES ? `<span class="legend-key"><span class="seed-tag div lead">#1</span>First-round bye</span>` : ""}
@@ -6470,7 +6471,6 @@
         ${anyFlag ? `${CLINCH_KEY.z && TEAM_IDS.some((id) => picture.flags[id] === "z") ? `<span class="legend-key"><span class="clinch-tag z">z</span>${BYES ? "Clinched a bye" : "Clinched division"}</span>` : ""}
         <span class="legend-key"><span class="clinch-tag x">x</span>Clinched a berth</span>
         <span class="legend-key"><span class="clinch-tag e">e</span>Eliminated</span>` : ""}
-        ${anyWhy ? `<span class="legend-key"><span class="why-btn" aria-hidden="true">i</span>Tap for the tiebreaker</span>` : ""}
       </div>`;
     }
 
@@ -6625,8 +6625,8 @@
       if (week === 0) {
         if (!weeks.length) {
           panel.innerHTML = season.unplayed
-            ? emptyState("This season wasn't played", `${League.sourceName()} closed it before any matchups were scored, so there is nothing to show. Earlier seasons are in the season menu.`)
-            : emptyState("No schedule yet", `${League.sourceName()} draws the season's matchups once the league has its teams. They will appear here as soon as it does.`);
+            ? emptyState("This season wasn't played")
+            : emptyState("No schedule yet");
           return;
         }
         const games = weeks.filter(startsGame).reduce((n, w) => n + schedule[w].length, 0);
@@ -6659,8 +6659,8 @@
               ${cardHead(`Week ${week} Notes`, "notes")}
               ${weekSuperlatives(week)}
               <div class="recap-bar">
-                <button type="button" class="recap-link" data-goto-view="panel-recap">Read the week ${week} recap →</button>
-                <button type="button" class="recap-open" data-recap="${week}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.6M5 5.4l3-3 3 3M3.2 9v3.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>Share week ${week} recap</button>
+                <button type="button" class="recap-link" data-goto-view="panel-recap">Read the recap →</button>
+                <button type="button" class="recap-open" data-recap="${week}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.6M5 5.4l3-3 3 3M3.2 9v3.6a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>Share the recap</button>
               </div>
             </article>
             <div class="ch-slot" data-ch="results" data-week="${week}"></div>
@@ -6671,7 +6671,7 @@
       }
 
       if (!(schedule[week] || []).length) {
-        panel.innerHTML = emptyState(`No games in Week ${week}`, `${League.sourceName()} has no matchups for this league this week.`);
+        panel.innerHTML = emptyState(`No games in Week ${week}`);
         return;
       }
 
@@ -6708,7 +6708,7 @@
     // The Matchups card's way into What If (the Standings or Playoffs tab).
     function whatIfLink(week) {
       return whatIfWeekFor(week) === week ? `<div class="recap-bar">
-            <button type="button" class="recap-link" data-goto-whatif>What if? Play out the week and watch the ${HAS_PLAYOFFS ? "brackets" : "standings"} move →</button>
+            <button type="button" class="recap-link" data-goto-whatif>What if? Pick the winners →</button>
           </div>` : "";
     }
 
@@ -7336,7 +7336,7 @@
       }
       return `
         <article class="card">
-          ${cardHead("How the field is set", "rulebook", `From the league's ${League.sourceName()} settings`)}
+          ${cardHead("How the field is set", "rulebook")}
           <div class="projected-matchups">
             ${lines.map((l) => `
               <div class="projected-game">
@@ -7350,14 +7350,8 @@
     function playoffFormatText() {
       const n = TEAM_IDS.length;
       const P = PLAYOFF_TEAMS;
-      const parts = [`${capital(numberWord(P))} of the ${numberWord(n)} teams make the playoffs`];
-      if (HAS_DIVISIONS) parts[0] += `, every division leader among them`;
-      let text = `${parts[0]}, seeded on record with points for as the tiebreaker.`;
-      if (BYES) text += ` The top ${numberWord(BYES)} seed${BYES === 1 ? " gets" : "s get"} a first-round bye.`;
-      if (LB.length) text += TOILET
-        ? ` The other ${numberWord(n - P)} play a toilet bowl, where the team that loses moves on and the last one left finishes last.`
-        : ` The other ${numberWord(n - P)} play a consolation bracket for the places after them.`;
-      text += ` Once results are posted, this tab shows where every team would land if the season ended that day.`;
+      let text = `${capital(numberWord(P))} of ${numberWord(n)} teams make the playoffs${HAS_DIVISIONS ? ", division leaders included" : ""}.`;
+      if (LB.length) text += ` The other ${numberWord(n - P)} play a ${TOILET ? "toilet bowl" : "consolation bracket"}.`;
       return text;
     }
 
@@ -7373,7 +7367,7 @@
         panel.innerHTML = `
           <div class="panel-stack">
             ${emptyState(HAS_PLAYOFFS ? "The bracket opens after Week 1" : "No playoffs set up",
-              HAS_PLAYOFFS ? playoffFormatText() : `This league has no playoff bracket on ${League.sourceName()}.`)}
+              HAS_PLAYOFFS ? playoffFormatText() : "")}
             ${HAS_PLAYOFFS ? formatCard() : ""}
           </div>`;
         return;
@@ -7403,12 +7397,12 @@
        final. Until the regular season is over, the field is projected. */
     function renderPlayoffPanel(week) {
       const panel = document.getElementById("panel-playoffs");
-      if (!HAS_PLAYOFFS) { panel.innerHTML = emptyState("No playoffs", `This league has no playoff bracket on ${League.sourceName()}.`); return; }
+      if (!HAS_PLAYOFFS) { panel.innerHTML = emptyState("No playoffs"); return; }
       if (lastPlayedWeek < REGULAR_WEEKS && !FINISHED) {
         const asOf = asOfWeek(REGULAR_WEEKS);
         if (asOf === 0) {
           panel.innerHTML = `<div class="panel-stack">${emptyState("The bracket fills in once games are played",
-            `The playoffs run from Week ${S.playoffWeekStart} to Week ${LAST_WEEK}. Until the regular season ends, the field is projected from the latest standings.`)}</div>`;
+            `Weeks ${S.playoffWeekStart}–${LAST_WEEK}`)}</div>`;
           return;
         }
         const ctx = bracketContext("projected", asOf);
@@ -7504,7 +7498,7 @@
     /* The switch, and the week's games it opens. Each game is a matchup box
        like the Matchups tab's: the side picked to win is tinted and ruled in
        blue, the other side steps back. */
-    function whatIfBar(week, moves) {
+    function whatIfBar(week) {
       const stats = computeStats(lastPlayedWeek);
       const slate = schedule[week] || [];
       const side = (id, i) => `
@@ -7526,7 +7520,7 @@
         <section class="card wi-bar${whatIfOn ? " on" : ""}" aria-label="What if">
           <div class="wi-bar-head" data-wi="toggle">
             <span class="division-chip">${chipMark("versus")}</span>
-            <span class="wi-bar-copy"><strong>What If</strong><span>Pick the Week ${week} winners and watch the ${moves} move</span></span>
+            <span class="wi-bar-copy"><strong>What If</strong><span>Week ${week}</span></span>
             <button type="button" class="wi-switch" role="switch" aria-checked="${whatIfOn}" aria-label="What if: pick the Week ${week} winners"><span class="wi-knob"></span></button>
           </div>
           <div class="wi-drawer"${whatIfOn ? "" : " inert"}>
@@ -7590,11 +7584,11 @@
     // The Standings tab: the tables with the picks in, every row sliding
     // from its old place.
     function drawWhatIfStandings(area, s, first) {
-      const { week, count, total, through, picked, picture } = s;
+      const { week, count, through, picked, picture } = s;
       const before = first ? null : UI.measureRows(area);
       area.innerHTML = withPicks(picked, () => {
         const note = count
-          ? `<p class="wi-note">Records include your ${count === total ? "" : `${count} `}Week ${week} pick${count === 1 ? "" : "s"}. Points for and against add each team's season scoring average for a picked game.</p>`
+          ? `<p class="wi-note" title="Points for and against add each team's season scoring average for a picked game.">With your Week ${week} pick${count === 1 ? "" : "s"}</p>`
           : "";
         return `${note}
           <div class="division-grid">${standingsCards(through, count ? "wi" : `w${through}`)}</div>
@@ -7632,8 +7626,8 @@
     }
 
     const WHATIF_VIEWS = {
-      "panel-standings": { area: ".wi-standings", draw: drawWhatIfStandings, render: (w) => renderStandingsPanel(w), moves: "standings" },
-      "panel-picture": { area: ".wi-picture", draw: drawWhatIfPicture, render: (w) => renderPicturePanel(w), moves: "brackets" },
+      "panel-standings": { area: ".wi-standings", draw: drawWhatIfStandings, render: (w) => renderStandingsPanel(w) },
+      "panel-picture": { area: ".wi-picture", draw: drawWhatIfPicture, render: (w) => renderPicturePanel(w) },
     };
 
     /* Wide screens lay the games out as a grid rather than a swipe row:
@@ -7664,7 +7658,7 @@
       const tab = WHATIF_VIEWS[view];
       panel.innerHTML = `
         <div class="panel-stack">
-          ${whatIfBar(week, tab.moves)}
+          ${whatIfBar(week)}
           <div class="panel-stack ${tab.area.slice(1)}"></div>
         </div>`;
       const row = panel.querySelector(".wi-games");
@@ -7796,7 +7790,7 @@
     /* The club as a coloured abbreviation chip; free agents in grey. */
     function bxClub(abbr) {
       const c = NFL_TEAMS[abbr] || NFL_TEAMS.FA;
-      return `<span class="bx-nfl" style="background:${c};color:${readableInk(c)}">${abbr || "FA"}</span>`;
+      return `<span class="bx-nfl" style="background:${c};color:${readableInk(c)}" title="NFL club today">${abbr || "FA"}</span>`;
     }
 
     function bxPlayer(player, side) {
@@ -8002,7 +7996,7 @@
           ${bxGroup("Bench", lu(a.id, benched), lu(b.id, benched))}
           ${bxGroup("Injured reserve", lu(a.id, reserve), lu(b.id, reserve))}`;
 
-        document.getElementById("bxFoot").textContent = "The chip beside each player is his NFL club today.";
+        document.getElementById("bxFoot").textContent = "";
         bxModal.classList.remove("rv-mode");
         // Across to this game's rivalry, unless that is where it came from
         // (the back button goes there).
@@ -8128,7 +8122,7 @@
       // An odd tile out runs the width of the card.
       const series = S.games ? `
         <div class="rv-tiles">${tiles.map((t, i) => `<div class="rv-tile${i === tiles.length - 1 && tiles.length % 2 ? " rv-wide" : ""}"><small>${t.label}</small><strong>${t.value}</strong>${t.meta ? `<span>${t.meta}</span>` : ""}</div>`).join("")}</div>`
-        : `<p class="rv-empty">These two managers have never met. Here is how each has fared against the league.</p>`;
+        : "";
 
       // Tale of the tape: the careers side by side, the better one in blue.
       const tape = (label, x, y, better) => {
@@ -8452,15 +8446,14 @@
             <span>${team.players.length} players</span>
           </div>
           <div class="roster-help" id="rosterHelp" style="--team-color:${teams[teamId].color}" hidden>
-            <p>A strip with one cell per week:</p>
             <ul>
-              <li><i class="roster-wk start" style="--fill:.8"></i><span>Filled in the team's color: he started, and a darker cell means he scored more.</span></li>
-              <li><i class="roster-wk bench"></i><span>Outlined: he was on the bench.</span></li>
-              <li><i class="roster-wk"></i><span>Empty grey: he wasn't on the team.</span></li>
-              <li><i class="roster-wk none"></i><span>Playoff weeks sit slightly apart. A week the team had no game, like a playoff bye, is left blank.</span></li>
-              <li><i class="roster-wk future"></i><span>Faintly outlined: a week not played yet.</span></li>
+              <li><i class="roster-wk start" style="--fill:.8"></i><span>Started (darker scored more)</span></li>
+              <li><i class="roster-wk bench"></i><span>Bench</span></li>
+              <li><i class="roster-wk"></i><span>Not on the team</span></li>
+              <li><i class="roster-wk none"></i><span>No game, like a playoff bye</span></li>
+              <li><i class="roster-wk future"></i><span>Not played yet</span></li>
             </ul>
-            <p class="roster-help-foot">GS is games started; Pts is his points as a starter. Hover a cell for that week's points and club.</p>
+            <p class="roster-help-foot">GS: games started · Pts: points as a starter</p>
           </div>
           <div class="roster-list" style="${cols}">
             <div class="roster-row header">

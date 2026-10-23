@@ -436,7 +436,7 @@
       return true;
     }
     function signIn() {
-      if (window.Account && Account.openSignIn) Account.openSignIn({ reason: "Sign in to play pick'em and vote on the week's awards with your league." });
+      if (window.Account && Account.openSignIn) Account.openSignIn({ reason: "Sign in to play pick'em and vote on awards." });
     }
 
     /* ---- pick'em: tapping and saving -------------------------------- */
@@ -457,7 +457,7 @@
       if (needs(() => setLock(w, game))) return;
       const d = {};
       Object.entries(picksOf(w)).forEach(([k, v]) => { d[k] = { ...v }; });
-      if (!d[game]) { say("Pick a winner for that game first, then make it your lock."); flashHint(w, game); return; }
+      if (!d[game]) { say("Pick a winner first, then lock it."); flashHint(w, game); return; }
       const on = !d[game].lock;
       Object.values(d).forEach((p) => { p.lock = false; });
       d[game].lock = on;
@@ -582,9 +582,7 @@
         .filter((x) => x.t.ownerId && !/^open-/.test(x.t.ownerId))
         .sort((a, b) => a.t.name.localeCompare(b.t.name));
       return `
-        <p class="ch-lede">${DEMO
-          ? "Choose a team to play the demo as. Your picks and votes stay on this device."
-          : "Choose your team so the league knows which picks and votes are yours. You can change it later."}</p>
+        ${DEMO ? '<p class="ch-lede">Picks and votes stay on this device.</p>' : ""}
         ${error ? `<p class="ch-error" role="alert">${esc(error)}</p>` : ""}
         <div class="ch-claim-list" role="list">
           ${rows.map(({ id, t }) => {
@@ -597,7 +595,7 @@
             </button></div>`;
           }).join("")}
         </div>
-        ${mine ? `<button type="button" class="ch-link ch-release" data-ch-release data-fk="release">${DEMO ? "Stop playing the demo" : "None of these is me: let my team go"}</button>` : ""}`;
+        ${mine ? `<button type="button" class="ch-link ch-release" data-ch-release data-fk="release">${DEMO ? "Stop playing the demo" : "Let my team go"}</button>` : ""}`;
     }
     function openClaim() {
       if (claimSheet) return;
@@ -707,14 +705,10 @@
     }
 
     function signedOutCard(w, kind) {
-      const what = kind === "awards"
-        ? `Vote on Week ${w}'s Manager, Choke and Robbery of the Week with your league.`
-        : `Pick the winners of Week ${w}'s games with your league, and find out who really knows this league.`;
       return `<article class="card ch-card ch-invite">
         ${cardHead(kind === "awards" ? `Week ${w} Awards` : `Week ${w} Pick'em`, kind === "awards" ? ICON.award : ICON.pickem)}
         <div class="ch-invite-body">
-          <p>${what}</p>
-          <button type="button" class="ch-btn primary" data-ch-act="signin">Sign in to play</button>
+          <button type="button" class="ch-btn primary" data-ch-act="signin">${kind === "awards" ? "Sign in to vote" : "Sign in to play pick'em"}</button>
         </div>
       </article>`;
     }
@@ -751,19 +745,18 @@
       if (mode === "pick") {
         const sv = saveState(w);
         return row(pickedLine(w), board, `<div class="ch-pbar-note">
-            <p>Tap who wins each game. Your <strong>Lock</strong> counts double.${DEMO ? " Picks stay on this device." : ""}</p>
+            <p>Your <strong>Lock</strong> counts double.</p>
             <span class="ch-save" data-state="${sv.state}" role="status" aria-live="polite">${ICON.check}<span>${esc(sv.text)}</span></span>
           </div>`);
       }
       if (mode === "locked") {
         const n = (((S.pickem && S.pickem.picked) || {})[w] || []).length;
-        return row(S.pickem ? `Locked · ${plural(n, "manager")} picked` : "Picks are locked", board,
-          `<div class="ch-pbar-note"><p>${S.pickem ? "How the league picked each game. Graded as the results come in." : "You'll see how the league picked once the week is graded."}</p></div>`);
+        return row(S.pickem ? `Locked · ${plural(n, "manager")} picked` : "Picks are locked", board);
       }
       const prompt = (text, button) => `<div class="ch-pbar-note ch-prompt"><p>${text}</p>${button}</div>`;
-      if (mode === "signedout") return row("", "", prompt("Pick the winners with your league, and find out who really knows it.", '<button type="button" class="ch-btn primary" data-ch-act="signin">Sign in to play pick\'em</button>'));
-      if (mode === "unclaimed") return row(pickedLine(w), board, prompt(DEMO ? "Choose a team to play the demo's pick'em. Your picks stay on this device." : "Pick the winners with your league. First, which team is yours?", `<button type="button" class="ch-btn primary" data-ch-act="claim" data-fk="claim-${w}">${DEMO ? "Choose a team" : "Claim your team to pick"}</button>`));
-      if (mode === "unavailable") return row("", "", prompt("Pick'em needs the league's server, which isn't connected on this copy of the site.", ""));
+      if (mode === "signedout") return row("", '<button type="button" class="ch-btn primary" data-ch-act="signin">Sign in to play</button>');
+      if (mode === "unclaimed") return row(pickedLine(w), `<button type="button" class="ch-btn primary" data-ch-act="claim" data-fk="claim-${w}">${DEMO ? "Choose a team" : "Claim your team"}</button>${board}`);
+      if (mode === "unavailable") return row("", "", prompt("Pick'em isn't connected on this copy of the site.", ""));
       if (mode === "error") return row("", "", prompt(esc(S.error || "The clubhouse couldn't be reached."), '<button type="button" class="ch-btn" data-ch-act="retry">Try again</button>'));
       return row("Loading…", "", "");
     }
@@ -922,7 +915,7 @@
         ${cardHead(`Week ${w} Pick'em`, ICON.pickem, final ? "Final" : "Results in")}
         ${winnerLine}
         ${scores}
-        <div class="ch-foot"><span class="ch-progress">${plural(scoreRows.length, "manager")} picked${owner && !Object.keys(mine).length ? " · you didn't pick this week" : ""} · each game's picks are on its tile</span>
+        <div class="ch-foot"><span class="ch-progress">${plural(scoreRows.length, "manager")} picked${owner && !Object.keys(mine).length ? " · you didn't pick this week" : ""}</span>
           <button type="button" class="ch-btn ch-board-btn" data-ch-act="board" data-fk="board-${w}">${ICON.list}<span>Leaderboard</span></button></div>
       </article>`;
     }
@@ -993,8 +986,7 @@
       const meta = [all.length ? `${most} of ${all.length} have voted` : "", close ? `results ${dayTime(close)}` : ""].filter(Boolean).join(" · ");
       const ids = Object.keys(teams).sort((a, b) => tname(a).localeCompare(tname(b)));
       return `<article class="card ch-card ch-awards" data-week="${w}">
-        ${cardHead(`Week ${w} Awards`, ICON.award, "Voted by the league")}
-        <div class="ch-intro"><p>One vote for each. The tallies stay hidden until voting closes.</p><span class="ch-count">${esc(meta)}</span></div>
+        ${cardHead(`Week ${w} Awards`, ICON.award, esc(meta))}
         ${C.AWARDS.map((a) => {
           const mineNow = myVote(w, a.id);
           const list = nom[a.id] || [];
@@ -1032,7 +1024,7 @@
       if (!res.length) return "";
       const winners = C.awardWinners(S.awards)[w] || {};
       return `<article class="card ch-card ch-awards ch-awards-done" data-week="${w}">
-        ${cardHead(`Week ${w} Awards`, ICON.award, "The league has voted")}
+        ${cardHead(`Week ${w} Awards`, ICON.award, "Final")}
         <div class="ch-trophies">
           ${C.AWARDS.map((a) => {
             const tally = res.filter((r) => r.award === a.id).sort((x, y) => y.votes - x.votes);
@@ -1133,7 +1125,7 @@
       const standings = `<section class="ch-sec" aria-labelledby="chLbStand">
           <h3 id="chLbStand">Standings</h3>
           <div class="ch-lb" role="table" aria-label="Pick'em standings">
-            <div class="ch-lb-row head" role="row"><span role="columnheader">#</span><span role="columnheader">Manager</span><span role="columnheader">Pts</span><span role="columnheader">W–L</span><span role="columnheader" title="Perfect weeks">Perf</span><span role="columnheader" title="Weeks won">Won</span><span role="columnheader" title="Weeks in a row at .500 or better">Streak</span></div>
+            <div class="ch-lb-row head" role="row"><span role="columnheader">#</span><span role="columnheader">Manager</span><span role="columnheader" title="1 per right pick, 2 for a right Lock of the Week">Pts</span><span role="columnheader">W–L</span><span role="columnheader" title="Perfect weeks: every game right">Perf</span><span role="columnheader" title="Weeks won">Won</span><span role="columnheader" title="Weeks in a row at .500 or better">Streak</span></div>
             ${G.rows.map((r, i) => `<div class="ch-lb-row${r.owner === owner ? " me" : ""}" role="row">
               <span class="ch-rank" role="cell">${rank[i]}</span>
               <span class="ch-lb-team" role="cell">${badge(teams[r.team])}<strong class="ch-lb-name">${esc(nameOwner(r.owner))}</strong>${anyFinal && rank[i] === 1 && r.points > 0 ? '<em class="ch-oracle" title="The league\'s Oracle: the season\'s best picker">👑<span> Oracle</span></em>' : ""}${r.owner === owner ? '<em class="ch-me">you</em>' : ""}</span>
@@ -1144,7 +1136,6 @@
               <span role="cell">${r.streak ? `${r.streak >= 3 ? "🔥" : ""}${r.streak}` : "–"}</span>
             </div>`).join("")}
           </div>
-          <p class="ch-fine">A right pick is a point, a right Lock of the Week two. A perfect week is every game right.</p>
         </section>`;
 
       const wks = Object.keys(G.weeks).map(Number).sort((a, b) => b - a);
@@ -1202,9 +1193,9 @@
     const INSTALLED = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
     const N = { sub: null, checked: false, busy: false, error: "" };
     const KINDS = [
-      { id: "recap", flag: "notify_recap", label: "Week is final", when: "Tuesdays, with how your week went" },
+      { id: "recap", flag: "notify_recap", label: "Week is final", when: "Tuesdays" },
       { id: "pickem", flag: "notify_pickem", label: "Picks lock tonight", when: "Thursdays, if you haven't picked" },
-      { id: "awards", flag: "notify_awards", label: "Awards are in", when: "When the week's voting closes" },
+      { id: "awards", flag: "notify_awards", label: "Awards are in", when: "When voting closes" },
     ];
     function swReady() {
       return Promise.race([
@@ -1240,12 +1231,12 @@
       if (DEMO || !VAPID() || !me()) return "";
       const head = `<h3 id="chLbNotify">${ICON.bell}Notify me</h3>`;
       const wrap = (inner) => `<section class="ch-sec ch-notify" aria-labelledby="chLbNotify">${head}${inner}</section>`;
-      if (IOS && !INSTALLED()) return wrap(`<p class="ch-fine">On iPhone and iPad, notifications come to the app on your Home Screen: tap Share, then Add to Home Screen, and turn them on from there.</p>`);
+      if (IOS && !INSTALLED()) return wrap(`<p class="ch-fine">On iPhone and iPad, add this site to your Home Screen (Share ▸ Add to Home Screen) and turn them on there.</p>`);
       if (!pushSupported()) return "";
       const league = esc(model.name || "this league");
       const kinds = `<ul class="ch-kinds">${KINDS.map((k) => `<li><strong>${k.label}</strong> <span>${k.when}</span></li>`).join("")}</ul>`;
       const err = N.error ? `<p class="ch-error" role="alert">${esc(N.error)}</p>` : "";
-      if (Notification.permission === "denied") return wrap(`${kinds}<p class="ch-fine">Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.</p>`);
+      if (Notification.permission === "denied") return wrap(`${kinds}<p class="ch-fine">Notifications are blocked for this site. Allow them in your browser's site settings.</p>`);
       if (!N.checked) return wrap(`<p class="ch-fine">Checking this browser…</p>`);
       const here = Boolean(N.sub) && Notification.permission === "granted";
       if (!here || !anyOn()) {
@@ -1261,7 +1252,7 @@
             <span><strong>${k.label}</strong><span>${k.when}</span></span><span class="ch-switch" aria-hidden="true"><i></i></span>
           </button>`;
         }).join("")}</div>
-        <p class="ch-fine">For ${league} only, on this browser. Each league you're in has its own.</p>
+        <p class="ch-fine">For ${league} only, on this browser.</p>
         <button type="button" class="ch-link" data-ch-notify="off" data-fk="notify-off">Turn off notifications for ${league}</button>`);
     }
     async function notifyAction(what) {

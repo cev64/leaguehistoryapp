@@ -1619,6 +1619,15 @@
     #foPanel.fo-busy { opacity: .45; pointer-events: none; }
     .fo-stack { display: grid; gap: 16px; }
     .fo-note { margin: 0; padding: 12px 16px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+    /* "How it's scored": an (i) by the card's title, its text in a popover. */
+    .fo-how { display: inline-grid; place-items: center; width: 17px; height: 17px; padding: 0; border-radius: 50%; cursor: pointer; text-transform: none; }
+    .fo-how-pop {
+      position: fixed; inset: 0; margin: auto; width: max-content; height: fit-content;
+      max-width: min(320px, calc(100vw - 32px)); padding: 13px 15px;
+      border: 1px solid var(--line, #e4e7ec); border-radius: 13px;
+      color: var(--ink, #0b1f3f); font: 500 13px/1.5 var(--font-body, Inter, sans-serif); letter-spacing: 0; text-transform: none;
+    }
+    .fo-how-pop::backdrop { background: rgba(7, 24, 39, .12); }
     .fo-list { display: grid; }
     .fo-row {
       display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px;
@@ -1721,9 +1730,7 @@
   <section class="hero live-hero home-hero">
     <div class="hero-inner">
       <div class="live-status">
-        <span class="live-badge" id="heroBadge">Front Office</span>
         <h1>Front Office</h1>
-        <p>Who sets the best lineups, who wins their trades, who works the waiver wire.</p>
       </div>
     </div>
     <div class="ad-wrap ad-sidebar" data-ad="moves-sidebar"><div class="ad-slot"></div></div>
@@ -1798,14 +1805,21 @@
         pick: '<rect x="3" y="2.8" width="10" height="10.4" rx="1.6"/><path d="M5.6 6h4.8M5.6 8.6h4.8M5.6 11.2h2.4"/>',
         star: '<path d="M8 2.2l1.7 3.5 3.8.5-2.8 2.7.7 3.8L8 10.9l-3.4 1.8.7-3.8-2.8-2.7 3.8-.5z"/>',
       };
-      const card = (title, icon, meta, body) => `
+      // how: how the card is scored, behind an (i) next to its title.
+      const card = (title, icon, meta, body, how) => `
         <article class="card">
           <div class="card-head">
-            <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true">${ICON[icon]}</svg></span>${title}</h3>
+            <h3><span class="division-chip"><svg class="chip-icon" viewBox="0 0 16 16" aria-hidden="true">${ICON[icon]}</svg></span>${title}${how ? howTip(how) : ""}</h3>
             ${meta ? `<span>${meta}</span>` : ""}
           </div>
           ${body}
         </article>`;
+
+      let howId = 0;
+      const howTip = (text) => {
+        const id = `fo-how-${++howId}`;
+        return `<button type="button" class="why-btn fo-how" popovertarget="${id}" aria-label="How it's scored">i</button><div class="why-pop fo-how-pop" id="${id}" popover>${text}</div>`;
+      };
 
       // A team as it was in a season, or a manager across all of them.
       // The logo comes from the league, so only an http(s) or data:image
@@ -1888,7 +1902,7 @@
         if (e.target.closest("[data-more]")) { state.shown += 20; render(); }
       });
 
-      const loading = (what) => `<div class="card"><div class="empty-state lh-status"><span class="lh-spinner" aria-hidden="true"></span><strong>${what}</strong><p>Working through every week&hellip;</p></div></div>`;
+      const loading = (what) => `<div class="card"><div class="empty-state lh-status"><span class="lh-spinner" aria-hidden="true"></span><strong>${what}</strong></div></div>`;
 
       /* What's on screen stays (dimmed) while the next view is worked out,
          so the page never collapses to a spinner and back; only a slow
@@ -1897,7 +1911,7 @@
       async function render() {
         const id = ++drawId;
         if (!years.length) {
-          panel.innerHTML = `<div class="card"><div class="fo-empty">No games have been played in this league yet.</div></div>`;
+          panel.innerHTML = `<div class="card"><div class="fo-empty">No games played yet.</div></div>`;
           return;
         }
         const what = { lineups: "Checking every lineup", trades: "Reading every trade", waivers: "Reading the waiver wire", picks: "Counting draft picks" }[state.tab];
@@ -1926,7 +1940,7 @@
       /* ------------------------------------------------ lineups */
       async function drawLineups() {
         const all = state.year.lineups === ALL;
-        const note = `<p class="fo-note">Hindsight: the best lineup each team could have set from the players it had that week, against the one it set. Players who stayed on a taxi squad all season aren't counted.</p>`;
+        const how = "Points scored as a share of the best lineup each team could have set from its own players that week. Season-long taxi-squad players don't count.";
         if (all) {
           const rows = await Insights.lineupAllTime(model);
           const best = Math.max(...rows.map((r) => r.efficiency), 0);
@@ -1938,7 +1952,7 @@
                 <span class="fo-meter"><i style="width:${(100 * r.efficiency / (best || 1)).toFixed(1)}%"></i></span>
                 <span class="fo-stats"><span>Left on the bench <b>${fmt(r.left)}</b></span><span>Games lost to the lineup <b>${r.costGames}</b></span><span>Perfect weeks <b>${r.perfect}</b> of ${r.weeks}</span></span>
               </div>`).join("")}
-            </div>${note}`)}</div>`;
+            </div>`, how)}</div>`;
         }
         const y = state.year.lineups;
         const s = await Insights.lineupSeason(model, y);
@@ -1951,7 +1965,7 @@
               <span class="fo-meter"><i style="width:${(100 * r.efficiency / (best || 1)).toFixed(1)}%"></i></span>
               <span class="fo-stats"><span>Left on the bench <b>${fmt(r.left)}</b></span><span>Games lost to the lineup <b class="${r.costGames ? "fo-bad" : ""}">${r.costGames}</b></span><span>Perfect weeks <b>${r.perfect}</b></span></span>
             </div>`).join("")}
-          </div>${note}`);
+          </div>`, how);
         const lost = new Set(s.lostGames.map((g) => `${g.week}|${g.teamId}`));
         const blunders = card("Costliest benchings", "star", y, s.blunders.length ? `
           <div class="fo-list">${s.blunders.slice(0, 12).map((b) => `
@@ -1962,7 +1976,7 @@
               </div>
               <span class="fo-big"><strong class="fo-bad">−${fmt(b.cost)}</strong><span>points</span></span>
             </div>`).join("")}
-          </div>` : `<div class="fo-empty">Not one benching cost a point. Remarkable.</div>`);
+          </div>` : `<div class="fo-empty">No costly benchings.</div>`);
         const games = s.lostGames.length ? card("Games lost to the lineup", "lineup", `${s.lostGames.length}`, `
           <div class="fo-list">${s.lostGames.sort((a, b) => a.week - b.week).map((g) => {
             const opp = (model.season(y).results[g.week] || []).map(([a, as, b, bs]) => (a === g.teamId ? [b, bs, as] : b === g.teamId ? [a, as, bs] : null)).find(Boolean);
@@ -1985,10 +1999,10 @@
         tradesJob = tradesJob || Insights.trades(model);
         const { trades, traders: allTime } = await tradesJob;
         if (!tradeYears) { tradeYears = new Set(trades.map((t) => t.year)); drawNav(); }
-        if (!trades.length) return `<div class="card"><div class="fo-empty">No trades in this league's history yet.</div></div>`;
+        if (!trades.length) return `<div class="card"><div class="fo-empty">No trades yet.</div></div>`;
         const ty = state.year.trades;
         const list = trades.filter((t) => ty === ALL || t.year === ty);
-        if (!list.length) return `<div class="card"><div class="fo-empty">No trades were made in ${ty}.</div></div>`;
+        if (!list.length) return `<div class="card"><div class="fo-empty">No trades in ${ty}.</div></div>`;
         const traders = ty === ALL ? allTime : Insights.tradersOf(list);
         const board = card("Best and worst traders", "trade", ty === ALL ? "All-time" : ty, `
           <div class="fo-list">${traders.map((o, i) => `
@@ -1997,8 +2011,7 @@
               <span class="fo-big"><strong class="${o.net > 0 ? "fo-good" : o.net < 0 ? "fo-bad" : ""}">${o.net > 0 ? "+" : ""}${fmt(o.net)}</strong><span>net points</span></span>
               <span class="fo-stats"><span>Trades <b>${o.trades}</b></span><span>Won <b>${o.won}</b></span><span>Got <b>${fmt(o.got)}</b></span><span>Gave away <b>${fmt(o.gave)}</b></span></span>
             </div>`).join("")}
-          </div>
-          <p class="fo-note">A trade is scored by the points each side's players went on to put up in its starting lineup. A traded pick counts once it's used, through the player drafted with it.</p>`);
+          </div>`, "Points each side's players scored in its starting lineup after the trade. A traded pick counts once used, through the player drafted with it.");
 
         const shown = list.slice(0, state.shown);
         const item = (g, year) => {
@@ -2032,7 +2045,7 @@
       async function drawWaivers() {
         const y = state.year.waivers;
         const w = await Insights.waivers(model, y);
-        if (!w || !w.pickups.length) return `<div class="card"><div class="fo-empty">No waiver claims or free-agent pickups in ${y}.</div></div>`;
+        if (!w || !w.pickups.length) return `<div class="card"><div class="fo-empty">No pickups in ${y}.</div></div>`;
         const report = card(`Waiver report · ${y}`, "wire", w.faab ? `$${w.budget} FAAB budget` : "Rolling waivers", `
           <div class="fo-list">${w.rows.map((r, i) => `
             <div class="fo-row">
@@ -2041,7 +2054,7 @@
               <span class="fo-stats"><span>Pickups <b>${r.adds}</b></span><span>Started 3+ times <b>${r.hits}</b></span>${w.faab ? `<span>FAAB spent <b>$${r.spent}</b></span><span>Pts per $1 <b>${r.perDollar != null ? r.perDollar.toFixed(1) : "—"}</b></span>` : ""}</span>
             </div>`).join("")}
           </div>
-          <p class="fo-note">Points a pickup scored in the starting lineup of the team that added him, for the rest of that season.${w.failed ? ` ${w.failed} claim${w.failed === 1 ? "" : "s"} lost out to a higher bid or priority.` : ""}</p>`);
+          ${w.failed ? `<p class="fo-note">${w.failed} claim${w.failed === 1 ? "" : "s"} lost to a higher bid or priority.</p>` : ""}`, "Points a pickup scored in the adding team's starting lineup for the rest of the season.");
         const pickupRow = (p) => `
           <div class="fo-item">
             <div class="fo-item-main">
@@ -2054,7 +2067,7 @@
         let spends = "";
         if (w.faab) {
           const big = w.pickups.filter((p) => p.bid).sort((a, b) => b.bid - a.bid).slice(0, 10);
-          if (big.length) spends = card("Biggest bids", "wire", "and what they bought", `<div class="fo-list">${big.map(pickupRow).join("")}</div>`);
+          if (big.length) spends = card("Biggest bids", "wire", null, `<div class="fo-list">${big.map(pickupRow).join("")}</div>`);
         }
         return `<div class="fo-stack" data-ad-feed-into>${report}${best}${spends}</div>`;
       }
@@ -2062,7 +2075,7 @@
       /* ------------------------------------------------ draft picks */
       async function drawPicks() {
         const ledger = await Insights.pickLedger(model);
-        if (!ledger) return `<div class="card"><div class="fo-empty">This league has no rookie draft picks to track.</div></div>`;
+        if (!ledger) return `<div class="card"><div class="fo-empty">No rookie draft picks.</div></div>`;
         if (!pickYears) { pickYears = ledger.seasons; drawNav(); }
         const y = ledger.year;
         const one = state.year.picks === ALL ? null : state.year.picks;
@@ -2084,8 +2097,7 @@
         }).join("");
         const span = one ? `${one} · ${ledger.rounds} rounds` : `${ledger.seasons[0]}–${ledger.seasons[ledger.seasons.length - 1]} · ${ledger.rounds} rounds`;
         return `<div class="fo-stack" data-ad-feed-into>${card(one ? `${one} draft picks` : "Future draft picks", "pick", span, `
-          <div class="fo-list">${rows}</div>
-          <p class="fo-note">Each number is a round. Blue with a * came in a trade (hover or long-press for whose); dashed and struck through was traded away. Pick capital weighs a first-round pick most and each later round a little over half the one before; 100% is a team's own picks.</p>`)}</div>`;
+          <div class="fo-list">${rows}</div>`, "Each number is a round. * came in a trade; struck through was traded away. Pick capital weighs a 1st-round pick most, each later round a little over half the one before; 100% is a team's own picks.")}</div>`;
       }
 
       drawNav();

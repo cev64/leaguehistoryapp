@@ -55,8 +55,7 @@
     .lg-main { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
     .lg { background: var(--lg-card); border: 1px solid var(--lg-line); border-radius: 20px; padding: 28px 22px 32px; font-size: 16.5px; line-height: 1.7; color: var(--lg-ink); }
     @media (min-width: 640px) { .lg { padding: 44px 48px 52px; } }
-    .lg h1 { margin: 0 0 6px; font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: clamp(34px, 7vw, 46px); line-height: 1.05; letter-spacing: .02em; text-transform: uppercase; color: var(--lg-ink); }
-    .lg .lg-meta { margin: 0 0 22px; color: var(--lg-muted); font-size: 14.5px; }
+    .lg h1 { margin: 0 0 22px; font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: clamp(34px, 7vw, 46px); line-height: 1.05; letter-spacing: .02em; text-transform: uppercase; color: var(--lg-ink); }
     .lg h2 { margin: 34px 0 8px; font-size: 21px; line-height: 1.3; font-weight: 700; color: var(--lg-ink); }
     .lg h3 { margin: 22px 0 4px; font-size: 17px; font-weight: 700; color: var(--lg-ink); }
     .lg p { margin: 0 0 14px; }
@@ -67,16 +66,12 @@
     .lg .lg-box { margin: 0 0 20px; padding: 16px 18px; background: var(--lg-soft); border: 1px solid var(--lg-line); border-radius: 14px; }
     .lg .lg-box p:last-child, .lg .lg-box ul:last-child { margin-bottom: 0; }
     .lg .lg-box h2 { margin-top: 0; font-size: 18px; }
-    .lg .lg-caps { font-size: 15px; text-transform: uppercase; letter-spacing: .01em; }
     .lg details { margin: 0 0 10px; border: 1px solid var(--lg-line); border-radius: 14px; background: var(--lg-soft); }
     .lg summary { cursor: pointer; padding: 14px 18px; font-weight: 700; list-style: none; }
     .lg summary::-webkit-details-marker { display: none; }
     .lg summary::before { content: "+"; display: inline-block; width: 1.2em; font-weight: 700; color: var(--lg-muted); }
     .lg details[open] summary::before { content: "\2212"; }
     .lg details > div { padding: 0 18px 4px 38px; }
-    .lg .lg-toc { margin: 0 0 20px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
-    .lg .lg-toc a { display: inline-block; padding: 6px 12px; border: 1px solid var(--lg-line); border-radius: 999px; background: var(--lg-soft); font-size: 14px; font-weight: 600; text-decoration: none; color: var(--lg-ink); }
-    .lg .lg-toc a:hover { border-color: var(--lg-link); }
     .lg-mail { display: inline-flex; margin: 4px 0 14px; text-decoration: none !important; color: var(--lp-navy) !important; }
     html:has(body.lp) { scroll-padding-top: 84px; }
   </style>
@@ -104,24 +99,22 @@
   <main class="lg-main" id="main">
     <article class="lg">
       <h1>Support</h1>
-      <p class="lg-meta">Help for the Pigskin Pantheon website and iPhone app</p>
-
       <div class="lg-box">
         <h2>Contact us</h2>
-        <p>Email <strong><a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a></strong>. Include your account email (and the league name, if it is about a league), and what you saw. Screenshots help. Pigskin Pantheon is run by one person, so replies can take a few days.</p>
+        <p>Email <strong><a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a></strong> with your account email, the league and what you saw. Replies can take a few days.</p>
         <a class="lp-btn lp-btn-gold lp-btn-sm lg-mail" href="mailto:support@pigskinpantheon.com?subject=Pigskin%20Pantheon%20support">Email support</a>
       </div>
 
-      <h2>Frequently asked questions</h2>
+      <h2>FAQ</h2>
 
       <details>
         <summary>How do I open my league?</summary>
         <div>
-          <p>Choose your platform on the front page. In the iPhone app no account is needed; on the website, sign in or create an account first.</p>
+          <p>Pick your platform on the front page. The app needs no account; the website asks you to sign in.</p>
           <ul>
-            <li><strong>Sleeper:</strong> enter your Sleeper username to see your leagues, pick one, and it opens with every season.</li>
-            <li><strong>ESPN:</strong> use the ESPN tab and enter your league ID (or paste its link). A league set to be viewable to the public opens from the ID alone. A private league needs you to connect your ESPN account (see below).</li>
-            <li>Want to look around first? <a href="season.html?league=demo">Open the demo league</a>; no account needed.</li>
+            <li><strong>Sleeper:</strong> enter your Sleeper username and pick a league.</li>
+            <li><strong>ESPN:</strong> enter the league ID or paste its link. A public league opens from that; a private one needs ESPN sign-in (below).</li>
+            <li><a href="season.html?league=demo">Open the demo league</a> to look around.</li>
           </ul>
         </div>
       </details>
@@ -129,66 +122,65 @@
       <details>
         <summary>How do I reset my password?</summary>
         <div>
-          <p>On the sign-in screen choose &ldquo;Forgot password&rdquo;, enter your account email and follow the link we send. If the email does not arrive within a few minutes, check your spam folder and make sure you used the address you signed up with. Still stuck? Email us from that address.</p>
+          <p>On the sign-in screen choose &ldquo;Forgot password&rdquo; and follow the emailed link. No email? Check spam and the address you signed up with.</p>
         </div>
       </details>
 
       <details>
         <summary>How do I delete my account?</summary>
         <div>
-          <p>In the iPhone app, go to <strong>Account, then Delete Account</strong>. This removes your profile, your synced leagues, any ESPN keys saved to your account and your chat usage counts. You can also email <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> from your account's email address and ask us to delete it. See the <a href="privacy.html#retention">Privacy Policy</a> for details. Data cached on your device goes when you delete the app.</p>
+          <p>In the app, go to <strong>Account, then Delete Account</strong>. It removes your profile, synced leagues, any ESPN keys saved to your account and your chat usage counts. Or email <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> from your account's address and we'll delete it. Data cached on your device goes when you delete the app. Details: <a href="privacy.html#retention">Privacy Policy</a>.</p>
         </div>
       </details>
 
       <details>
         <summary>How do I open a private ESPN league?</summary>
         <div>
-          <p>ESPN only shares a private league with someone signed in to ESPN. You connect once, and Pigskin Pantheon keeps the two keys ESPN gives your browser when you sign in (called <code>espn_s2</code> and <code>SWID</code>). You never type them. There are two ways to connect.</p>
+          <p>Sign in to ESPN once. Pigskin Pantheon keeps the two keys ESPN gives your browser (<code>espn_s2</code> and <code>SWID</code>), never your password.</p>
           <ul>
-            <li><strong>In the iPhone or iPad app:</strong> open the ESPN tab, tap &ldquo;Private league?&rdquo;, then <strong>Sign in with ESPN</strong>. ESPN's own sign-in page opens. Sign in as you always do, and the page closes by itself and lists your leagues. We never see your password, and we keep only the two keys.</li>
-            <li><strong>On a computer:</strong> add the Pigskin Pantheon Connect browser extension (Chrome, Edge or Firefox), then open the ESPN tab on the website, find &ldquo;Private league?&rdquo; and click <strong>Connect ESPN</strong>. If you are not signed in to ESPN in that browser, an ESPN sign-in tab opens first. The extension reads the two keys only when you click, hands them to Pigskin Pantheon and stores nothing. If you are signed in to your account, keep &ldquo;Also save them to my account&rdquo; ticked.</li>
+            <li><strong>iPhone or iPad app:</strong> ESPN tab &rsaquo; &ldquo;Private league?&rdquo; &rsaquo; <strong>Sign in with ESPN</strong>. ESPN's own page opens; sign in and your leagues appear.</li>
+            <li><strong>Computer:</strong> add the Pigskin Pantheon Connect extension (Chrome, Edge or Firefox), then on the website's ESPN tab click <strong>Connect ESPN</strong>. The extension reads the two keys only when you click and stores nothing.</li>
           </ul>
-          <p>A phone or tablet browser can't connect ESPN. Connect once in the app or on a computer while signed in to your Pigskin Pantheon account, and your private leagues open in the browser too. If ESPN signs you out later, the league shows &ldquo;ESPN signed you out&rdquo;; connect again the same way. You can remove the keys at any time with Forget. Another option is to set the league to be viewable to the public in ESPN's league settings (Settings, then Basic Settings), after which the league ID is enough.</p>
+          <p>Phone browsers can't connect ESPN, but keys saved to your account work there too. If ESPN signs you out, connect again. Forget removes the keys. Or make the league public in ESPN's settings and the ID is enough.</p>
         </div>
       </details>
 
       <details>
         <summary>Why is some of my league's history missing?</summary>
         <div>
-          <p>The app shows what Sleeper and ESPN provide. ESPN keeps lineups for old seasons patchily; a season whose box scores ESPN no longer serves (typically before 2018) still has every score, standing and final place but no lineups. Trades before 2019 are only those ESPN's transaction list includes. For Sleeper, a league's history follows the chain of its past seasons; if a league was recreated rather than renewed, older seasons will not link. Tell us at <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> if something looks wrong.</p>
+          <p>We show what Sleeper and ESPN provide. ESPN seasons before about 2018 have scores and standings but no lineups, and its trades before 2019 are patchy. A Sleeper league that was recreated rather than renewed won't link to its older seasons.</p>
         </div>
       </details>
 
       <details>
-        <summary>How does Ask the League work, and can I trust it?</summary>
+        <summary>How does Ask the League work?</summary>
         <div>
-          <p>It is an AI historian that answers questions about your league's history. When you ask, your question and a text summary of your league are sent to Google's Gemini (or, as a backup, Anthropic's Claude) to write the answer, and the app asks your permission before the first question. It can be wrong and it can talk trash, so treat it as entertainment and check anything important. There is a daily limit on how many new questions an account can ask. See the <a href="privacy.html#ai">Privacy Policy</a> and <a href="terms.html#ai">Terms</a>.</p>
+          <p>It's an AI that answers questions about your league. Your question and a text summary of the league go to Google Gemini (or, as a backup, Anthropic Claude), and the app asks first. It can be wrong, so check anything important. Accounts get a daily question limit. See the <a href="privacy.html#ai">Privacy Policy</a> and <a href="terms.html#ai">Terms</a>.</p>
         </div>
       </details>
 
       <details>
         <summary>Is it free?</summary>
         <div>
-          <p>Yes. Everything is currently free for signed-in members. The iPhone app has no in-app purchases and no ads.</p>
+          <p>Yes. The app has no in-app purchases and no ads.</p>
         </div>
       </details>
 
       <details>
         <summary>Is Pigskin Pantheon affiliated with Sleeper, ESPN, the NFL or the NFLPA?</summary>
         <div>
-          <p>No. It is an independent project. It is not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA. Their names and marks belong to their owners. League data comes from Sleeper's and ESPN's own services.</p>
+          <p>No. It is not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA. League data comes from Sleeper's and ESPN's own services.</p>
         </div>
       </details>
 
       <details>
-        <summary>Something is broken. What should I send you?</summary>
+        <summary>Something is broken. What should I send?</summary>
         <div>
-          <p>Email <a href="mailto:support@pigskinpantheon.com">support@pigskinpantheon.com</a> with what you were doing, what happened, the league (a Sleeper username or ESPN league ID is fine, never send your password or ESPN keys), your device and the app version or browser. A screenshot is ideal.</p>
+          <p>What you did, what happened, the league (Sleeper username or ESPN league ID; never your password or ESPN keys), your device and app version or browser. A screenshot helps.</p>
         </div>
       </details>
 
-      <h2>More</h2>
-      <p><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a> · <a href="index.html">Back to Pigskin Pantheon</a></p>
+      <p><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a> · <a href="index.html">Pigskin Pantheon</a></p>
     </article>
   </main>
 

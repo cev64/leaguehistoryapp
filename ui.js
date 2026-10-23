@@ -302,7 +302,7 @@
             <span class="pr-who"><strong>${esc(h.name)}</strong><small>${esc(h.pos)} · ${esc(h.club)} · ${yrs}</small></span>
             <span class="pr-nums"><b>${h.starts}</b><small>starts</small></span>
           </button>`;
-        }).join("") : `<div class="player-empty">No one by that name has played in this league.</div>`;
+        }).join("") : `<div class="player-empty">No player by that name.</div>`;
         tell(true);
       });
     }

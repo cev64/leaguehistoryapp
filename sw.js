@@ -16,7 +16,7 @@
    cache first, and cache.match doesn't ignore the query, so it misses the
    new address and fetches it fresh on the first load after a deploy. */
 
-const CACHE_VERSION = 'v120';
+const CACHE_VERSION = 'v121';
 const SHELL_CACHE = `league-history-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `league-history-fonts-${CACHE_VERSION}`;
 

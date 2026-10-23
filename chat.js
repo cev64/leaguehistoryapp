@@ -751,7 +751,6 @@
     close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     fresh: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>',
     lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>',
-    check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>',
     ball: '<svg viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="32" rx="25" ry="15" transform="rotate(-35 32 32)"/><path d="M22 42L42 22M27 31l6 6M31 27l6 6M23 35l6 6M35 23l6 6" class="lhc-laces"/></svg>',
   };
 
@@ -854,7 +853,7 @@
         <textarea rows="1" maxlength="1000" placeholder="Ask about any season, rivalry, trade…" aria-label="Your question"></textarea>
         <button type="submit" class="lhc-send" aria-label="Send">${ICON.send}</button>
       </form>
-      <p class="lhc-fine">The AI can get things wrong. Check the record book for anything that matters.</p>`;
+      <p class="lhc-fine">AI answers can be wrong.</p>`;
     document.body.appendChild(panel);
 
     const log = panel.querySelector(".lhc-log");
@@ -921,7 +920,6 @@
           <span class="lhc-orbit"><i></i><i></i><i></i></span>
         </div>
         <h3>Ask me anything about ${esc(model.name)}</h3>
-        <p>Every season, game, trade, draft and box score in the league's history. Rivalries, records, who choked, who got fleeced.</p>
         <div class="lhc-chips">${suggestions(model).map((q, i) => `<button type="button" class="lhc-chip" style="--i:${i}" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
       </div>`;
     }
@@ -936,17 +934,10 @@
         </div>
         <div class="lhc-lock-card">
           <span class="lhc-lock-icon">${ICON.lock}</span>
-          <span class="lhc-lock-kicker">${PRICING ? "Pigskin Pantheon Pro" : "Free with an account"}</span>
+          ${PRICING ? '<span class="lhc-lock-kicker">Pigskin Pantheon Pro</span>' : ""}
           <h3>Your league's own AI historian</h3>
-          <p>Ask anything about ${esc(model.name)} and get the answer in seconds, straight from every season you've played.</p>
-          <ul>
-            <li style="--i:0">${ICON.check}Records, rivalries and head-to-head</li>
-            <li style="--i:1">${ICON.check}Every trade, draft and waiver pickup</li>
-            <li style="--i:2">${ICON.check}Box scores and player histories</li>
-            <li style="--i:3">${ICON.check}${PRICING ? "Plus unlimited leagues and no ads" : "Every league you add, all free"}</li>
-          </ul>
           ${PRICING ? `<button type="button" class="lhc-upgrade" data-act="upgrade"><span>Go Pro · ${esc(PRO_PRICE)}</span></button>
-          <button type="button" class="lhc-pass" data-act="pass">Or get it for your whole league: only ${esc(PASS_PRICE)} per member a year</button>
+          <button type="button" class="lhc-pass" data-act="pass">Whole league: ${esc(PASS_PRICE)} per member a year</button>
           <span class="lhc-lock-fine">Cancel any time.</span>`
           : '<button type="button" class="lhc-upgrade" data-act="upgrade"><span>Create free account</span></button>'}
         </div>
@@ -983,7 +974,7 @@
         ask(last);
       });
       if (shown.length >= MAX_TURNS / 2 || history.length >= MAX_TURNS) {
-        log.insertAdjacentHTML("beforeend", '<div class="lhc-note">This chat is getting long. Start a new one (↻ above) to keep going.</div>');
+        log.insertAdjacentHTML("beforeend", '<div class="lhc-note">This chat is getting long. Start a new one (↻).</div>');
       }
       updateSend();
     }

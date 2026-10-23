@@ -1647,7 +1647,6 @@
       color: var(--muted);
     }
     .signin-form[hidden], .espn-private[hidden], .espn-private [hidden] { display: none; }
-    .espn-private h4 { margin: 0; color: var(--ink); font-size: 13.5px; font-weight: 800; }
     .espn-private p { margin: 0; }
     .espn-private ol { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
     .espn-private strong { color: var(--ink); }
@@ -1842,15 +1841,8 @@
   <section class="lp-hero" aria-labelledby="lpTitle">
     <div class="lp-wrap lp-hero-grid">
       <div class="lp-hero-copy">
-        <span class="lp-pill"><span class="lp-dot" aria-hidden="true"></span>Free for Sleeper and ESPN leagues</span>
         <h1 id="lpTitle">Your league has stories. <span class="brand-accent">Give them a home.</span></h1>
-        <p class="lp-lede">Pigskin Pantheon turns your fantasy league's whole history into:</p>
-        <ul class="lp-feats">
-          <li><span aria-hidden="true">🏆</span>A walk-through 3D trophy room</li>
-          <li><span aria-hidden="true">✨</span>An AI historian</li>
-          <li><span aria-hidden="true">📰</span>Weekly recaps</li>
-          <li><span aria-hidden="true">📚</span>An all-time record book</li>
-        </ul>
+        <p class="lp-lede">Recaps, a record book, a 3D trophy room and an AI historian for your Sleeper or ESPN league.</p>
         <div class="lp-ctas">
           <a class="lp-btn lp-btn-gold" href="#find" data-find-link>Open your league, free</a>
           <a class="lp-btn lp-btn-ghost" href="season.html?league=demo">Explore the demo league <span aria-hidden="true">→</span></a>
@@ -1859,11 +1851,6 @@
           <span>Jump back in:</span>
           <div class="lp-welcome-list" id="lpWelcomeList"></div>
         </div>
-        <ul class="lp-proof">
-          <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg>Sleeper: just your username</li>
-          <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg>Public and private ESPN leagues</li>
-          <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg>Every season, back to year one</li>
-        </ul>
       </div>
       <div class="lp-hero-art" aria-hidden="true">
         <div class="lp-browser lp-hero-browser">
@@ -1888,20 +1875,13 @@
   <section class="lp-section" id="features" aria-labelledby="featuresTitle">
     <div class="lp-wrap">
       <div class="lp-head">
-        <span class="lp-kicker">What's inside</span>
         <h2 id="featuresTitle">Your league's lore, finally in one place</h2>
-        <p>Sleeper and ESPN show you this week. Pigskin Pantheon remembers everything else: who won, who choked, who got fleeced, and by how much.</p>
       </div>
 
       <article class="lp-feature lp-feature-flip lp-feature-ai">
         <div class="lp-feature-copy">
           <h3>Ask anything. Get roasted with receipts.</h3>
-          <p>An AI that has read every score, trade, waiver claim, draft and lineup your league ever made. Ask who owns who, who choked in the playoffs or who lost the worst trade ever. It answers in seconds, with the numbers, and a little smack.</p>
-          <div class="lp-asks">
-            <span>"Who's the biggest playoff choker?"</span>
-            <span>"Worst trade in league history?"</span>
-            <span>"How many points has Greg left on his bench?"</span>
-          </div>
+          <p>An AI that knows every score, trade and lineup your league ever made.</p>
         </div>
         <div class="lp-feature-art lp-art-phone">
           <div class="lp-phone"><img src="img/landing/chat-m.webp" alt="The League Historian answering: GridironGreg is 8–0 all-time against DraftDayDana" width="600" height="1298" loading="lazy" /></div>
@@ -1911,11 +1891,7 @@
       <article class="lp-feature lp-feature-flip lp-feature-dark">
         <div class="lp-feature-copy">
           <h3>Walk your league's hall of fame.</h3>
-          <p>Champions in the Cup Room, a Hall of Fame and a Record Wall, the Lowlight Wall for the weeks everyone would rather forget, and the Cellar for whoever finished last. Every manager gets a locker with their banner, pennants and cups.</p>
-          <ul class="lp-list">
-            <li>Drag to walk, tap any trophy to turn it in your hands</li>
-            <li>Built from your league's real results, every season</li>
-          </ul>
+          <p>Every champion's cup, every record, and a locker for every manager.</p>
         </div>
         <div class="lp-feature-art lp-art-stack">
           <div class="lp-browser lp-browser-dark"><div class="lp-browser-bar"><i></i><i></i><i></i><span>The Hall</span></div>
@@ -1928,12 +1904,7 @@
       <article class="lp-feature">
         <div class="lp-feature-copy">
           <h3>The recap the group chat actually reads.</h3>
-          <p>Every week gets a headline and a story for every game: upsets, blowouts, streaks, the bench that cost someone the win. Power rankings, players of the week and the playoff race come with it.</p>
-          <ul class="lp-list">
-            <li>Shareable as two pictures or plain text in one tap</li>
-            <li>Every box score, every week, every season</li>
-            <li>Standings as they stood, and the bracket as it was played</li>
-          </ul>
+          <p>A headline and a story for every game, every week.</p>
         </div>
         <div class="lp-feature-art">
           <div class="lp-browser"><div class="lp-browser-bar"><i></i><i></i><i></i><span>Week 8 recap</span></div>
@@ -1944,12 +1915,7 @@
       <article class="lp-feature lp-feature-flip">
         <div class="lp-feature-copy">
           <h3>Settle every argument, permanently.</h3>
-          <p>All-time standings, titles, last places and playoff records, plus head-to-head against every manager in the league with points for, against and the margin. The next time someone claims they own you, check the table.</p>
-          <ul class="lp-list">
-            <li>Every manager's career on one card</li>
-            <li>Highest scores, biggest blowouts, closest games</li>
-            <li>Search any player who ever touched a roster</li>
-          </ul>
+          <p>All-time standings, titles and head-to-head for every manager.</p>
         </div>
         <div class="lp-feature-art">
           <div class="lp-browser"><div class="lp-browser-bar"><i></i><i></i><i></i><span>All-time · Head-to-head</span></div>
@@ -1960,14 +1926,14 @@
       <div class="lp-duo">
         <article class="lp-card">
           <h3>Who won the trade? Now it's on the record.</h3>
-          <p>Every trade judged in hindsight, every waiver pickup and FAAB dollar, lineup efficiency and where every draft pick ended up.</p>
+          <p>Every trade judged in hindsight.</p>
           <div class="lp-browser lp-browser-sm"><div class="lp-browser-bar"><i></i><i></i><i></i><span>Front office · Trades</span></div>
             <img src="img/landing/trades-d.webp" alt="The best and worst traders, by points gained in hindsight" width="1600" height="1000" loading="lazy" /></div>
         </article>
         <article class="lp-card lp-card-phone">
           <div>
             <h3>Every player's life in your league.</h3>
-            <p>Who rostered him and when, his best games, his record as a starter and the rings he won you.</p>
+            <p>Who rostered him, his best games, the rings he won you.</p>
           </div>
           <div class="lp-phone lp-phone-sm"><img src="img/landing/player-m.webp" alt="Justin Jefferson's card: starts, points, ownership timeline and best games" width="600" height="1298" loading="lazy" /></div>
         </article>
@@ -1976,12 +1942,12 @@
       <div class="lp-more">
         <h3>Also in the box</h3>
         <div class="lp-more-grid">
-          <div><strong>Every season</strong><span>Week-by-week results, standings as they stood and every box score.</span></div>
-          <div><strong>The playoff picture</strong><span>Seeds, clinches and the bracket, projected or as played.</span></div>
-          <div><strong>Sleeper and ESPN</strong><span>Both in one list, private ESPN leagues and several ESPN accounts included.</span></div>
-          <div><strong>Redraft, keeper, dynasty</strong><span>Divisions, medians, toilet bowls, traded picks: all of it.</span></div>
-          <div><strong>Share cards</strong><span>Recaps as 1080 × 1350 pictures or text for the group chat.</span></div>
-          <div><strong>Installs like an app</strong><span>Add it to your home screen and it opens full screen, fast.</span></div>
+          <div><strong>Every season, every box score</strong></div>
+          <div><strong>Playoff brackets and seeds</strong></div>
+          <div><strong>Public and private ESPN leagues</strong></div>
+          <div><strong>Redraft, keeper, dynasty</strong></div>
+          <div><strong>Share cards for the group chat</strong></div>
+          <div><strong>Installs like an app</strong></div>
         </div>
       </div>
     </div>
@@ -1990,13 +1956,12 @@
   <section class="lp-section" id="how" aria-labelledby="howTitle">
     <div class="lp-wrap">
       <div class="lp-head">
-        <span class="lp-kicker">How it works</span>
         <h2 id="howTitle">Up and running before your next waiver run</h2>
       </div>
       <ol class="lp-steps">
-        <li><span class="lp-step-n">1</span><h3>Find your league</h3><p>Type your Sleeper username, or paste an ESPN league ID or link. Every season the league has played comes in at once.</p></li>
-        <li><span class="lp-step-n">2</span><h3>Make a free account</h3><p>Your leagues stay on it, on every device. That's all it takes: no card, no trial, no catch.</p></li>
-        <li><span class="lp-step-n">3</span><h3>Send it to the league</h3><p>Drop a recap, a head-to-head or the trophy room in the group chat and let the arguments begin.</p></li>
+        <li><span class="lp-step-n">1</span><h3>Find your league</h3><p>Your Sleeper username or ESPN league ID.</p></li>
+        <li><span class="lp-step-n">2</span><h3>Make a free account</h3><p>Your leagues on every device. No card.</p></li>
+        <li><span class="lp-step-n">3</span><h3>Send it to the league</h3><p>Drop a recap in the group chat.</p></li>
       </ol>
     </div>
   </section>
@@ -2004,10 +1969,8 @@
   <section class="lp-find" id="find" aria-labelledby="pageTitle">
     <div class="lp-wrap lp-find-grid">
       <div class="lp-find-copy">
-        <span class="lp-kicker">Get started</span>
         <h2 id="pageTitle">Open your league</h2>
-        <p>Free, and it takes about a minute. Sleeper needs only your username; ESPN needs your league's ID or link.</p>
-        <a class="lp-demo-mini" href="season.html?league=demo">Not ready? Look around the demo league <span aria-hidden="true">→</span></a>
+        <a class="lp-demo-mini" href="season.html?league=demo">Or try the demo league <span aria-hidden="true">→</span></a>
       </div>
       <div class="lp-find-stack">
         <div class="ad-wrap ad-top" data-ad="home-top"><div class="ad-slot"></div></div>
@@ -2044,7 +2007,7 @@
                   placeholder="Your Sleeper username" aria-label="Sleeper username" required />
               </label>
               <button class="signin-go" id="signinGo" type="submit">Find leagues</button>
-              <p class="signin-note" id="signinNote">Sleeper's league data is public, so your username is all it takes: no password, nothing to connect. Or paste a <a href="#" id="byIdLink">league ID</a>.</p>
+              <p class="signin-note" id="signinNote">Or use a <a href="#" id="byIdLink">league ID</a>.</p>
             </form>
 
             <!-- ESPN: a league ID (or the league's address), and for a private
@@ -2057,14 +2020,13 @@
                   placeholder="ESPN league ID or league link" aria-label="ESPN league ID or league link" required />
               </label>
               <button class="signin-go" id="espnGo" type="submit">Open league</button>
-              <p class="signin-note" id="espnNote">Your league ID is the number after <code>leagueId=</code> in your league's address on fantasy.espn.com; pasting the whole link works too. A league that's viewable to the public needs nothing else.</p>
+              <p class="signin-note" id="espnNote">The number after <code>leagueId=</code> in your league's address.</p>
               <button type="button" class="espn-private-toggle" id="espnPrivateToggle" aria-expanded="false" aria-controls="espnPrivate">
                 <span class="ept-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span>
-                <span class="ept-copy"><strong id="espnPrivateTitle">Private league?</strong><span id="espnPrivateSub">Connect your ESPN account to open it, and to list all your ESPN leagues here.</span></span>
+                <span class="ept-copy"><strong id="espnPrivateTitle">Private league?</strong><span id="espnPrivateSub">Connect ESPN to open it.</span></span>
                 <span class="ept-go" aria-hidden="true">›</span>
               </button>
               <div class="espn-private" id="espnPrivate" hidden>
-                <h4>Opening a private ESPN league</h4>
                 <!-- How this browser connects, chosen in drawPrivate: on a
                      computer, the Pigskin Pantheon Connect extension's button
                      (or where to add it; Safari has none yet); on a phone or
@@ -2086,13 +2048,11 @@
                   <p class="espn-by-hand" id="espnByHandRow" hidden><a href="#" id="espnByHand">Enter keys by hand</a></p>
                 </div>
                 <div class="espn-touch" id="espnTouch" hidden>
-                  <p><strong>A phone or tablet browser can't connect ESPN.</strong> Connect once in the Pigskin Pantheon app or on a computer, signed in to your account, and it opens here too.</p>
+                  <p>Connected there with your account, it opens here too.</p>
                   <p id="espnTouchSignIn" hidden></p>
                   <p id="espnTouchApp" hidden><a id="espnAppLink" href="#" target="_blank" rel="noopener">Get the Pigskin Pantheon app</a></p>
-                  <p>A league that's viewable to the public needs only its ID, here or anywhere.</p>
                 </div>
                 <div id="espnKeys" hidden>
-                  <p>A private league opens with your ESPN keys: two values ESPN keeps in your browser once you're signed in.</p>
                   <ol>
                     <li>Sign in at <a href="https://fantasy.espn.com/football/" target="_blank" rel="noopener">fantasy.espn.com</a> and open your league.</li>
                     <li>Open the browser's developer tools (F12, or ⌥⌘I on a Mac) ▸ <strong>Application</strong> (Chrome, Edge) or <strong>Storage</strong> (Firefox, Safari) ▸ Cookies ▸ espn.com.</li>
@@ -2106,7 +2066,7 @@
                 </div>
                 <label class="espn-to-account" id="espnToAccountChoice" hidden>
                   <input type="checkbox" id="espnToAccountBox" checked />
-                  <span>Also save my ESPN keys to my account, so my private leagues open on my phone too. Untick to keep them in this browser only.</span>
+                  <span>Also save my ESPN keys to my account</span>
                 </label>
                 <!-- Every ESPN account with keys saved: a member can be in
                      leagues on more than one. -->
@@ -2117,7 +2077,7 @@
                 </div>
                 <p id="espnSavedHint" hidden></p>
                 <p class="espn-fine" id="espnFine"></p>
-                <p id="espnNoRelay" hidden>This site isn't set up to open private ESPN leagues yet.</p>
+                <p id="espnNoRelay" hidden>Private ESPN leagues can't open here yet.</p>
               </div>
             </form>
           </article>
@@ -2138,29 +2098,24 @@
   <section class="lp-section lp-faq" id="faq" aria-labelledby="faqTitle">
     <div class="lp-wrap lp-faq-grid">
       <div class="lp-head lp-head-left">
-        <span class="lp-kicker">Questions</span>
         <h2 id="faqTitle">The fine print, minus the fine print</h2>
       </div>
       <div class="lp-faq-list">
         <details>
           <summary>Is it really free?</summary>
-          <p>Yes. Everything is free with an account right now: every league you add, every season, the trophy room and the League Historian AI.</p>
+          <p>Yes, with a free account: every league, every season, the AI included.</p>
         </details>
         <details>
           <summary>Do you need my Sleeper or ESPN password?</summary>
-          <p>No. Sleeper's league data is public, so your username is enough. A public ESPN league needs only its ID. A private ESPN league opens after you sign in to ESPN on ESPN's own page, in the app or with our browser extension on a computer. We keep only the two keys ESPN gives your browser, and they are encrypted if you save them to your account.</p>
+          <p>No. Sleeper needs your username, a public ESPN league its ID. A private ESPN league connects through ESPN's own sign-in; we keep only two ESPN keys, encrypted if saved to your account.</p>
         </details>
         <details>
           <summary>Which leagues work?</summary>
-          <p>Sleeper and ESPN leagues: redraft, keeper and dynasty, with or without divisions, any scoring. The history goes back as far as each platform keeps it.</p>
-        </details>
-        <details>
-          <summary>What does the AI know?</summary>
-          <p>Only your league: every score, standing, trade, waiver claim, draft and lineup the site has read. It quotes the numbers, and it can be wrong now and then, so the record book has the final word.</p>
+          <p>Sleeper and ESPN: redraft, keeper or dynasty, any scoring, as far back as each platform goes.</p>
         </details>
         <details>
           <summary>Is this made by Sleeper or ESPN?</summary>
-          <p>No. Pigskin Pantheon is independent and isn't affiliated with or endorsed by Sleeper or ESPN. It reads each platform's league data to build your history.</p>
+          <p>No. Pigskin Pantheon is independent and isn't affiliated with or endorsed by Sleeper or ESPN.</p>
         </details>
       </div>
     </div>
@@ -2217,7 +2172,7 @@
             ${badge(l.avatar, l.name)}
             <a class="league-name" href="${leagueHref(l.id)}" style="text-decoration:none">
               <strong>${esc(l.name)}</strong>
-              <span>${l.season ? `Latest season ${l.season} · ${League.sourceName(l.id)}` : `${League.sourceName(l.id)} league`}</span>
+              <span>${l.season ? `${l.season} · ${League.sourceName(l.id)}` : `${League.sourceName(l.id)} league`}</span>
             </a>
             <button type="button" class="league-forget" data-forget="${esc(l.id)}" aria-label="Forget ${esc(l.name)}" title="Forget">&times;</button>
           </div>`).join("");
@@ -2398,12 +2353,12 @@
         toggle.classList.toggle("is-connected", connected && !out);
         $("espnPrivateTitle").textContent = !connected ? "Private league?" : out ? "ESPN signed you out" : count > 1 ? `${count} ESPN accounts connected` : "ESPN connected";
         $("espnPrivateSub").textContent = out
-          ? (touchOnly() ? "Connect again once in the app or on a computer, then it opens here too." : "Connect again here to open your private leagues and list them below.")
+          ? (touchOnly() ? "Connect again in the app or on a computer." : "Connect again to open your private leagues.")
           : connected
-            ? `Your ESPN keys are saved ${onAccountKnown ? "to your account" : "in this browser"}, so your private leagues open and are listed below. Manage them, or add another ESPN account, here.`
+            ? `Keys saved ${onAccountKnown ? "to your account" : "in this browser"}. Manage or add accounts.`
             : touchOnly()
-              ? "Connect once in the app or on a computer, then it opens here too."
-              : "Connect your ESPN account to open it, and to list all your ESPN leagues here.";
+              ? "Connect once in the app or on a computer."
+              : "Connect ESPN to open it.";
       }
       let drawing = 0;
       // The ESPN accounts with keys, as last drawn: [{ swid, local, account }].
@@ -2454,15 +2409,15 @@
         const hint = $("espnSavedHint");
         hint.hidden = !saved || !keys.available();
         hint.innerHTML = !someLocalOnly
-          ? "Your private ESPN leagues open on any device you sign in on, your phone included."
+          ? "They open on any device you sign in on."
           : keys.signedIn()
-            ? "Save keys to your account to open those private leagues on your phone too, just by signing in there."
-            : `<a href="#" id="espnSignIn">Sign in</a> to save them to your account, so your private leagues open on your phone too.`;
+            ? "Save them to your account to open them on your phone too."
+            : `<a href="#" id="espnSignIn">Sign in</a> to open them on your phone too.`;
         const fine = $("espnFine");
         fine.hidden = !relay || (connecting && touch);
         fine.innerHTML = keys.available()
-          ? "Connecting keeps two keys ESPN uses to open your leagues (espn_s2 and SWID), never your password. Signed in, they're saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay in this browser. Either way they're only used to read your leagues, through this site's relay to ESPN. Add a set for each ESPN account you play on. <em>Forget</em> removes an account's keys everywhere, and signing out of ESPN ends them."
-          : "Connecting keeps two keys ESPN uses to open your leagues (espn_s2 and SWID), never your password. They stay in this browser, and are only used to read your leagues, through this site's relay to ESPN. Add a set for each ESPN account you play on. <em>Forget</em> removes them, and signing out of ESPN ends them.";
+          ? "We never see your ESPN password. We keep only two ESPN keys (espn_s2, SWID), in this browser and, if you choose, on your account (encrypted), to read your leagues. <em>Forget</em> removes them."
+          : "We never see your ESPN password. We keep only two ESPN keys (espn_s2, SWID), in this browser, to read your leagues. <em>Forget</em> removes them.";
       }
       // A computer: the Connect button with the extension here, where to add
       // it without (Edge and the rest add Chrome's), and Safari's note.
@@ -2487,25 +2442,25 @@
         }
         $("espnConnectLead").innerHTML = here
           ? (fresh
-            ? "<strong>ESPN signed you out, but this browser still holds the keys it ended.</strong> Connect ESPN opens ESPN's sign-in in a new tab: if it shows you signed in, sign out there and sign back in, and you're back here when you're done."
+            ? "<strong>ESPN signed you out, but this browser still holds the old keys.</strong> Connect ESPN opens ESPN's sign-in: if it shows you signed in, sign out and back in."
             : again
-              ? "<strong>ESPN signed you out.</strong> Connect ESPN reads your ESPN keys from this browser again; if ESPN's sign-in opens, sign in to the same ESPN account."
+              ? "<strong>ESPN signed you out.</strong> Connect ESPN again, with the same ESPN account."
               : adding
-                ? "Pigskin Pantheon Connect reads the ESPN account this browser is signed in to. <strong>Sign out of ESPN in this browser, sign in to the other account, then Connect again.</strong>"
-                : "Pigskin Pantheon Connect reads your ESPN keys from this browser. Signed in to ESPN here, it's one click; if not, ESPN's sign-in opens in a new tab, and you're back here when you're done.")
+                ? "<strong>Sign out of ESPN in this browser, sign in to the other account, then Connect ESPN.</strong>"
+                : "If you're not signed in to ESPN here, its sign-in opens in a new tab.")
           : !store
-            ? "<strong>Safari isn't supported yet:</strong> connect once in Chrome, Firefox or the iPhone app, signed in to your account, and it opens here too."
+            ? "<strong>Safari isn't supported yet.</strong> Connect once in Chrome, Firefox or the app, signed in to your account, and it opens here too."
             : store.url
-              ? `<strong>Add Pigskin Pantheon Connect to ${esc(store.name)}</strong>, a small extension that reads your ESPN keys from this browser when you click Connect ESPN, and nothing else. Then come back here: the button appears by itself.`
-              : "<strong>Pigskin Pantheon Connect is coming soon.</strong> It's a small extension for Chrome and Firefox that connects ESPN in one click: it reads your ESPN keys from this browser when you click Connect ESPN, and nothing else.";
+              ? "A small extension that reads only your ESPN keys. Once it's added, Connect ESPN appears here."
+              : "<strong>Pigskin Pantheon Connect is coming soon:</strong> a Chrome and Firefox extension that connects ESPN in one click.";
         $("espnByHandRow").hidden = here || !byHandAllowed() || byHand;
       }
       // A phone or tablet: the app or a computer, with the same account.
       function drawTouch() {
         const who = $("espnTouchSignIn");
         who.innerHTML = keys.signedIn()
-          ? `You're signed in here as <strong>${esc(window.Account.user.email || "you")}</strong>: use the same account there.`
-          : keys.available() ? '<a href="#" id="espnSignIn">Sign in</a> here too, with the same account, so it carries over.' : "";
+          ? `Signed in as <strong>${esc(window.Account.user.email || "you")}</strong>: use the same account there.`
+          : keys.available() ? '<a href="#" id="espnSignIn">Sign in</a> here with the same account.' : "";
         who.hidden = !who.innerHTML;
         const app = (window.ACCOUNT_CONFIG || {}).APP_STORE_URL || "";
         $("espnTouchApp").hidden = !app;
@@ -2525,14 +2480,14 @@
           const title = names.length
             ? `${names.slice(0, 2).join(", ")}${names.length > 2 ? ` +${names.length - 2} more` : ""}`
             : many ? `ESPN account ${i + 1}` : "Your ESPN account";
-          const where = a.local && a.account ? "in this browser and on your account" : a.account ? "on your account" : "in this browser";
+          const where = a.local && a.account ? "here and on your account" : a.account ? "on your account" : "in this browser";
           const refused = refusedSwids.includes(a.swid);
           const signedOut = !refused ? "" : touch
             ? '<b class="is-refused">ESPN signed you out: connect again in the app or on a computer.</b> '
             : '<b class="is-refused">ESPN signed you out.</b> ';
           return `<li class="espn-account">
             <div><strong>${esc(title)}</strong>
-              <span>${signedOut}Keys saved ${where} · ESPN id …${esc(a.swid.slice(-6, -1))}</span></div>
+              <span>${signedOut}Saved ${where} · …${esc(a.swid.slice(-6, -1))}</span></div>
             <div class="espn-account-actions">
               ${refused && !touch && again !== a.swid ? `<button type="button" data-reconnect="${esc(a.swid)}">Connect again</button>` : ""}
               ${a.local && !a.account && keys.signedIn() ? `<button type="button" data-to-account="${esc(a.swid)}">Save to my account</button>` : ""}
@@ -2565,7 +2520,7 @@
           list = await ESPN.myLeagues();
         } catch (err) {
           if (turn !== espnAsked) return;
-          showListing("espn", { count: 0, note: `ESPN didn't list your leagues (${esc(err.message)}). You can still open one by its ID or link on the ESPN tab.` });
+          showListing("espn", { count: 0, note: `ESPN didn't list your leagues (${esc(err.message)}). Open one by its ID on the ESPN tab.` });
           return;
         }
         if (turn !== espnAsked) return;
@@ -2590,9 +2545,9 @@
           note: list.length ? ""
             : refusedSwids.length
               ? (touchOnly()
-                ? "ESPN signed you out, so it didn't list your leagues. Connect again once in the Pigskin Pantheon app or on a computer, signed in to your account."
-                : "ESPN signed you out, so it didn't list your leagues. Connect again on the ESPN tab.")
-              : "ESPN has no football leagues on the profile your keys belong to. You can still open one by its ID or link on the ESPN tab.",
+                ? "ESPN signed you out. Connect again in the app or on a computer."
+                : "ESPN signed you out. Connect again on the ESPN tab.")
+              : "No football leagues on this ESPN account. Open one by its ID on the ESPN tab.",
         });
       }
       espnPrivate.addEventListener("click", (event) => {
@@ -2679,9 +2634,9 @@
         waiting = null;
         drawConnect();
         if (!got.s2) {
-          if (got.needsAccess) say("Pigskin Pantheon Connect needs your OK to read your ESPN keys. Click Connect ESPN again and choose Allow.", { error: true });
+          if (got.needsAccess) say("Pigskin Pantheon Connect needs your OK. Click Connect ESPN again and choose Allow.", { error: true });
           else if (got.cancelled) say(espnDefault, { html: true });
-          else if (got.timedOut) say("Signing in to ESPN took more than ten minutes. Click Connect ESPN again when you're ready.", { error: true });
+          else if (got.timedOut) say("ESPN's sign-in timed out. Click Connect ESPN to try again.", { error: true });
           else say(`ESPN didn't connect: ${got.error}`, { error: true });
           return;
         }
@@ -2694,7 +2649,7 @@
           again = tidy.swid;
           fresh = true;
           await drawPrivate();
-          say("This browser still holds the keys ESPN ended, so nothing changed. Click Connect ESPN to sign in to ESPN again.", { error: true });
+          say("This browser still holds the keys ESPN ended. Click Connect ESPN to sign in again.", { error: true });
           return;
         }
         const added = ESPN.saveAuth(got.s2, got.swid);
@@ -2703,7 +2658,7 @@
           return;
         }
         if (await keysArrived(added)) return;
-        say("✓ ESPN connected. Your ESPN leagues are listed below; or enter a league's ID or link above.");
+        say("✓ ESPN connected. Your leagues are listed below.");
         espnInput.focus();
       }
       // Connect again, from the row of an ESPN account ESPN signed out: the
@@ -2737,7 +2692,7 @@
         s2.value = "";
         swid.value = "";
         if (await keysArrived(added)) return;
-        say("✓ Keys saved. Your ESPN leagues are listed below; or enter a league's ID or link above.");
+        say("✓ Keys saved. Your leagues are listed below.");
         espnInput.focus();
       });
 
@@ -2745,7 +2700,7 @@
         event.preventDefault();
         const n = ESPN.parseLeague(espnInput.value);
         if (!n) {
-          say(`That isn't an ESPN league ID. It's the number after <code>leagueId=</code> in your league's address on fantasy.espn.com. <a href="#" id="espnPrivateLink">Private league?</a>`, { error: true, html: true });
+          say(`That isn't an ESPN league ID: it's the number after <code>leagueId=</code> in the league's address. <a href="#" id="espnPrivateLink">Private league?</a>`, { error: true, html: true });
           return;
         }
         location.href = leagueHref(ESPN.leagueId(n));

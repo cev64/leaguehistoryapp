@@ -191,11 +191,10 @@ html:has(#hallAd) { --lhc-lift: var(--hall-ad, 0px); }
 /* welcome */
 .lhc-welcome { margin: auto 0; text-align: center; padding: 8px 4px 4px; }
 .lhc-welcome h3 {
-  margin: 18px 0 6px; font: 700 26px/1.02 var(--font-display, "Barlow Condensed", sans-serif);
+  margin: 18px 0 18px; font: 700 26px/1.02 var(--font-display, "Barlow Condensed", sans-serif);
   text-transform: uppercase; letter-spacing: .02em; color: var(--lhc-ink);
   animation: lhcRise .6s var(--lhc-ease) .08s both;
 }
-.lhc-welcome p { margin: 0 auto 18px; max-width: 330px; color: var(--lhc-ink-2); font-size: 13.5px; line-height: 1.5; animation: lhcRise .6s var(--lhc-ease) .16s both; }
 .lhc-orb { position: relative; width: 96px; height: 96px; margin: 0 auto; animation: lhcPop .7s var(--lhc-spring) both; }
 .lhc-orb-ball {
   position: absolute; inset: 14px; border-radius: 50%; display: grid; place-items: center;
@@ -379,11 +378,7 @@ html:has(#hallAd) { --lhc-lift: var(--hall-ad, 0px); }
 .lhc-lock-icon svg { width: 25px; height: 25px; fill: none; stroke: var(--lhc-navy); stroke-width: 2.3; stroke-linecap: round; }
 @keyframes lhcWiggle { 0%, 84%, 100% { transform: none; } 88% { transform: rotate(-10deg); } 92% { transform: rotate(8deg); } 96% { transform: rotate(-4deg); } }
 .lhc-lock-kicker { position: relative; display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--lhc-gold-2); }
-.lhc-lock-card h3 { position: relative; margin: 6px 0 8px; font: 700 27px/1 var(--font-display, "Barlow Condensed", sans-serif); text-transform: uppercase; letter-spacing: .02em; }
-.lhc-lock-card p { position: relative; margin: 0 auto 14px; max-width: 320px; color: #c9d5df; font-size: 13.5px; line-height: 1.5; }
-.lhc-lock-card ul { position: relative; list-style: none; margin: 0 auto 18px; padding: 0; display: grid; gap: 8px; max-width: 300px; text-align: left; }
-.lhc-lock-card li { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: #eef3f8; animation: lhcFromLeft .5s var(--lhc-ease) both; animation-delay: calc(.3s + var(--i) * 80ms); }
-.lhc-lock-card li svg { width: 18px; height: 18px; flex: 0 0 auto; padding: 3px; border-radius: 50%; background: rgba(246, 183, 60, .18); fill: none; stroke: var(--lhc-gold); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.lhc-lock-card h3 { position: relative; margin: 6px 0 18px; font: 700 27px/1 var(--font-display, "Barlow Condensed", sans-serif); text-transform: uppercase; letter-spacing: .02em; }
 .lhc-upgrade {
   position: relative; overflow: hidden; width: 100%; height: 48px; border: 0; border-radius: 14px; cursor: pointer;
   font: 700 15px/1 var(--lhc-font); color: var(--lhc-navy); letter-spacing: -.005em;
@@ -415,7 +410,6 @@ html:has(#hallAd) { --lhc-lift: var(--hall-ad, 0px); }
    --------------------------------------------------------------- */
 @keyframes lhcRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes lhcFromRight { from { opacity: 0; transform: translateX(18px) scale(.96); } to { opacity: 1; transform: none; } }
-@keyframes lhcFromLeft { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
 @keyframes lhcPop { from { opacity: 0; transform: scale(.5) rotate(-12deg); } to { opacity: 1; transform: none; } }
 @keyframes lhcFade { from { opacity: 0; } }
 

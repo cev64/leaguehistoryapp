@@ -203,14 +203,6 @@
       text-transform: uppercase;
       text-shadow: 0 2px 18px rgba(0,0,0,.7);
     }
-    .wordmark .sub {
-      margin-top: 5px;
-      font-size: 10px;
-      font-weight: 500;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: var(--dim);
-    }
 
     .bottom {
       display: grid;
@@ -781,6 +773,7 @@
       color: var(--dim);
       max-width: 34ch;
     }
+    #loaderNote:empty { display: none; }
 
     /* Only shown when the hall cannot open at all; otherwise the splash is a
        moment on the way in, with nothing to press. */
@@ -850,7 +843,6 @@
         <div class="top-right">
           <div class="wordmark hall-only">
             <div class="mark">The Hall</div>
-            <div class="sub">League Trophy Room</div>
           </div>
           <div class="wordmark locker-only">
             <div class="mark">Team Locker</div>
@@ -859,12 +851,12 @@
         </div>
       </div>
 
-      <div id="lockerHint" class="locker-only">Drag to look around the wall · tap anything to see it up close</div>
+      <div id="lockerHint" class="locker-only">Drag to look around · tap to inspect</div>
 
       <div class="ad-wrap ad-rect ad-dark hud-ad" data-ad="trophy-corner"><div class="ad-slot"></div></div>
 
       <div class="bottom">
-        <div id="hint">Drag to walk the hall · tap a trophy to inspect it</div>
+        <div id="hint">Drag to walk · tap a trophy to inspect</div>
 
         <div class="plate-row">
           <button class="step" id="prevItem" type="button" aria-label="Previous exhibit">←</button>
@@ -929,10 +921,10 @@
           <div class="kicker">Pigskin Pantheon</div>
           <h1>The Hall</h1>
         </div>
-        <p id="loaderNote">Championships, the managers who won them, the records nobody has beaten, and the seats at the very bottom of the table.</p>
+        <p id="loaderNote"></p>
         <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
         <a class="doorway-exit" id="loaderExit" href="alltime.html">← Back to All-Time</a>
-        <p class="doorway-fine">Not affiliated with or endorsed by Sleeper. League data from the Sleeper API.</p>
+        <p class="doorway-fine">Not affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA. League data from the Sleeper API.</p>
       </div>
     </div>
   </div>
@@ -941,8 +933,8 @@
 
   <noscript>
     <div style="position:fixed;inset:0;display:grid;place-items:center;padding:32px;text-align:center;background:#05090f;z-index:99">
-      <p>The trophy room is rendered in the browser and needs JavaScript.<br>
-      <a href="alltime.html" style="color:#f2c14a">Open the all-time record book instead.</a></p>
+      <p>The trophy room needs JavaScript.<br>
+      <a href="alltime.html" style="color:#f2c14a">Open the record book</a></p>
     </div>
   </noscript>
 

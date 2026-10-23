@@ -1229,7 +1229,7 @@ body:not(#_) .pc-card-head h3 {
   letter-spacing: .08em;
   text-transform: uppercase;
 }
-body:not(#_) :is(.schedule-heading, .pc-card-head) > span { color: var(--ink-3); font-size: 11px; font-weight: 500; }
+body:not(#_) .schedule-heading > span { color: var(--ink-3); font-size: 11px; font-weight: 500; }
 
 /* white cards on a hairline */
 body:not(#_) :is(.drawer-body .schedule-list, .drawer-body .roster-list, .drawer-body .roster-help, .pc-card, .pc-tile) {
