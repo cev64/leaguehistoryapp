@@ -431,20 +431,9 @@ private struct PrivatePanel: View {
                         .buttonStyle(Felt(.automatic))
                         .font(.footnote.weight(.semibold))
                 }
-                Text(fine)
-                    .font(.caption)
-                    .foregroundStyle(Theme.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(16)
-    }
-
-    private var fine: AttributedString {
-        let text = finder.accountsAvailable
-            ? "Pigskin Pantheon never sees your ESPN password. It keeps two keys (espn_s2 and SWID) on this device, and encrypted on your account if you save them there, only to read your leagues through our relay to ESPN. *Forget* removes them."
-            : "Pigskin Pantheon never sees your ESPN password. It keeps two keys (espn_s2 and SWID) on this device, only to read your leagues through our relay to ESPN. *Forget* removes them."
-        return (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 
     /// Nothing connected yet: where to keep the keys, and the button.

@@ -1677,7 +1677,6 @@
     }
     .espn-cookie-fields input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(23, 105, 224, .14); }
     .espn-cookie-fields .signin-go { height: 40px; padding: 0 16px; }
-    .espn-fine { font-size: 11.5px; }
 
     /* The way into a private league: a row of its own under the ESPN box,
        not a link at the end of a sentence. */
@@ -2076,7 +2075,6 @@
                   <button type="button" class="espn-add" id="espnAddAnother">+ Add another ESPN account</button>
                 </div>
                 <p id="espnSavedHint" hidden></p>
-                <p class="espn-fine" id="espnFine"></p>
                 <p id="espnNoRelay" hidden>Private ESPN leagues can't open here yet.</p>
               </div>
             </form>
@@ -2407,17 +2405,10 @@
         drawAccountRows();
         const someLocalOnly = connectedAccounts.some((a) => !a.account);
         const hint = $("espnSavedHint");
-        hint.hidden = !saved || !keys.available();
-        hint.innerHTML = !someLocalOnly
-          ? "They open on any device you sign in on."
-          : keys.signedIn()
-            ? "Save them to your account to open them on your phone too."
-            : `<a href="#" id="espnSignIn">Sign in</a> to open them on your phone too.`;
-        const fine = $("espnFine");
-        fine.hidden = !relay || (connecting && touch);
-        fine.innerHTML = keys.available()
-          ? "We never see your ESPN password. We keep only two ESPN keys (espn_s2, SWID), in this browser and, if you choose, on your account (encrypted), to read your leagues. <em>Forget</em> removes them."
-          : "We never see your ESPN password. We keep only two ESPN keys (espn_s2, SWID), in this browser, to read your leagues. <em>Forget</em> removes them.";
+        // Only a way to put keys kept in this browser on the account; the
+        // rows carry Save and Forget, and the privacy policy says the rest.
+        hint.hidden = !saved || !keys.available() || !someLocalOnly || keys.signedIn();
+        hint.innerHTML = `<a href="#" id="espnSignIn">Sign in</a> to save them to your account`;
       }
       // A computer: the Connect button with the extension here, where to add
       // it without (Edge and the rest add Chrome's), and Safari's note.
@@ -2487,7 +2478,7 @@
             : '<b class="is-refused">ESPN signed you out.</b> ';
           return `<li class="espn-account">
             <div><strong>${esc(title)}</strong>
-              <span>${signedOut}Saved ${where} · …${esc(a.swid.slice(-6, -1))}</span></div>
+              <span>${signedOut}Saved ${where}</span></div>
             <div class="espn-account-actions">
               ${refused && !touch && again !== a.swid ? `<button type="button" data-reconnect="${esc(a.swid)}">Connect again</button>` : ""}
               ${a.local && !a.account && keys.signedIn() ? `<button type="button" data-to-account="${esc(a.swid)}">Save to my account</button>` : ""}
@@ -2546,7 +2537,7 @@
             : refusedSwids.length
               ? (touchOnly()
                 ? "ESPN signed you out. Connect again in the app or on a computer."
-                : "ESPN signed you out. Connect again on the ESPN tab.")
+                : "ESPN signed you out.")
               : "No football leagues on this ESPN account. Open one by its ID on the ESPN tab.",
         });
       }

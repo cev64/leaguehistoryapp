@@ -362,13 +362,6 @@ struct EspnSignInSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Text("Pigskin Pantheon never sees your password; it keeps only the two keys ESPN uses to open your leagues.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
                 ProgressView(value: model?.progress ?? 0)
                     .progressViewStyle(.linear)
                     .opacity(model?.loading ?? true ? 1 : 0)

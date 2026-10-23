@@ -262,8 +262,6 @@ private struct AccountPanel: View {
             .disabled(finder.connecting)
         } header: {
             Text("ESPN accounts")
-        } footer: {
-            Text("Keys saved to your account are encrypted and only used to read your leagues.")
         }
     }
 

@@ -351,9 +351,6 @@ final class FinderModel {
             submitEspn(app: app)
             return true
         }
-        if answer.accountError == nil {
-            espnNote = .message("✓ ESPN connected.")
-        }
         return true
     }
 
@@ -411,9 +408,7 @@ final class FinderModel {
     }
 
     func detail(for row: EspnAccount) -> String {
-        let place = row.local && row.account ? "This device and your account" : row.account ? "Your account" : "This device"
-        let id = row.swid.count > 6 ? String(row.swid.dropLast().suffix(5)) : row.swid
-        return "\(place) · ESPN id …\(id)"
+        row.local && row.account ? "This device and your account" : row.account ? "Your account" : "This device"
     }
 
     // MARK: ESPN: the member's leagues
@@ -458,7 +453,7 @@ final class FinderModel {
             withAnimation(.smooth) {
                 espnLeagues = list.leagues
                 espnListNote = signedOut
-                    ? "ESPN signed you out. Sign in again on the ESPN tab."
+                    ? "ESPN signed you out."
                     : list.leagues.isEmpty
                     ? "No football leagues on your ESPN account."
                     : nil
