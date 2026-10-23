@@ -31,7 +31,7 @@ struct ResultsPanel: View {
             WeekGamesCard(store: store, info: info, season: season, payload: payload)
         } else {
             EmptyCard(title: "No games in Week \(payload.week)",
-                      detail: "\(info.source) has no matchups for this league this week.",
+                      detail: "\(info.source) has no matchups this week.",
                       symbol: "calendar.badge.exclamationmark")
         }
     }
@@ -126,7 +126,12 @@ struct ScenarioCard: View {
 
     var body: some View {
         Card {
-            CardHead(title: "What's at stake · Week \(scenarios.week)", symbol: CardIcon.shield, meta: "Playoff scenarios")
+            CardHead(title: "What's at stake · Week \(scenarios.week)", symbol: CardIcon.shield)
+                .overlay(alignment: .trailing) {
+                    InfoTip(label: "How scenarios are listed",
+                            text: "Only results that settle it outright. A tie on record goes to points for\(median ? " and the median game" : ""), so a team can also get in on points.")
+                        .padding(.trailing, 8)
+                }
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(scenarios.rows, id: \.self) { row in
                     if let team = season.team(row.id) {
@@ -141,13 +146,9 @@ struct ScenarioCard: View {
                         }
                         .padding(.vertical, 10)
                         .padding(.horizontal, 14)
-                        Divider().overlay(Theme.line)
+                        if row != scenarios.rows.last { Divider().overlay(Theme.line) }
                     }
                 }
-                Text("Only results that settle it outright are listed. A tie on record goes to points for\(median ? ", and the median game is still to be played," : ",") which can't be known in advance, so a team can also get in on points.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.ink3)
-                    .padding(14)
             }
         }
     }
@@ -183,7 +184,7 @@ private struct WeekNotes: View {
                 Button {
                     withAnimation { store.view = "panel-recap" }
                 } label: {
-                    Label("Read the week \(week) recap", systemImage: "text.bubble")
+                    Label("Week \(week) recap", systemImage: "text.bubble")
                         .font(.subheadline.weight(.semibold))
                 }
                 .buttonStyle(.bordered)
@@ -232,8 +233,8 @@ private struct SchedulePanel: View {
                 if weeks.isEmpty {
                     EmptyCard(title: season.unplayed == true ? "This season wasn't played" : "No schedule yet",
                               detail: season.unplayed == true
-                                ? "\(info.source) closed it before any matchups were scored, so there is nothing to show."
-                                : "\(info.source) draws the season's matchups once the league has its teams. They will appear here as soon as it does.",
+                                ? "\(info.source) closed it before any games were scored."
+                                : "\(info.source) hasn't drawn the matchups yet.",
                               symbol: "calendar")
                 } else {
                     Card {

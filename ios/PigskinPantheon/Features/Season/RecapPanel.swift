@@ -30,7 +30,7 @@ struct RecapPanel: View {
                     .padding(.vertical, 8)
                 }
             } else {
-                LoadingCard(title: "Writing the week \(week) recap", detail: "Reading every lineup and every move…")
+                LoadingCard(title: "Writing the week \(week) recap")
             }
         }
         .task(id: "\(season.year)-\(week)") { await load() }
@@ -79,7 +79,7 @@ private struct RecapContent: View {
             RecapPlayersCard(players: players)
         }
         if !recap.office.isEmpty {
-            RecapOfficeCard(items: recap.office, week: recap.week, season: season)
+            RecapOfficeCard(items: recap.office, season: season)
         }
         if let race = recap.race {
             RecapRaceCard(race: race, season: season)
@@ -202,14 +202,12 @@ private struct RecapLead: View {
                 Button {
                     weekShare.make(store: session.clubhouse, season: season, week: recap.week)
                 } label: {
-                    Label("The Week Card", systemImage: "photo.on.rectangle.angled")
-                    Text("Week \(recap.week) in one picture, for the group chat")
+                    Label("Week Card", systemImage: "photo.on.rectangle.angled")
                 }
                 Button {
                     share()
                 } label: {
-                    Label("The Recap Story", systemImage: "text.bubble")
-                    Text("The headline, every game and the numbers")
+                    Label("Recap Story", systemImage: "text.bubble")
                 }
             } label: {
                 label
@@ -340,7 +338,12 @@ private struct RecapPowerCard: View {
 
     var body: some View {
         Card {
-            CardHead(title: "Power rankings", symbol: CardIcon.standings, meta: power.meta)
+            CardHead(title: "Power rankings", symbol: CardIcon.standings)
+                .overlay(alignment: .trailing) {
+                    InfoTip(label: "How the power rankings are figured",
+                            text: "Ranked on all-play record (every team against every other team's score, every week), the actual record, the last three weeks and points per game.")
+                        .padding(.trailing, 8)
+                }
             HStack(spacing: compact ? 6 : 8) {
                 Text("#").frame(width: compact ? 20 : 26)
                 Text("").frame(width: compact ? 28 : 34)
@@ -410,7 +413,7 @@ private struct RecapNumbersCard: View {
 
     var body: some View {
         Card {
-            CardHead(title: "By the numbers", symbol: CardIcon.notes, meta: "All-play and luck")
+            CardHead(title: "By the numbers", symbol: CardIcon.notes)
             Group {
                 if sizeClass == .regular {
                     AdaptiveGrid(minWidth: 150, spacing: 10) { content }
@@ -437,7 +440,7 @@ private struct RecapPlayersCard: View {
 
     var body: some View {
         Card {
-            CardHead(title: "Players of the week", symbol: CardIcon.notes, meta: "Starters only")
+            CardHead(title: "Players of the week", symbol: CardIcon.notes)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Player of the week")
                     .font(.system(size: 10.5, weight: .heavy)).tracking(0.7).textCase(.uppercase)
@@ -477,12 +480,11 @@ private struct RecapPlayersCard: View {
 
 private struct RecapOfficeCard: View {
     let items: [WeekRecap.OfficeItem]
-    let week: Int
     let season: Season
 
     var body: some View {
         Card {
-            CardHead(title: "Front office", symbol: CardIcon.document, meta: "Week \(week) moves")
+            CardHead(title: "Front office", symbol: CardIcon.document)
             ForEach(Array(items.enumerated()), id: \.offset) { i, item in
                 HStack(alignment: .top, spacing: 10) {
                     RecapTag(text: item.tag, tone: item.tone)
@@ -607,7 +609,7 @@ private struct RecapNextCard: View {
 
     var body: some View {
         Card {
-            CardHead(title: next.title, symbol: CardIcon.versus, meta: "Game of the week first")
+            CardHead(title: next.title, symbol: CardIcon.versus)
             if let g = next.gotw {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Game of the week")

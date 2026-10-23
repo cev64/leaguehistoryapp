@@ -162,7 +162,7 @@ async function boot() {
   }
   if (!data) return;
   if (!data.seasons.length) {
-    fail(`The trophy room opens once the league has finished a season on ${window.League.sourceName()}. Until then, the season page has everything so far.`);
+    fail("The trophy room opens once the league finishes a season.");
     if (dom.loaderExit) { dom.loaderExit.href = window.League.url("season"); dom.loaderExit.textContent = "← Back to the season"; }
     return;
   }
@@ -802,7 +802,7 @@ function buildHud() {
 
   const { summary } = hall;
   dom.summary.textContent =
-    `${summary.titles} titles · ${summary.managers} managers · ${summary.seasons} seasons on record · ${summary.games} games played`;
+    `${summary.titles} titles · ${summary.managers} managers · ${summary.seasons} seasons · ${summary.games} games`;
 
   dom.wings.addEventListener("click", (event) => {
     const button = event.target.closest("[data-wing]");
@@ -969,8 +969,8 @@ function enterHall() {
   // gesture. Set once on the way in: the hall is not re-entered on a rotation,
   // and a hint that rewrote itself mid-swipe would be its own distraction.
   if (isUpright()) {
-    dom.hint.textContent = "Swipe up to walk the hall · tap a trophy to inspect it";
-    dom.lockerHint.textContent = "Tap anything on the wall to see it up close";
+    dom.hint.textContent = "Swipe up to walk · tap a trophy to inspect";
+    dom.lockerHint.textContent = "Tap anything to inspect";
   }
   setTimeout(() => dom.hint.classList.add("show"), 900);
   setTimeout(() => dom.hint.classList.remove("show"), 6500);

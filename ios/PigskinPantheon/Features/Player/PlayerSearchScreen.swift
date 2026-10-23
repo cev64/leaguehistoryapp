@@ -35,7 +35,7 @@ struct PlayerSearchScreen: View {
             if trimmed.isEmpty {
                 DemoBanner()
                 if !recents.isEmpty {
-                    PCHitSection(title: "Recently viewed", symbol: "clock.arrow.circlepath", meta: nil, hits: recents) { hit in
+                    PCHitSection(title: "Recently viewed", symbol: "clock.arrow.circlepath", hits: recents) { hit in
                         Button(role: .destructive) {
                             PCRecents.remove(hit.id, league: session.id)
                             withAnimation { recents.removeAll { $0.id == hit.id } }
@@ -45,7 +45,7 @@ struct PlayerSearchScreen: View {
                     }
                 }
                 if let popular {
-                    PCHitSection(title: "Most started", symbol: "star", meta: "All seasons", hits: popular)
+                    PCHitSection(title: "Most started", symbol: "star", hits: popular)
                 } else if let failed {
                     EmptyCard(title: "Players couldn't be loaded", detail: failed, symbol: "exclamationmark.triangle")
                 } else {
@@ -56,15 +56,11 @@ struct PlayerSearchScreen: View {
             } else if let hits {
                 if hits.isEmpty {
                     Card {
-                        ContentUnavailableView {
-                            Label("No results", systemImage: "magnifyingglass")
-                        } description: {
-                            Text("No one by that name has played in this league.")
-                        }
-                        .padding(.vertical, 8)
+                        ContentUnavailableView("No player by that name", systemImage: "magnifyingglass")
+                            .padding(.vertical, 8)
                     }
                 } else {
-                    PCHitSection(title: "Players", symbol: "person.2", meta: Fmt.plural(hits.count, "match", "matches"), hits: hits)
+                    PCHitSection(title: "Players", symbol: "person.2", hits: hits)
                 }
             } else {
                 LoadingCard(title: "Searching…")
@@ -72,7 +68,7 @@ struct PlayerSearchScreen: View {
         }
         .animation(.smooth(duration: 0.2), value: hits)
         .navigationTitle("Players")
-        .searchable(text: $query, prompt: "Search any player")
+        .searchable(text: $query, prompt: "Search players")
         .autocorrectionDisabled()
         .textInputAutocapitalization(.words)
         .onSubmit(of: .search) {
@@ -131,14 +127,13 @@ private struct PCHitSection<Menu: View>: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     let title: String
     let symbol: String
-    let meta: String?
     let hits: [PlayerHit]
     @ViewBuilder var menu: (PlayerHit) -> Menu
 
     var body: some View {
         let columns = sizeClass == .regular ? 2 : 1
         Card {
-            CardHead(title: title, symbol: symbol, meta: meta)
+            CardHead(title: title, symbol: symbol)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0, alignment: .top), count: columns), spacing: 0) {
                 ForEach(Array(hits.enumerated()), id: \.element.id) { i, hit in
                     NavigationLink(value: LeagueRoute.player(id: hit.id)) {
@@ -157,8 +152,8 @@ private struct PCHitSection<Menu: View>: View {
 }
 
 extension PCHitSection where Menu == EmptyView {
-    init(title: String, symbol: String, meta: String?, hits: [PlayerHit]) {
-        self.init(title: title, symbol: symbol, meta: meta, hits: hits) { _ in EmptyView() }
+    init(title: String, symbol: String, hits: [PlayerHit]) {
+        self.init(title: title, symbol: symbol, hits: hits) { _ in EmptyView() }
     }
 }
 

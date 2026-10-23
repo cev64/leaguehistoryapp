@@ -59,7 +59,6 @@ struct WeekRecap: Decodable {
     }
 
     struct Power: Decodable {
-        let meta: String
         let rows: [Row]
         let foot: String
         struct Row: Decodable, Hashable {
@@ -199,7 +198,6 @@ struct BoxScore: Decodable {
     let a: Side
     let b: Side
     let groups: [Group]
-    let foot: String
 
     struct Side: Decodable { let id: String; let score: Double }
     struct Group: Decodable, Identifiable {

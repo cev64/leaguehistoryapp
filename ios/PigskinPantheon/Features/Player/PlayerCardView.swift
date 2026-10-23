@@ -354,6 +354,7 @@ private struct PCTimelineCard: View {
     let card: PlayerCardData
     let wide: Bool
     @State private var picked: PlayerCardData.Cell?
+    @State private var legend = false
 
     private var yearWidth: CGFloat { wide ? 38 : 32 }
     private var whoWidth: CGFloat { wide ? 72 : 52 }
@@ -361,7 +362,7 @@ private struct PCTimelineCard: View {
 
     var body: some View {
         Card {
-            CardHead(title: "Ownership timeline", meta: "One cell per week")
+            head
             VStack(spacing: 0) {
                 // Week numbers over the strips, on the same grid.
                 HStack(spacing: wide ? 10 : 6) {
@@ -386,9 +387,31 @@ private struct PCTimelineCard: View {
                     seasonRow(row)
                 }
             }
-            key
+            if picked != nil || legend {
+                key.transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .sensoryFeedback(.selection, trigger: picked)
+        .animation(.smooth(duration: 0.2), value: legend)
+    }
+
+    private var head: some View {
+        HStack(spacing: 8) {
+            Text("Ownership timeline").displayStyle(20).foregroundStyle(Theme.ink)
+            Button {
+                legend.toggle()
+            } label: {
+                Image(systemName: legend ? "info.circle.fill" : "info.circle")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(legend ? Theme.accent : Theme.ink3)
+            }
+            .buttonStyle(Felt(.plain))
+            .accessibilityLabel("What the colours mean")
+            Spacer(minLength: 6)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
     }
 
     private func seasonRow(_ row: PlayerCardData.TimelineRow) -> some View {
@@ -457,11 +480,13 @@ private struct PCTimelineCard: View {
                     .foregroundStyle(Theme.ink)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            PCFlow(spacing: 14, lineSpacing: 4) {
-                PCKeyItem(text: "Started, in that team's colour") { RoundedRectangle(cornerRadius: 3).fill(lead) }
-                PCKeyItem(text: "Bench") { RoundedRectangle(cornerRadius: 3).strokeBorder(lead, lineWidth: 1.5) }
-                PCKeyItem(text: "Not on a roster") { RoundedRectangle(cornerRadius: 3).fill(Theme.surface3) }
-                PCKeyItem(text: "Not played yet") { RoundedRectangle(cornerRadius: 3).strokeBorder(Theme.line2, lineWidth: 1) }
+            if legend {
+                PCFlow(spacing: 14, lineSpacing: 4) {
+                    PCKeyItem(text: "Started") { RoundedRectangle(cornerRadius: 3).fill(lead) }
+                    PCKeyItem(text: "Bench") { RoundedRectangle(cornerRadius: 3).strokeBorder(lead, lineWidth: 1.5) }
+                    PCKeyItem(text: "Off roster") { RoundedRectangle(cornerRadius: 3).fill(Theme.surface3) }
+                    PCKeyItem(text: "Not played yet") { RoundedRectangle(cornerRadius: 3).strokeBorder(Theme.line2, lineWidth: 1) }
+                }
             }
         }
         .padding(.horizontal, wide ? 14 : 10)
@@ -601,7 +626,7 @@ private struct PCTopCard: View {
 
     var body: some View {
         Card {
-            CardHead(title: "Top performances", meta: "As a starter")
+            CardHead(title: "Top performances")
             if card.top.isEmpty {
                 Text("Never started.")
                     .font(.subheadline)
@@ -751,18 +776,18 @@ private struct PCGameLogCard: View {
     private var helpList: some View {
         VStack(alignment: .leading, spacing: 6) {
             helpLine(PCPtsChip(kind: .start, text: "24.00", color: lead, fill: 0.85, small: true),
-                     "Started: filled in his team's colour, darker for a bigger score.")
+                     "Started, darker for a bigger score")
             helpLine(PCPtsChip(kind: .start, text: "6.00", color: lead, fill: 0.3, small: true),
-                     "A lighter fill is a quieter game.")
+                     "Quieter start")
             helpLine(PCPtsChip(kind: .bench, text: "12.00", color: lead, fill: 0, small: true),
-                     "Outlined: on the bench or IR, so the points did not count.")
+                     "Bench or IR (didn't count)")
             helpLine(PCPtsChip(kind: .off, text: "—", color: nil, fill: 0, small: true),
-                     "Not on a roster that week, or his team had no game (a bye or knocked out).")
+                     "Off a roster, or no game")
             helpLine(Text("15\(Text("P").font(.system(size: 7, weight: .heavy)).baselineOffset(4))")
                         .font(.system(size: 10, weight: .heavy))
                         .foregroundStyle(Color(hex: 0xB8733F))
                         .frame(minWidth: 44, alignment: .leading),
-                     "A P marks a playoff week.")
+                     "Playoff week")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

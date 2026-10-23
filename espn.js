@@ -241,13 +241,13 @@
   function privateError(n) {
     const tried = PROXY && (savedAuth() || accountSaved === true);
     const err = new Error(!PROXY
-      ? "This ESPN league is private, and this site isn't set up to open private ESPN leagues yet."
+      ? "This ESPN league is private, and private ESPN leagues can't open here yet."
       : inApp()
         ? (tried ? "ESPN signed you out. Sign in with ESPN again to open this league." : "This ESPN league is private. Sign in with ESPN to open it.")
         : touchOnly()
           ? (tried
-            ? "ESPN signed you out. Connect ESPN again once in the Pigskin Pantheon app or on a computer, signed in to your account, and it opens here too."
-            : "This ESPN league is private. Connect ESPN once in the Pigskin Pantheon app or on a computer, signed in to your account, and it opens here too.")
+            ? "ESPN signed you out. Connect ESPN again in the app or on a computer, signed in to your account."
+            : "This ESPN league is private. Connect ESPN in the app or on a computer, signed in to your account.")
           : tried
             ? "ESPN signed you out. Connect ESPN again on the front page."
             : "This ESPN league is private. Connect ESPN on the front page to open it.");

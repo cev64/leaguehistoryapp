@@ -3,8 +3,7 @@ import SwiftUI
 /// The league's whole record (alltime.html): the hero's "Through 2026 ·
 /// Week 8 / All-Time", the Champions and Last Places tables, and the
 /// all-time standings with their sort menu. Every manager links to their
-/// profile; the "Search any player" field finds anyone who has played in
-/// the league.
+/// profile; the search field finds anyone who has played in the league.
 struct RecordBookScreen: View {
     @Environment(LeagueSession.self) private var session
 
@@ -22,21 +21,18 @@ struct RecordBookScreen: View {
                 EmptyCard(title: "This league couldn't be loaded", detail: error, symbol: "exclamationmark.triangle")
             } else if let book {
                 RecordBookHero(badge: book.badge)
-                PageTitle(text: "Record Book")
-                    .padding(.top, 4)
                 PairRow(minWidth: 320) {
                     BookTitlesCard(title: "Champions", symbol: "trophy", countHeader: "Titles", rows: book.champions, book: book)
                     BookTitlesCard(title: "Last Places", symbol: CardIcon.toilet, countHeader: "Last", rows: book.lastPlaces, book: book)
                 }
                 BookAllTimeStandingsCard(book: book, sort: $sort)
             } else {
-                LoadingCard(title: "Loading the record book",
-                            detail: "Reading every season from \(session.summary?.source ?? "Sleeper")…")
+                LoadingCard(title: "Loading the record book")
             }
         }
         .navigationTitle("Record Book")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search any player")
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search players")
         .autocorrectionDisabled()
         .textInputAutocapitalization(.words)
         .leagueToolbar()
@@ -302,7 +298,7 @@ private struct BookAllTimeStandingsCard: View {
 
 // MARK: Player search
 
-/// The "Search any player" results: names containing every word typed,
+/// The player search's results: names containing every word typed,
 /// the most-started first (player-card.js `search`), each opening the
 /// player's card.
 private struct BookSearchResults: View {
@@ -326,7 +322,7 @@ private struct BookSearchResults: View {
                 Text("The players couldn't be loaded.")
                     .font(.subheadline).foregroundStyle(Theme.ink2).padding(14)
             } else if hits.isEmpty {
-                Text("No one by that name has played in this league.")
+                Text("No players found.")
                     .font(.subheadline).foregroundStyle(Theme.ink2).padding(14)
             } else {
                 ForEach(Array(hits.enumerated()), id: \.element.id) { index, hit in

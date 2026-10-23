@@ -20,7 +20,7 @@ struct FrontOfficeScreen: View {
             } else {
                 PageScroll {
                     DemoBanner()
-                    LoadingCard(title: "Opening the front office", detail: "Reading every season from \(session.summary?.source ?? "Sleeper")…")
+                    LoadingCard(title: "Opening the front office")
                 }
                 .navigationTitle("Front Office")
                 .leagueToolbar()
@@ -39,7 +39,6 @@ struct FrontOfficeScreen: View {
 
 private struct OfficeContent: View {
     @Environment(LeagueSession.self) private var session
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @Bindable var store: OfficeStore
     @State private var pushed: OfficePush?
     @State private var scroll = ScrollMinimizer()
@@ -47,9 +46,6 @@ private struct OfficeContent: View {
     var body: some View {
         PageScroll(onScroll: scroll.update) {
             DemoBanner()
-            if sizeClass == .regular {
-                OfficeIntro()
-            }
             panelBody
         }
         .navigationTitle(store.title)
@@ -83,11 +79,11 @@ private struct OfficeContent: View {
 
     @ViewBuilder private var panelBody: some View {
         if let nav = store.nav, !nav.hasGames {
-            OfficeEmpty(text: "No games have been played in this league yet.")
+            OfficeEmpty(text: "No games played yet.")
         } else if let error = store.error {
             OfficeEmpty(text: error)
         } else if store.showsSpinner || store.panel == nil {
-            LoadingCard(title: store.loadingTitle, detail: "Working through every week…")
+            LoadingCard(title: store.loadingTitle)
         } else if let panel = store.panel {
             OfficePanelView(panel: panel, store: store)
                 .id("\(panel.tab)/\(panel.year)")
@@ -96,20 +92,6 @@ private struct OfficeContent: View {
                 .animation(.smooth(duration: 0.2), value: store.busy)
                 .transition(.opacity)
         }
-    }
-}
-
-/// The hero beside the page on the site's desktop: what the front office is.
-private struct OfficeIntro: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Front Office").displayStyle(30).foregroundStyle(Theme.ink)
-            Text("Who sets the best lineups, who wins their trades, who works the waiver wire.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.ink2)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 2)
     }
 }
 

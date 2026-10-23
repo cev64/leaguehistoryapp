@@ -18,7 +18,6 @@ struct BracketData: Decodable {
             let text: String
         }
         let title: String
-        let meta: String
         let lines: [Line]
     }
 
@@ -124,7 +123,7 @@ struct PlayoffPicturePanel: View {
             ?? ("Bridge.season.bracket(year, week, view)", arguments)
         VStack(alignment: .leading, spacing: 0) {
             if let whatIf {
-                WhatIfCard(season: season, week: payload.week, moves: "brackets", whatIf: whatIf)
+                WhatIfCard(season: season, week: payload.week, whatIf: whatIf)
             }
             // A pick redraws both brackets in place: the teams cross-fade
             // into their new slots rather than the panel reloading.
@@ -194,7 +193,7 @@ private struct FormatCard: View {
 
     var body: some View {
         Card {
-            CardHead(title: format.title, symbol: CardIcon.rulebook, meta: format.meta)
+            CardHead(title: format.title, symbol: CardIcon.rulebook)
             AdaptiveGrid(minWidth: 200, spacing: 10) {
                 ForEach(format.lines, id: \.self) { line in
                     VStack(alignment: .leading, spacing: 4) {

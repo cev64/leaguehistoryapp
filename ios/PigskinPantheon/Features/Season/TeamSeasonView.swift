@@ -479,18 +479,17 @@ private struct TeamStripHelp: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("A strip with one cell per week:").font(.subheadline.weight(.semibold))
             item(TeamStripCell(cell: .init(w: 0, kind: "start", fill: 0.8, pts: nil, club: nil, title: ""), tint: tint),
-                 "Filled in the team's color: he started, and a darker cell means he scored more.")
+                 "Started. Darker means more points.")
             item(TeamStripCell(cell: .init(w: 0, kind: "bench", fill: nil, pts: nil, club: nil, title: ""), tint: tint),
-                 "Outlined: he was on the bench.")
+                 "Bench")
             item(TeamStripCell(cell: .init(w: 0, kind: "empty", fill: nil, pts: nil, club: nil, title: ""), tint: tint),
-                 "Empty grey: he wasn't on the team.")
+                 "Not on the team")
             item(RoundedRectangle(cornerRadius: 3).strokeBorder(Theme.line2, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])),
-                 "Playoff weeks sit slightly apart. A week the team had no game, like a playoff bye, is left blank.")
+                 "Playoff weeks sit apart. Blank: no game.")
             item(TeamStripCell(cell: .init(w: 0, kind: "future", fill: nil, pts: nil, club: nil, title: ""), tint: tint),
-                 "Faintly outlined: a week not played yet.")
-            Text("GS is games started; Pts is his points as a starter.")
+                 "Not played yet")
+            Text("GS games started · Pts points as a starter")
                 .font(.caption).foregroundStyle(Theme.ink3)
         }
         .font(.footnote)

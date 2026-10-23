@@ -4,7 +4,7 @@ import SwiftUI
 // card with a tile per game. On the pick week the tiles are the league's
 // pick'em too (as on the site): a tap on a team picks it to win, again
 // clears it, each game has its Lock of the Week, and a pick'em bar under the
-// title carries who has picked, how to play, the save and the Leaderboard.
+// title carries who has picked, the Lock's rule, the save and the Leaderboard.
 // Once the week has locked, each team shows how many picked it. Every tile
 // keeps its way into the rivalry preview ("Rivalry & stakes").
 //
@@ -120,7 +120,7 @@ struct WeekGamesCard: View {
             store.scrollToTop += 1
         } label: {
             // The arrow keeps to the last word where the line wraps.
-            Text("What if? Play out the week and watch the standings move\u{00A0}\(Image(systemName: "arrow.right"))")
+            Text("What if? Pick the winners\u{00A0}\(Image(systemName: "arrow.right"))")
                 .multilineTextAlignment(.center)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.accentInk)
@@ -137,8 +137,8 @@ struct WeekGamesCard: View {
 // MARK: - The pick'em bar
 
 /// Under the card's title: "Pick'em · 6 of 10 have picked" and the
-/// Leaderboard; then how to play with the save on the right, or what's in
-/// the way of playing (an account, a team), or that the week has locked.
+/// Leaderboard; then the Lock's rule with the save on the right, or the
+/// way in (sign in, choose a team), or that the week has locked.
 private struct PickemBar: View {
     @Environment(LeagueSession.self) private var session
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -158,7 +158,7 @@ private struct PickemBar: View {
             if data.open {
                 if store.isMember {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text("Tap who wins each game. Your \(Text("Lock").fontWeight(.semibold)) counts double.")
+                        Text("Your \(Text("Lock").fontWeight(.semibold)) counts double.")
                             .font(.footnote)
                             .foregroundStyle(Theme.ink2)
                             .fixedSize(horizontal: false, vertical: true)
@@ -169,7 +169,7 @@ private struct PickemBar: View {
                     prompt
                 }
                 if let soon = data.deadlineDate, soon.timeIntervalSinceNow < 86_400, soon.timeIntervalSinceNow > 0 {
-                    Label { Text("Locks \(Text(soon, style: .relative)) from now") } icon: { Image(systemName: "clock") }
+                    Label { Text("Locks in \(Text(soon, style: .relative))") } icon: { Image(systemName: "clock") }
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Theme.red)
                 }
@@ -198,18 +198,13 @@ private struct PickemBar: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// What stands between the visitor and their picks, in a line.
+    /// What stands between the visitor and their picks: a button.
     @ViewBuilder private var prompt: some View {
         switch store.access {
         case .signedOut:
-            promptRow(symbol: "person.crop.circle.badge.plus", text: "Sign in to play pick'em", button: "Sign in") {
-                session.sheet = .clubhouseSignIn
-            }
+            promptButton("Sign in to play") { session.sheet = .clubhouseSignIn }
         case .unclaimed:
-            promptRow(symbol: "person.fill.questionmark",
-                      text: store.isDemo ? "Choose a team to play pick'em" : "Claim your team to pick", button: "Choose") {
-                session.sheet = .claim
-            }
+            promptButton(store.isDemo ? "Choose a team" : "Claim your team") { session.sheet = .claim }
         case .unavailable(let message):
             Label(message, systemImage: "exclamationmark.triangle")
                 .font(.footnote)
@@ -220,27 +215,13 @@ private struct PickemBar: View {
         }
     }
 
-    private func promptRow(symbol: String, text: String, button: String, _ tap: @escaping () -> Void) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: symbol)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.accent)
-                .accessibilityHidden(true)
-            Text(text)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(Theme.ink)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Button(button, action: tap)
-                .font(.footnote.weight(.bold))
-                .buttonStyle(Felt(.borderedProminent))
-                .buttonBorderShape(.capsule)
-                .controlSize(.small)
-                .fixedSize()
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(Theme.accentSoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    private func promptButton(_ title: String, _ tap: @escaping () -> Void) -> some View {
+        Button(title, action: tap)
+            .font(.footnote.weight(.bold))
+            .buttonStyle(Felt(.borderedProminent))
+            .buttonBorderShape(.capsule)
+            .controlSize(.small)
+            .fixedSize()
     }
 
     private var leaderboard: some View {

@@ -49,7 +49,7 @@ struct ChatScreen: View {
                 if unlocked {
                     conversation
                 } else {
-                    ChatLockedView(name: name, signedIn: app.account.isSignedIn) {
+                    ChatLockedView(signedIn: app.account.isSignedIn) {
                         signingIn = true
                     }
                 }
@@ -78,7 +78,7 @@ struct ChatScreen: View {
         .alert("Couldn't open Mail", isPresented: $reportUnsent) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("The report is copied. Email it to \(Legal.supportEmail) and we'll take a look.")
+            Text("The report is copied. Email it to \(Legal.supportEmail).")
         }
         .presentationDetents([.medium, .large], selection: $detent)
         .presentationDragIndicator(.visible)
@@ -197,10 +197,10 @@ struct ChatScreen: View {
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
                 if chat.long {
-                    ChatNote(text: "This chat is getting long. Start a new one (↻ above) to keep going.")
+                    ChatNote(text: "This chat is getting long. Start a new one with ↻.")
                 }
                 if !consented, !chat.shown.isEmpty, !chat.busy {
-                    ChatNote(text: "AI sharing is off. Nothing more is sent until you allow it again.")
+                    ChatNote(text: "AI sharing is off.")
                 }
             }
             .animation(.snappy(duration: 0.35), value: chat.shown)
@@ -260,7 +260,7 @@ struct ChatScreen: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.trailing, 50)
             } else {
-                Text("Answers are AI-generated and can be wrong. Check the record book for anything that matters.")
+                Text("AI answers can be wrong.")
                     .font(.caption2)
                     .foregroundStyle(Theme.ink3)
                     .multilineTextAlignment(.center)
@@ -434,7 +434,7 @@ struct ChatMessageRow: View {
             HStack(alignment: .top, spacing: 9) {
                 ChatMark()
                     .padding(.top, 2)
-                Label("Reported — thanks. This answer is hidden.", systemImage: "flag.fill")
+                Label("Reported. Answer hidden.", systemImage: "flag.fill")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Theme.ink2)
                     .padding(.horizontal, 14)
@@ -574,8 +574,8 @@ struct ChatNote: View {
 
 // MARK: - Welcome
 
-/// Before the first question: the football in its orbit, what it knows,
-/// and four questions to start with.
+/// Before the first question: the football in its orbit and four
+/// questions to start with.
 struct ChatWelcome: View {
     let name: String
     let suggestions: [String]
@@ -590,12 +590,6 @@ struct ChatWelcome: View {
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
                 .padding(.top, 18)
-                .padding(.bottom, 6)
-            Text("Every season, game, trade, draft and box score in the league's history. Rivalries, records, who choked, who got fleeced.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.ink2)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 330)
                 .padding(.bottom, 18)
             VStack(spacing: 8) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { i, q in
@@ -666,12 +660,11 @@ struct ChatOrb: View {
 
 // MARK: - Signed out
 
-/// What someone without the chat sees: a glimpse of a conversation, what
-/// it does, and the way in. Signed out, that's signing in (the rest of the
+/// What someone without the chat sees: a glimpse of a conversation and
+/// the way in. Signed out, that's signing in (the rest of the
 /// app works without an account); signed in to an account the function
 /// won't answer, just that it isn't available.
 struct ChatLockedView: View {
-    let name: String
     let signedIn: Bool
     let signIn: () -> Void
 
@@ -735,53 +728,24 @@ struct ChatLockedView: View {
                     .displayStyle(26)
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)
-                Text("Ask the League isn't available for this account right now.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink2)
-                    .multilineTextAlignment(.center)
             } else {
-                Text("Sign in to use Ask the League")
+                Text("Sign in to ask")
                     .displayStyle(26)
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)
-                Text("Ask anything about \(name) and get the answer in seconds, straight from every season you've played.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink2)
-                    .multilineTextAlignment(.center)
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(features, id: \.self) { line in
-                        Label {
-                            Text(line).foregroundStyle(Theme.ink)
-                        } icon: {
-                            Image(systemName: "checkmark").fontWeight(.bold).foregroundStyle(Theme.green)
-                        }
-                        .font(.subheadline.weight(.medium))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 4)
                 Button(action: signIn) {
                     Text("Sign In").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(Felt(.glassProminent))
                 .controlSize(.large)
                 .tint(Theme.accent)
-                Text("Everything else in the app works without an account.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.ink3)
-                    .multilineTextAlignment(.center)
+                .padding(.top, 4)
             }
         }
         .padding(20)
         .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.line, lineWidth: 1))
         .shadow(color: .black.opacity(0.06), radius: 14, y: 6)
-    }
-
-    private var features: [String] {
-        ["Records, rivalries and head-to-head",
-         "Every trade, draft and waiver pickup",
-         "Box scores and player histories"]
     }
 }
 
@@ -823,16 +787,16 @@ struct ChatConsentSheet: View {
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
                 .padding(.top, 4)
-            Text("To answer, Ask the League sends the following to \(Legal.aiProviders), through Pigskin Pantheon's server:")
+            Text("Sent to \(Legal.aiProviders), through Pigskin Pantheon's server:")
                 .font(.subheadline)
                 .foregroundStyle(Theme.ink2)
                 .multilineTextAlignment(.center)
                 .padding(.top, 8)
 
             VStack(alignment: .leading, spacing: 12) {
-                item("text.bubble", "Your questions, and this chat so far")
-                item("list.bullet.rectangle", "A summary of \(name): manager and team names, every season's standings, scores and playoff results, records, head-to-heads and most-started players")
-                item("magnifyingglass", "Details the AI looks up as it answers: lineups and box scores, player histories, trades, waiver pickups and drafts")
+                item("text.bubble", "Your questions and this chat")
+                item("list.bullet.rectangle", "A summary of \(name): manager and team names, standings, scores, playoff results, records, head-to-heads and most-started players")
+                item("magnifyingglass", "What the AI looks up: lineups, box scores, player histories, trades, waiver pickups and drafts")
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -864,7 +828,7 @@ struct ChatConsentSheet: View {
             .controlSize(.large)
             .fontWeight(.semibold)
             .padding(.top, 18)
-            Text("You can turn this off any time from the ⋯ menu in Ask the League.")
+            Text("Turn it off any time in the ⋯ menu.")
                 .font(.caption)
                 .foregroundStyle(Theme.ink3)
                 .multilineTextAlignment(.center)

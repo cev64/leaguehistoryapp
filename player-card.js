@@ -282,7 +282,6 @@
     padding: 10px 14px; border-bottom: 1px solid rgba(7, 24, 39, .07);
   }
   .pc-card-head h3 { margin: 0; font-size: 13.5px; display: flex; align-items: center; gap: 7px; }
-  .pc-card-head > span { color: var(--pc-muted); font-size: 10px; }
 
   .pc-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 12px; align-items: start; }
 
@@ -532,7 +531,6 @@
     .pc-card { border-radius: 16px; }
     .pc-card-head { padding: 8px 10px; }
     .pc-card-head h3 { font-size: 12px; }
-    .pc-card-head > span { font-size: 9px; }
     .pc-cols { grid-template-columns: 1fr; gap: 8px; }
     .pc-tl-row { grid-template-columns: 30px minmax(0, 1fr) 52px; gap: 6px; padding: 6px 10px; }
     .pc-tl-year { font-size: 10.5px; }
@@ -933,12 +931,12 @@
           </section>
 
           <section class="pc-card">
-            <div class="pc-card-head"><h3>Ownership timeline</h3><span>One cell per week</span></div>
+            <div class="pc-card-head"><h3>Ownership timeline</h3></div>
             ${weekLabels}${timeline}
             <div class="pc-tl-key">
-              <span><i style="background:${lead ? lead.color : "#304f91"}"></i>Started, in that team's colour</span>
+              <span><i style="background:${lead ? lead.color : "#304f91"}"></i>Started</span>
               <span><i style="box-shadow: inset 0 0 0 1.5px ${lead ? lead.color : "#304f91"}"></i>Bench</span>
-              <span><i style="background:#f1f4f7"></i>Not on a roster</span>
+              <span><i style="background:#f1f4f7"></i>Off roster</span>
               <span><i style="box-shadow: inset 0 0 0 1px #d3dae2"></i>Not played yet</span>
             </div>
           </section>
@@ -951,7 +949,7 @@
               </div>
             </section>
             <section class="pc-card">
-              <div class="pc-card-head"><h3>Top performances</h3><span>As a starter</span></div>
+              <div class="pc-card-head"><h3 title="As a starter">Top performances</h3></div>
               ${topGames ? `<div class="pc-top">${topGames}</div>` : `<div class="pc-empty">Never started.</div>`}
             </section>
           </div>
@@ -968,11 +966,11 @@
             </div>
             <div class="pc-help" hidden style="--c:${lead ? lead.color : "#304f91"}">
               <ul>
-                <li><span class="pc-pts start" style="--fill:.85;--pi:#fff">24.00</span>Started: filled in his team's colour, darker for a bigger score.</li>
-                <li><span class="pc-pts start" style="--fill:.3;--pi:#0b1726">6.00</span>A lighter fill is a quieter game.</li>
-                <li><span class="pc-pts bench">12.00</span>Outlined: on the bench or IR, so the points did not count.</li>
-                <li><span class="pc-pts off">—</span>Not on a roster that week, or his team had no game (a bye or knocked out).</li>
-                <li><span class="pc-pts" style="min-width:0;padding:0;color:#b8733f;font-size:10px">15<sup>P</sup></span>A P marks a playoff week.</li>
+                <li><span class="pc-pts start" style="--fill:.85;--pi:#fff">24.00</span>Started, darker for a bigger score</li>
+                <li><span class="pc-pts start" style="--fill:.3;--pi:#0b1726">6.00</span>Quieter start</li>
+                <li><span class="pc-pts bench">12.00</span>Bench or IR (didn't count)</li>
+                <li><span class="pc-pts off">—</span>Off a roster, or no game</li>
+                <li><span class="pc-pts" style="min-width:0;padding:0;color:#b8733f;font-size:10px">15<sup>P</sup></span>Playoff week</li>
               </ul>
             </div>
             <div class="pc-log-wrap"></div>

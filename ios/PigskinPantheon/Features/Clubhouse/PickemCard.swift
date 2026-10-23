@@ -65,10 +65,6 @@ private struct PickemGradedCard: View {
             PickemWeekTable(season: season, data: data)
             Rectangle().fill(Theme.line).frame(height: 1)
             HStack {
-                Text(data.final ? "A right pick is a point, the Lock of the Week two." : "Graded as the games go final.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
                 Button {
                     session.sheet = .leaderboard
@@ -212,20 +208,21 @@ private struct PickemWeekTable: View {
 /// What stands between the member and the clubhouse: an account, or their team.
 struct ClubhouseGateBanner: View {
     @Environment(LeagueSession.self) private var session
-    /// "make your picks", "vote"
+    /// "vote", "play"
     let action: String
 
     var body: some View {
         let store = session.clubhouse
         switch store.access {
         case .signedOut:
-            banner(symbol: "person.crop.circle.badge.plus",
-                   text: "Sign in to \(action) with your league. Looking around never needs an account.",
-                   button: "Sign in") { session.sheet = .clubhouseSignIn }
+            Button("Sign in to \(action)") { session.sheet = .clubhouseSignIn }
+                .font(.footnote.weight(.bold))
+                .buttonStyle(Felt(.borderedProminent))
+                .buttonBorderShape(.capsule)
+                .controlSize(.small)
+                .fixedSize()
         case .unclaimed:
-            banner(symbol: "person.fill.questionmark",
-                   text: store.isDemo ? "Which team is yours? Choose any in the demo to \(action)." : "Which team is yours? Claim it to \(action).",
-                   button: "Choose") { session.sheet = .claim }
+            banner(symbol: "person.fill.questionmark", text: "Which team is yours?", button: "Choose") { session.sheet = .claim }
         case .unavailable(let message):
             Label(message, systemImage: "exclamationmark.triangle")
                 .font(.footnote)

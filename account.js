@@ -667,7 +667,7 @@
     closeMenu();
     // No plans for now: the only step up is an account.
     if (!PRICING) {
-      if (!state.user) openAuth("signup", { reason: "It's free: create an account and everything opens, the league AI included." });
+      if (!state.user) openAuth("signup");
       return;
     }
     if (!state.user) { openAuth("signup", { reason: "Create a free account first, then upgrade to Pro." }); return; }
@@ -766,19 +766,17 @@
       ? `<img src="${esc(league.avatar)}" alt="" width="56" height="56" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏈'}))">`
       : "<span>🏈</span>";
     const name = esc(league.name || "This league");
-    const proLine = `<b>Pro</b> · ${esc(PLANS.pro.price)}: unlimited leagues, the league AI, no ads. Or get it for your whole league: only ${money(LEAGUE.perMember)} per member for a year.`;
+    const proLine = "<b>Pro</b>: unlimited leagues, the league AI, no ads.";
     let title = "", copy = "", actions = "", foot = "";
 
     if (verdict.kind === "signed-out") {
       title = `Sign in to open ${name}`;
-      copy = PRICING
-        ? `Pigskin Pantheon is free with an account: one league of your choice, every season it has played. ${proLine}`
-        : "Pigskin Pantheon is free with an account: every season your league has played, the trophy room and the league AI.";
+      copy = PRICING ? `Free with an account: one league of your choice. ${proLine}` : "";
       actions = `<button class="acct-btn acct-btn-primary" data-act="signup">Create free account</button>
         <button class="acct-btn" data-act="signin">Sign in</button>`;
     } else if (verdict.kind === "free-first") {
       title = `Add ${name} to your account`;
-      copy = `Your free plan includes one league. Once it's added you can swap it for another once every ${SWAP_DAYS} days.`;
+      copy = `Your free plan holds one league, swappable every ${SWAP_DAYS} days.`;
       actions = `<button class="acct-btn acct-btn-primary" data-act="sync">Add this league</button>
         <button class="acct-btn" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>
         <button class="acct-btn" data-act="pass">Whole league · ${money(LEAGUE.perMember)}/member a year</button>`;
@@ -787,12 +785,12 @@
       const curName = esc((cur && cur.name) || "your league");
       title = `Your free league is ${curName}`;
       if (cur && canSwap(cur)) {
-        copy = `Free accounts hold one league. You can swap ${curName} for ${name} now; after that, the next swap opens ${fmtDate(Date.now() + SWAP_DAYS * DAY)}.`;
+        copy = `Free accounts hold one league. Swap now, and the next swap opens ${fmtDate(Date.now() + SWAP_DAYS * DAY)}.`;
         actions = `<button class="acct-btn acct-btn-primary" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>
           <button class="acct-btn" data-act="pass">Whole league · ${money(LEAGUE.perMember)}/member a year</button>
           <button class="acct-btn" data-act="swap">Swap to this league</button>`;
       } else {
-        copy = `Free accounts hold one league and can swap it once every ${SWAP_DAYS} days. Your next swap opens ${cur ? fmtDate(unlocksAt(cur)) : "soon"}. ${proLine}`;
+        copy = `Free accounts hold one league. Your next swap opens ${cur ? fmtDate(unlocksAt(cur)) : "soon"}. ${proLine}`;
         actions = `<button class="acct-btn acct-btn-primary" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>
           <button class="acct-btn" data-act="pass">Whole league · ${money(LEAGUE.perMember)}/member a year</button>`;
       }
@@ -806,7 +804,7 @@
     gateEl.innerHTML = `<div class="acct-gate-card">
       <div class="acct-gate-league">${avatar}</div>
       <h2 id="acctGateTitle">${title}</h2>
-      <p>${copy}</p>
+      ${copy ? `<p>${copy}</p>` : ""}
       <p class="acct-gate-error" role="alert"${gateError ? "" : " hidden"}>${esc(gateError)}</p>
       <div class="acct-gate-actions">${actions}</div>
       <div class="acct-gate-foot">${foot}<a class="acct-link" href="index.html">Choose another league</a></div>
@@ -964,7 +962,7 @@
       ${!PRICING ? ""
         : pro
         ? (seatOn() ? "" : '<button role="menuitem" class="acct-menu-item" data-act="manage">Manage subscription</button>')
-        : `<button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="upgrade"><span>Go Pro</span><span>${esc(PLANS.pro.price)} · AI chat · no ads</span></button>
+        : `<button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="upgrade"><span>Go Pro</span><span>${esc(PLANS.pro.price)}</span></button>
            <button role="menuitem" class="acct-menu-item acct-menu-upgrade" data-act="pass"><span>Whole league</span><span>${money(LEAGUE.perMember)}/member a year</span></button>`}
       <div class="acct-menu-sep"></div>
       <button role="menuitem" class="acct-menu-item" data-act="signout">Sign out</button>`;
@@ -1057,9 +1055,7 @@
         </form>`;
     } else if (view === "signup") {
       body = `<h2 id="acctModalTitle">Create your account</h2>
-        <p class="acct-reason">${esc(reason || (PRICING
-          ? `Free: one league with ads. Pro (${PLANS.pro.price}): unlimited leagues, the league AI, no ads. Or ${money(LEAGUE.perMember)} per member a year for your whole league.`
-          : "It's free: every league you add, every season it played, and the league AI."))}</p>
+        ${reason || PRICING ? `<p class="acct-reason">${esc(reason || `Free: one league. Pro (${PLANS.pro.price}): unlimited leagues, the league AI, no ads.`)}</p>` : ""}
         ${google}
         <form class="acct-form" novalidate>
           ${field("name", "Name", "text", 'autocomplete="nickname" maxlength="60" placeholder="What the league calls you"')}
@@ -1070,7 +1066,6 @@
         </form>`;
     } else if (view === "forgot") {
       body = `<h2 id="acctModalTitle">Reset your password</h2>
-        <p class="acct-reason">We'll email you a link to choose a new one.</p>
         <form class="acct-form" novalidate>
           ${field("email", "Email", "email", `autocomplete="email" required value="${esc(email)}"`)}
           <p class="acct-error" role="alert" hidden></p>
@@ -1118,7 +1113,7 @@
           toast("Signed in.");
         } else if (view === "signup") {
           const { confirm } = await backend.signUp(mail, pw, String(data.name || "").trim());
-          if (confirm) drawAuth("sent", { reason: `We sent a confirmation link to ${mail}. Follow it to finish creating your account.` });
+          if (confirm) drawAuth("sent", { reason: `We sent a confirmation link to ${mail}.` });
           else { closeAuth(); toast("Welcome! Your account is ready."); }
         } else if (view === "forgot") {
           await backend.resetPassword(mail);
@@ -1227,12 +1222,8 @@
 
         <section data-section="leagues">
           <h3>Your leagues <span>${!PRICING ? "" : pro ? "Unlimited" : `${Math.min(state.leagues.length, PLANS.free.leagues)} of ${PLANS.free.leagues}`}</span></h3>
-          ${state.leagues.length ? `<ul class="acct-leagues">${leagueRows}</ul>` : '<p class="acct-muted">No leagues yet. Open one from the front page and add it to your account.</p>'}
-          <p class="acct-muted">${!PRICING
-            ? "Add as many leagues as you like, and remove them any time."
-            : pro
-            ? "Pro opens every league you add, with no limits on adding or removing them."
-            : `Free accounts hold one league and can swap it once every ${SWAP_DAYS} days. A league's renewal each season stays the same league.`}</p>
+          ${state.leagues.length ? `<ul class="acct-leagues">${leagueRows}</ul>` : '<p class="acct-muted">No leagues yet.</p>'}
+          ${PRICING && !pro ? `<p class="acct-muted">Free accounts hold one league, swappable every ${SWAP_DAYS} days.</p>` : ""}
           <a class="acct-btn acct-btn-small" href="index.html">Find a league</a>
         </section>
 
@@ -1252,14 +1243,14 @@
               <ul><li>Ask the League AI</li><li>Unlimited leagues</li><li>Add or remove any time</li><li>No ads</li></ul>
             </div>
             <div class="acct-plan acct-plan-league${onPass ? " is-current" : ""}">
-              <div class="acct-plan-name">${esc(LEAGUE.name)}${onPass ? "<em>Current</em>" : "<em>Best value</em>"}</div>
+              <div class="acct-plan-name">${esc(LEAGUE.name)}${onPass ? "<em>Current</em>" : ""}</div>
               <div class="acct-plan-price">${money(LEAGUE.perMember)} <small>per member a year</small></div>
-              <ul><li>Pro for everyone in your league</li><li>One invite link to share</li><li>${money(LEAGUE.perMember * 10)} a year for a 10-team league, billed annually</li></ul>
+              <ul><li>Pro for everyone in your league</li><li>One invite link to share</li><li>Billed yearly</li></ul>
             </div>
           </div>
           ${passSeat ? `<p class="acct-muted">You're on Pro through <strong>${esc(passSeat.league_name || "your league")}</strong>'s ${esc(LEAGUE.name)}, from ${esc(passSeat.owner_name || "a league-mate")}.</p>` : ""}
           ${pro && !passSeat
-            ? `<p class="acct-muted">${renews ? `Renews ${renews}.` : ""} Cancel or change your card in the billing portal.</p>
+            ? `${renews ? `<p class="acct-muted">Renews ${renews}.</p>` : ""}
                <button type="button" class="acct-btn acct-btn-small" data-act="manage">Manage subscription</button>`
             : pro ? ""
             : `<button type="button" class="acct-btn acct-btn-primary" data-act="upgrade">Go Pro · ${esc(PLANS.pro.price)}</button>`}
@@ -1365,7 +1356,7 @@
         <button type="button" class="acct-close" data-close aria-label="Close">&times;</button>
         <span class="acct-pass-kicker">${esc(LEAGUE.name)}</span>
         <h2 id="acctPassTitle">Pro for your whole league</h2>
-        <p class="acct-reason">Everyone in your league gets Pro: the league AI, every season, unlimited leagues and no ads. <strong>Only ${money(LEAGUE.perMember)} per member for a whole year</strong>, billed annually.</p>
+        <p class="acct-reason">Everyone in your league gets Pro: the league AI, unlimited leagues, no ads.</p>
         ${choices.length ? `
         <form class="acct-form acct-pass-form">
           <label class="acct-field"><span>League</span>
@@ -1381,9 +1372,9 @@
           <div class="acct-pass-total" aria-live="polite"><strong data-total>${yearly(seats)}</strong><span data-math>a year · ${money(LEAGUE.perMember)} × ${seats} members</span></div>
           <p class="acct-error" role="alert" hidden></p>
           <button type="submit" class="acct-btn acct-btn-primary acct-btn-wide" data-go>Continue to payment · ${yearly(seats)}</button>
-          <p class="acct-muted">After paying you get an invite link to send your league. You can remove people, invite others and add seats any time.</p>
+          <p class="acct-muted">Billed yearly. You'll get an invite link for your league.</p>
         </form>`
-        : `<p class="acct-muted">Add your league to your account first: open it from the front page.</p>
+        : `<p class="acct-muted">Add your league to your account first.</p>
            <a class="acct-btn acct-btn-primary acct-btn-wide" href="index.html">Find your league</a>`}
         ${MODE === "preview" ? '<p class="acct-preview-note">Preview mode: no payment is taken; the pass starts at once.</p>' : ""}
       </div>`;
@@ -1465,7 +1456,7 @@
               ${navigator.share ? '<button type="button" class="acct-btn acct-btn-small" data-pass-act="share">Share…</button>' : ""}
               <button type="button" class="acct-btn acct-btn-small acct-btn-quiet" data-pass-act="relink" title="The old link stops working">New link</button>
             </div>
-          </div>` : `<p class="acct-muted">This pass isn't active, so nobody on it has Pro through it. ${p.status === "past_due" || p.status === "unpaid" ? "Update the card in the billing portal to turn it back on." : ""}</p>`}
+          </div>` : `<p class="acct-muted">This pass isn't active. ${p.status === "past_due" || p.status === "unpaid" ? "Update the card in the billing portal to turn it back on." : ""}</p>`}
           <ul class="acct-members">
             ${p.members.map((m) => `<li class="acct-member${m.removed_at ? " is-removed" : ""}">
               <span class="acct-avatar">${esc(String(m.name || "?").charAt(0).toUpperCase())}</span>
@@ -1475,7 +1466,7 @@
                 ? `<button type="button" class="acct-btn acct-btn-small" data-member="${esc(m.user_id)}" data-active="1">Restore</button>`
                 : `<button type="button" class="acct-btn acct-btn-small acct-btn-quiet" data-member="${esc(m.user_id)}" data-active="0">Remove</button>`}
             </li>`).join("")}
-            ${open && p.live ? `<li class="acct-member is-open"><span class="acct-avatar acct-avatar-empty">+</span><div class="acct-league-copy"><strong>${open} open seat${open === 1 ? "" : "s"}</strong><span>Anyone with the link can take one.</span></div></li>` : ""}
+            ${open && p.live ? `<li class="acct-member is-open"><span class="acct-avatar acct-avatar-empty">+</span><div class="acct-league-copy"><strong>${open} open seat${open === 1 ? "" : "s"}</strong></div></li>` : ""}
           </ul>
           ${p.live ? `<div class="acct-pass-seats">
             <span>Seats</span>
@@ -1488,7 +1479,7 @@
           </div>` : ""}
         </div>`;
       }).join("")}
-      <p class="acct-muted">Removing someone frees their seat and ends their Pro; the link still won't let them back in unless you restore them. Seat changes are charged (or credited) for the rest of the year.</p>
+      <p class="acct-muted">Seat changes are charged (or credited) for the rest of the year.</p>
       ${MODE === "supabase" && CFG.STRIPE_PORTAL_LINK ? '<button type="button" class="acct-btn acct-btn-small" data-act="manage">Billing and receipts</button>' : ""}
     </section>`;
   }
@@ -1614,7 +1605,7 @@
       done = true;
     } else {
       title = `Join ${league}`;
-      copy = `<strong>${owner}</strong> invited you to ${league} on Pigskin Pantheon, and your seat comes with <strong>Pro, on them</strong>: every season of your league, the league AI, unlimited leagues and no ads.`;
+      copy = `<strong>${owner}</strong> invited you to ${league}, with <strong>Pro on them</strong>: the league AI, unlimited leagues, no ads.`;
       actions = state.user
         ? `<button type="button" class="acct-btn acct-btn-primary" data-inv="join">Join ${league}</button>`
         : `<button type="button" class="acct-btn acct-btn-primary" data-inv="signup">Create free account</button>
@@ -1637,7 +1628,7 @@
       if (act === "close") { closeInvite(done); return; }
       if (act === "forget") { closeInvite(true); return; }
       if (act === "go") { store.del(INVITE_KEY); return; }
-      if (act === "signup") { openAuth("signup", { reason: `Create your account to join ${i.league_name || "the league"}. It's free: ${i.owner_name || "your league-mate"} has your seat covered.` }); return; }
+      if (act === "signup") { openAuth("signup", { reason: `Create your account to join ${i.league_name || "the league"}.` }); return; }
       if (act === "signin") { openAuth("signin", { reason: `Sign in to join ${i.league_name || "the league"}.` }); return; }
       if (act === "join") {
         e.preventDefault();

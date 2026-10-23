@@ -17,7 +17,7 @@ struct ClubhouseSheet: View {
             .presentationSizing(.form)
         case .clubhouseSignIn:
             AuthView(mode: app.account.hasSignedInBefore ? .signin : .signup,
-                     reason: "Sign in to make your picks and vote for the week's awards with your league. Looking around never needs an account.")
+                     reason: "Sign in to pick and vote.")
         default:
             NavigationStack {
                 LeaderboardView()
@@ -53,18 +53,9 @@ struct ClaimView: View {
                 ForEach(store.info?.managers ?? []) { m in
                     row(m)
                 }
-            } header: {
-                Text("Your league sees whose team is whose. Choose the one you manage: your picks and votes are counted as theirs.")
-                    .textCase(nil)
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink2)
-                    .padding(.bottom, 6)
             } footer: {
-                if store.isDemo {
-                    Text("This is the demo league: choose any team. Your picks and votes stay on this device.")
-                } else {
-                    Text("First come, first served. If someone has claimed your team by mistake, they can let it go from their Leaderboard.")
-                }
+                // Who sees a claim, and where demo picks live.
+                Text(store.isDemo ? "Picks and votes stay on this device." : "Your league sees which team is yours.")
             }
             if let error {
                 Section {
@@ -265,7 +256,7 @@ struct LeaderboardView: View {
             EmptyView()
         default:
             Card {
-                ClubhouseGateBanner(action: "play along")
+                ClubhouseGateBanner(action: "play")
                     .padding(12)
             }
         }
@@ -275,12 +266,16 @@ struct LeaderboardView: View {
 
     private func standingsCard(_ season: Season) -> some View {
         Card {
-            CardHead(title: "Season standings", symbol: "list.number",
-                     meta: standings.map { Fmt.plural($0.rows.filter { $0.picked > 0 }.count, "player") })
+            CardHead(title: "Season standings", symbol: "list.number")
+                .overlay(alignment: .trailing) {
+                    InfoTip(label: "How pick'em is scored",
+                            text: "1 point per right pick, 2 for a right Lock of the Week. A perfect week is every game right; 🔥 is weeks in a row at .500 or better. The top picker is the Oracle. Free bragging rights: no entry fee, no prizes.")
+                        .padding(.trailing, 8)
+                }
             if let standings {
                 let rows = standings.rows.filter { $0.picked > 0 || $0.owner == store.me }
                 if rows.isEmpty {
-                    Text("Nobody has picked a week yet. The standings start with the first picks.")
+                    Text("No picks yet.")
                         .font(.subheadline)
                         .foregroundStyle(Theme.ink2)
                         .padding(14)
@@ -291,11 +286,6 @@ struct LeaderboardView: View {
                             if row.id != rows.last?.id { Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14) }
                         }
                     }
-                    Text("A right pick is a point, the Lock of the Week two. A perfect week is every game right. The streak is weeks in a row at .500 or better. The season's top picker is the league's Oracle.")
-                        .font(.caption)
-                        .foregroundStyle(Theme.ink3)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(14)
                 }
             } else {
                 ProgressView().frame(maxWidth: .infinity).padding(24)
@@ -369,7 +359,7 @@ struct LeaderboardView: View {
         return Card {
             CardHead(title: "Weekly winners", symbol: "crown.fill")
             if weeks.isEmpty {
-                Text(standings == nil ? "Reading the weeks…" : "Each week's top picker shows here once its games are final.")
+                Text(standings == nil ? "Reading the weeks…" : "No final weeks yet.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink2)
                     .padding(14)
@@ -416,9 +406,9 @@ struct LeaderboardView: View {
 
     private func awardsCard(_ season: Season) -> some View {
         Card {
-            CardHead(title: "The week's awards", symbol: "medal.fill", meta: "Voted by the league")
+            CardHead(title: "The week's awards", symbol: "medal.fill")
             if awards.isEmpty {
-                Text("Each week's Manager, Choke and Robbery of the Week show here once the league's voting closes.")
+                Text("No awards yet.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -465,7 +455,7 @@ struct LeaderboardView: View {
     private var demoNotifyNote: some View {
         Card {
             CardHead(title: "Notifications", symbol: "bell.fill")
-            Text("In your own league, Pigskin Pantheon can tell you when a week is final, when picks lock and when the awards are in. Only if you ask: turn them on from your league's Leaderboard.")
+            Text("In your own league: when a week is final, picks lock or the awards are in. Off until you turn them on.")
                 .font(.subheadline)
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -509,15 +499,15 @@ private struct NotifyCard: View {
         Card {
             CardHead(title: "Notify me", symbol: "bell.fill", meta: session.summary?.name)
             VStack(spacing: 0) {
-                toggle("Week is final", "Tuesday: how you did and the recap", shown.recap) { var n = shown; n.recap = $0; return n }
+                toggle("Week is final", "Tuesdays", shown.recap) { var n = shown; n.recap = $0; return n }
                 Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14)
-                toggle("Picks lock tonight", "Thursday, before the first kickoff", shown.pickem) { var n = shown; n.pickem = $0; return n }
+                toggle("Picks lock tonight", "Thursdays, before kickoff", shown.pickem) { var n = shown; n.pickem = $0; return n }
                 Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14)
-                toggle("Awards are in", "When the week's voting closes", shown.awards) { var n = shown; n.awards = $0; return n }
+                toggle("Awards are in", "When voting closes", shown.awards) { var n = shown; n.awards = $0; return n }
             }
             if store.notOnThisDevice, store.notifyError == nil {
                 HStack(spacing: 10) {
-                    Label("These are on for your account, but not on this device yet.", systemImage: "iphone.badge.exclamationmark")
+                    Label("On for your account, not this device yet.", systemImage: "iphone.badge.exclamationmark")
                         .font(.footnote)
                         .foregroundStyle(Theme.ink2)
                         .fixedSize(horizontal: false, vertical: true)

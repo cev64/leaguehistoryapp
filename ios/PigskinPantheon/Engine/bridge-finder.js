@@ -72,7 +72,7 @@
   async function espnSave(s2, swid, toAccount) {
     const E = ESPN();
     if (!E.saveAuth(s2, swid)) {
-      return { ok: false, error: "ESPN's sign-in didn't hand over the keys a private league opens with. Try signing in again." };
+      return { ok: false, error: "ESPN's sign-in didn't hand over the keys. Try again." };
     }
     const added = E.tidyAuth(s2, swid);
     let accountError = null;

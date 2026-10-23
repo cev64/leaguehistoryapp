@@ -36,7 +36,7 @@ struct BoxScoreView: View {
                 }
                 // The same game against the league's history (RivalryView).
                 NavigationLink(value: LeagueRoute.rivalry(year: year, week: week, a: a, b: b)) {
-                    Label("Rivalry & what was on the line", systemImage: CardIcon.versus)
+                    Label("Rivalry & stakes", systemImage: CardIcon.versus)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.accentInk)
                         .frame(maxWidth: .infinity)
@@ -94,14 +94,6 @@ private struct BoxScoreCard: View {
                     BoxRow(row: row, metrics: metrics)
                 }
             }
-            Text(box.foot)
-                .font(.system(size: 11))
-                .foregroundStyle(Theme.muted)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Theme.surface2)
-                .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: 1) }
         }
         .background(Theme.card)
         .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
@@ -280,9 +272,9 @@ private struct BoxPlayerCell: View {
                     HStack(spacing: 6) {
                         if trailing {
                             name(player)
-                            ClubTag(club: player.nfl)
+                            ClubTag(club: player.nfl).help("NFL club today")
                         } else {
-                            ClubTag(club: player.nfl)
+                            ClubTag(club: player.nfl).help("NFL club today")
                             name(player)
                         }
                         if let injury = player.injury, let first = injury.first {

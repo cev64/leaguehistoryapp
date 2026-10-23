@@ -260,6 +260,39 @@ struct WhyPopover: View {
     }
 }
 
+/// An (i) that opens a rule in a popover (how a card is scored or
+/// settled), so the card itself carries none. Sits on a card head's
+/// trailing edge (`CardHead(...).overlay(alignment: .trailing)`).
+struct InfoTip: View {
+    /// What VoiceOver calls the button ("How pick'em is scored").
+    let label: String
+    let text: String
+    @State private var open = false
+
+    var body: some View {
+        Button {
+            open.toggle()
+        } label: {
+            Image(systemName: open ? "info.circle.fill" : "info.circle")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(open ? Theme.accent : Theme.ink3)
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(Felt(.plain))
+        .accessibilityLabel(label)
+        .popover(isPresented: $open) {
+            Text(text)
+                .font(.footnote)
+                .foregroundStyle(Theme.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(16)
+                .frame(width: 300, alignment: .leading)
+                .presentationCompactAdaptation(.popover)
+        }
+    }
+}
+
 /// A team's markers, as the page orders them: the clinch letter, the
 /// tiebreak dot, the seed last.
 struct TeamMarkers: View {

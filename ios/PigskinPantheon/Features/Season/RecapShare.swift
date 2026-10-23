@@ -78,14 +78,6 @@ struct RecapShareSheet: View {
                 .indexViewStyle(.page(backgroundDisplayMode: .always))
                 .frame(maxHeight: .infinity)
 
-                if bundle.pictures.count > 1 {
-                    Text("\(bundle.pictures.count) pictures: the week, then the power rankings. Swipe to see both.")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.ink2)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                }
-
                 VStack(spacing: 10) {
                     ShareLink(items: bundle.pictures,
                               subject: Text(bundle.title),

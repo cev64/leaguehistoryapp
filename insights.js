@@ -999,7 +999,6 @@
       stakesTitle: played ? "What was on the line" : "Records within reach",
       stakes,
       noStakes: played ? "Nothing in the record book was on the line in this one." : "Nothing in the record book is within reach in this one.",
-      note: "From the league’s own history, never projections. Records and points count the regular season, as in the record book.",
     };
   }
 

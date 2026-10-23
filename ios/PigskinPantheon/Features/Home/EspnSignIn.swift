@@ -362,13 +362,6 @@ struct EspnSignInSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Text("Sign in on ESPN's own page. Pigskin Pantheon never sees your password; it keeps only the two keys ESPN uses to open your leagues.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
                 ProgressView(value: model?.progress ?? 0)
                     .progressViewStyle(.linear)
                     .opacity(model?.loading ?? true ? 1 : 0)
@@ -382,7 +375,7 @@ struct EspnSignInSheet: View {
                         ContentUnavailableView {
                             Label("ESPN's sign-in page didn't load", systemImage: "wifi.exclamationmark")
                         } description: {
-                            Text("Check your connection and try again.")
+                            Text("Check your connection.")
                         } actions: {
                             Button("Try again") { model.retry() }
                                 .buttonStyle(Felt(.glassProminent))

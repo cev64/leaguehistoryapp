@@ -54,15 +54,15 @@ struct AwardsCard: View {
 
     private func content(_ data: AwardsWeek) -> some View {
         let voted = data.awards.map(\.voters).max() ?? 0
-        let meta = data.closed ? "Voting closed" : "Results \(PickemWords.when(data.closesDate))"
+        let when = PickemWords.when(data.closesDate)
+        let meta = data.closed ? "Final"
+            : members(data) > 0 ? "\(voted) of \(members(data)) have voted · results \(when)" : "Results \(when)"
+        // The way in (sign in, claim a team), or why a vote didn't count.
+        let gated = store.access != .member && store.access != .unknown
         return Card {
             CardHead(title: "Week \(data.week) Awards", symbol: "medal.fill", meta: meta)
-            if !data.closed {
+            if !data.closed, gated || store.voteError != nil {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Vote for the week's three awards. The tallies stay hidden until the first kickoff of Week \(data.week + 1).")
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.ink2)
-                        .fixedSize(horizontal: false, vertical: true)
                     ClubhouseGateBanner(action: "vote")
                     if let error = store.voteError {
                         Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -84,15 +84,6 @@ struct AwardsCard: View {
                 }
             }
             .padding(12)
-            if !data.closed, members(data) > 0 {
-                Rectangle().fill(Theme.line).frame(height: 1)
-                Text("\(voted) of \(members(data)) have voted · results \(PickemWords.when(data.closesDate))")
-                    .font(.caption)
-                    .foregroundStyle(Theme.ink3)
-                    .monospacedDigit()
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 11)
-            }
         }
     }
 
@@ -174,14 +165,10 @@ private struct AwardHead: View {
             Text(award.emoji)
                 .font(.title2)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(award.title)
-                    .displayStyle(17)
-                    .foregroundStyle(Theme.ink)
-                Text(award.blurb)
-                    .font(.caption)
-                    .foregroundStyle(Theme.ink3)
-            }
+            Text(award.title)
+                .displayStyle(17)
+                .foregroundStyle(Theme.ink)
+                .help(award.blurb)
             Spacer(minLength: 6)
             Text(note)
                 .font(.caption2.weight(.semibold))

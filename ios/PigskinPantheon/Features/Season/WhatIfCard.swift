@@ -146,14 +146,12 @@ extension WhatIfStore {
 
 // MARK: The card
 
-/// The switch, and the week's games it opens. `moves` finishes the line
-/// under the title: "standings" or "brackets".
+/// The switch, and the week's games it opens.
 struct WhatIfCard: View {
     @Environment(LeagueSession.self) private var session
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let season: Season
     let week: Int
-    let moves: String
     @Bindable var whatIf: WhatIfStore
 
     @State private var bar: WhatIfBar?
@@ -249,16 +247,10 @@ struct WhatIfCard: View {
                 .frame(width: 28, height: 28)
                 .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("What If")
-                    .displayStyle(20)
-                    .foregroundStyle(Theme.ink)
-                Text("Pick the Week \(bar.week) winners and watch the \(moves) move")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(Theme.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text("What If · Week \(bar.week)")
+                .displayStyle(20)
+                .foregroundStyle(Theme.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

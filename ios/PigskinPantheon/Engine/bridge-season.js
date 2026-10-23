@@ -203,10 +203,8 @@
     // coming week, counted into every record as if they were posted.
     const picked = view === "panel-standings" ? pickedFor(E, w, picks) : null;
     if (picked) {
-      const { overlay, week: pick, count, total } = picked;
-      const out = E.withPicks(overlay, () => standingsAsOf(E, year, overlay.week));
-      out.note = `Records include your ${count === total ? "" : `${count} `}Week ${pick} pick${count === 1 ? "" : "s"}. Points for and against add each team's season scoring average for a picked game.`;
-      return out;
+      const { overlay } = picked;
+      return E.withPicks(overlay, () => standingsAsOf(E, year, overlay.week));
     }
     return standingsAsOf(E, year, E.asOfWeek(view === "regular" || w > E.REGULAR_WEEKS ? E.REGULAR_WEEKS : w));
   }
@@ -283,8 +281,7 @@
     if (live) {
       const { HAS_PLAYOFFS, BYES, PLAYOFF_TEAMS } = E;
       const anyFlag = TEAM_IDS.some((id) => picture.flags[id]);
-      const anyWhy = TEAM_IDS.some((id) => (picture.reasons[id] || []).length);
-      if (HAS_PLAYOFFS || anyWhy) {
+      if (HAS_PLAYOFFS) {
         const firstOther = BYES + (HAS_DIVISIONS ? Math.max(0, picture.leaders.length - BYES) : 0) + 1;
         if (HAS_PLAYOFFS && BYES) legend.push({ kind: "seed", cls: "lead", tag: "#1", text: "First-round bye" });
         if (HAS_PLAYOFFS && HAS_DIVISIONS && picture.leaders.length > BYES) legend.push({ kind: "seed", cls: "div", tag: `#${BYES + 1}`, text: "Division leader" });
@@ -295,10 +292,9 @@
           legend.push({ kind: "clinch", cls: "x", tag: "x", text: "Clinched a berth" });
           legend.push({ kind: "clinch", cls: "e", tag: "e", text: "Eliminated" });
         }
-        if (anyWhy) legend.push({ kind: "why", cls: "", tag: "i", text: "Tap for the tiebreaker" });
       }
     }
-    return { asOf, live, hasDivisions: HAS_DIVISIONS, cards, legend, note: null };
+    return { asOf, live, hasDivisions: HAS_DIVISIONS, cards, legend };
   }
 
   /* ------------------------------------------------------------ what if
@@ -404,7 +400,7 @@
     const E = B.seasonEngine(year);
     const season = B.model().season(year);
     if (!E.PRIOR || !Object.keys(season.schedule).length) {
-      return { empty: { title: "No schedule to rate yet", detail: "Strength of schedule needs this season's slate and a season before it to read records from." } };
+      return { empty: { title: "No schedule to rate yet", detail: "Needs this season's schedule and last season's records." } };
     }
     const rows = E.strengthOfSchedule();
     const hardest = rows[0], easiest = rows[rows.length - 1];
@@ -733,20 +729,14 @@
           lines.push({ head: weeksText(S.weeksPerRound(r)).replace(/^NFL /, ""), text });
         }
       }
-      return { title: "How the field is set", meta: `From the league's ${League.sourceName()} settings`, lines };
+      return { title: "How the field is set", lines };
     }
 
     function playoffFormatText() {
       const n = TEAM_IDS.length;
       const P = PLAYOFF_TEAMS;
-      const parts = [`${capital(numberWord(P))} of the ${numberWord(n)} teams make the playoffs`];
-      if (E.HAS_DIVISIONS) parts[0] += `, every division leader among them`;
-      let text = `${parts[0]}, seeded on record with points for as the tiebreaker.`;
-      if (E.BYES) text += ` The top ${numberWord(E.BYES)} seed${E.BYES === 1 ? " gets" : "s get"} a first-round bye.`;
-      if (LB.length) text += TOILET
-        ? ` The other ${numberWord(n - P)} play a toilet bowl, where the team that loses moves on and the last one left finishes last.`
-        : ` The other ${numberWord(n - P)} play a consolation bracket for the places after them.`;
-      text += ` Once results are posted, this tab shows where every team would land if the season ended that day.`;
+      let text = `${capital(numberWord(P))} of ${numberWord(n)} teams make the playoffs${E.HAS_DIVISIONS ? ", division leaders included" : ""}.`;
+      if (LB.length) text += ` The other ${numberWord(n - P)} play a ${TOILET ? "toilet bowl" : "consolation bracket"}.`;
       return text;
     }
 
@@ -845,7 +835,7 @@
           ...blank,
           empty: {
             title: "The bracket fills in once games are played",
-            detail: `The playoffs run from Week ${season.settings.playoffWeekStart} to Week ${E.LAST_WEEK}. Until the regular season ends, the field is projected from the latest standings.`,
+            detail: `Weeks ${season.settings.playoffWeekStart}–${E.LAST_WEEK}`,
           },
         };
       }

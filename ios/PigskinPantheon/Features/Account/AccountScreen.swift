@@ -89,7 +89,7 @@ private struct AccountPanel: View {
         .interactiveDismissDisabled(deleting)
         .scrollContentBackground(.hidden)
         .background(Theme.page)
-        .navigationTitle("Your account")
+        .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
             await account.refresh()
@@ -108,7 +108,7 @@ private struct AccountPanel: View {
                             titleVisibility: .visible, presenting: unsyncing) { row in
             Button("Unsync", role: .destructive) { Task { await unsync(row) } }
         } message: { row in
-            Text("\(row.name ?? "This league") comes off your account. You can add it back any time.")
+            Text("\(row.name ?? "This league") comes off your account.")
         }
         .confirmationDialog("Sign out?", isPresented: $confirmSignOut, titleVisibility: .hidden) {
             Button("Sign out", role: .destructive) { Task { await signOut() } }
@@ -117,7 +117,7 @@ private struct AccountPanel: View {
             Button("Delete Account", role: .destructive) { Task { await deleteAccount() } }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently deletes your account, the leagues synced to it and any ESPN keys saved to it or on this device. It can't be undone.")
+            Text("This permanently deletes your account, its synced leagues and any ESPN keys saved to it or on this device.")
         }
         .sheet(isPresented: $signingInToEspn) {
             EspnSignInSheet { keys in
@@ -137,8 +137,7 @@ private struct AccountPanel: View {
     private var leaguesSection: some View {
         Section {
             if account.leagues.isEmpty {
-                Text("No leagues yet. Find one and open it, and it's added to your account.")
-                    .font(.subheadline)
+                Text("No leagues yet")
                     .foregroundStyle(Theme.ink2)
             }
             ForEach(account.leagues) { row in
@@ -187,8 +186,6 @@ private struct AccountPanel: View {
                 Spacer()
                 if !account.leagues.isEmpty { Text(Fmt.plural(account.leagues.count, "league")) }
             }
-        } footer: {
-            Text("Add as many leagues as you like, and remove them any time. Swipe a league to unsync it.")
         }
     }
 
@@ -221,11 +218,6 @@ private struct AccountPanel: View {
 
     private var espnSection: some View {
         Section {
-            if finder.connected.isEmpty {
-                Text("No ESPN account connected. Connect ESPN to sign in on ESPN's own page, and your private ESPN leagues open in the app.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink2)
-            }
             ForEach(Array(finder.connected.enumerated()), id: \.element.id) { index, row in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(finder.title(for: row, index: index))
@@ -270,8 +262,6 @@ private struct AccountPanel: View {
             .disabled(finder.connecting)
         } header: {
             Text("ESPN accounts")
-        } footer: {
-            Text("Keys saved to your account are encrypted and only used to read your leagues, through Pigskin Pantheon's relay to ESPN. Forget removes an account's keys everywhere.")
         }
     }
 
@@ -279,13 +269,19 @@ private struct AccountPanel: View {
 
     private var profileSection: some View {
         Section {
-            TextField("Name", text: $name, prompt: Text("What the league calls you"))
-                .textContentType(.nickname)
-                .onChange(of: name) { _, v in if v.count > 60 { name = String(v.prefix(60)) } }
-            TextField("Sleeper username", text: $sleeper, prompt: Text("Fills in the league finder"))
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .onChange(of: sleeper) { _, v in if v.count > 40 { sleeper = String(v.prefix(40)) } }
+            LabeledContent("Name") {
+                TextField("Name", text: $name, prompt: Text("Optional"))
+                    .textContentType(.nickname)
+                    .multilineTextAlignment(.trailing)
+                    .onChange(of: name) { _, v in if v.count > 60 { name = String(v.prefix(60)) } }
+            }
+            LabeledContent("Sleeper") {
+                TextField("Sleeper username", text: $sleeper, prompt: Text("Username"))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .multilineTextAlignment(.trailing)
+                    .onChange(of: sleeper) { _, v in if v.count > 40 { sleeper = String(v.prefix(40)) } }
+            }
             Button {
                 Task { await saveProfile() }
             } label: {
