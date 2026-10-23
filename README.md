@@ -358,6 +358,15 @@ on fantasy results.
 `chat.js` / `chat.css` are the button, the window and the browser's half;
 `supabase/functions/league-chat` is the server's half.
 
+**Nothing is sent before the member allows it.** The first question (typed
+or a suggestion) waits on a card in the chat saying what goes out (the
+question and chat so far, a summary of the league's history, the details
+the AI looks up) and to whom, with a link to the privacy policy and
+**Allow** / **Not now**. Allow sends the waiting question; Not now puts it
+back in the box. The choice is kept per browser in localStorage
+(`lh-ai-consent.v1`), as the app keeps `aiConsent.v1`. Keep the card's
+list in step with what `digestOf` and the tools send.
+
 How it knows the league, without a database of its own:
 
 - **The league as text.** When the chat opens, `chat.js` writes the league
@@ -381,27 +390,22 @@ How it knows the league, without a database of its own:
 
 Each question goes to the function with the league text and the
 conversation so far. The function adds the instructions, the tools and the
-API key, asks Google's Gemini (`gemini-3.8-flash`, low thinking) and
-streams the answer back as it is written. When the model asks for a tool,
+API key, asks Claude Haiku 5.5 (`claude-haiku-5-5`, the only model it
+uses; thinking off, medium effort) on Anthropic's API and streams the
+answer back as it is written. When the model asks for a tool,
 the stream ends with the request, `chat.js` runs it and sends the result
 back, up to eight look-ups per question. The league text goes first in the
-conversation and is the same on every turn, so Gemini's implicit cache can
-reuse it. It goes in as the league's data, never in the instructions: the
+conversation and is the same on every turn, so it is cached (a cache
+read is a tenth of the price). It goes in as the league's data, never in the instructions: the
 instructions tell the model that nothing inside it (or in a look-up's
 result) is an instruction, so a team called "ignore your rules" stays a
 team name.
 
-**It runs on Gemini's free tier.** A key from Google AI Studio on a Google
-Cloud project with no billing account is free; the catch is limits per
-project, shared by every member (requests a minute, tokens a minute,
-requests a day; AI Studio ▸ Usage shows yours), and that Google may use
-free-tier prompts to improve its products. Each question is one request,
-plus one per round of look-ups. Past a limit, members are told to try again
-in a minute, or tomorrow when the day's allowance is gone. Turning billing
-on moves the project to the paid tier (higher limits, prompts not used for
-training, and a bill).
+**It is billed per request.** Each question is one request to Claude, plus
+one per round of look-ups. A rate limit or an overloaded API is tried again
+twice; past that, members are told to try again in a minute.
 
-What protects the quota:
+What protects the bill:
 
 - **Signed-in members only, checked on the server.** With Supabase, the
   function checks the member's session and asks `has_pro()`, which is true
@@ -424,31 +428,23 @@ What protects the quota:
   characters besides the league text, each look-up's result cut at 40,000
   characters (the browser and the app cut theirs there too), a size limit
   on the league text, and `ALLOWED_ORIGINS` limiting it to the site.
+- **A cap for the whole site.** `CLAUDE_DAILY_REQUESTS` (2,000 unless set;
+  look-up rounds included; `0` turns the chat off for the day) caps
+  everyone's requests together, counted by `count_chat_claude()`.
 - **Stopping stops the work.** The stop button, or closing the tab, cancels
-  the request to Gemini. Gemini gets a minute to start answering; past
-  that, or on a network error that doesn't clear, the backup answers.
+  the request to Claude.
 
 The conversation stays in the browser tab (sessionStorage), so it follows
 the member from page to page and is gone when the tab is closed. Nothing is
 stored on the server but the day's question and request counts.
 
-Settings, as function secrets: `GEMINI_API_KEY` (required, from
-aistudio.google.com ▸ Get API key), `ALLOWED_ORIGINS`, `AI_MODEL` (default
-`gemini-3.8-flash`; any Gemini model id), `AI_FALLBACK_MODEL` (default
-`gemini-3.5-flash`, used when the main model is overloaded or out of its
-daily allowance; `none` to turn it off), `AI_THINKING` (`low`, `medium` or
-`high`, default `low`; more thinking is slower and uses more of the
-tokens-a-minute limit), `AI_DAILY_QUESTIONS` (default 25),
-`AI_DAILY_REQUESTS` (default nine times the questions), and the backup:
-`ANTHROPIC_API_KEY` (from platform.claude.com) lets Claude Haiku 4.5 answer
-whenever Gemini can't (the free tier's daily allowance used up, or Google
-overloaded), and `CLAUDE_FALLBACK_MODEL` picks another Claude model (`none`
-turns the backup off). The backup is billed per request, within the same
-daily allowances, and `CLAUDE_DAILY_REQUESTS` (default 500, look-up rounds
-included; `0` turns it off) caps the whole site's Claude requests a day,
-whoever asks: past it, members get Gemini's own answer. Without its key the
-chat behaves as before. In
-`account-config.js`, `AI_CHAT_URL` points the site at the function if it
+Settings, as function secrets: `ANTHROPIC_API_KEY` (required, from
+platform.claude.com), `ALLOWED_ORIGINS`, `AI_DAILY_QUESTIONS` (default 25),
+`AI_DAILY_REQUESTS` (default nine times the questions) and
+`CLAUDE_DAILY_REQUESTS` (default 2,000). The model is fixed in the
+function; the old Gemini settings (`GEMINI_API_KEY`, `AI_MODEL`,
+`AI_FALLBACK_MODEL`, `AI_THINKING`, `CLAUDE_FALLBACK_MODEL`) are no longer
+read. In `account-config.js`, `AI_CHAT_URL` points the site at the function if it
 isn't at `<SUPABASE_URL>/functions/v1/league-chat`.
 
 **Trying it without Supabase.** In preview mode the button and window work
@@ -457,7 +453,7 @@ function is reachable, the window says it isn't connected. To see real
 answers on your computer:
 
 ```bash
-GEMINI_API_KEY=AIza… CHAT_OPEN=1 deno run --allow-net --allow-env \
+ANTHROPIC_API_KEY=sk-ant-… CHAT_OPEN=1 deno run --allow-net --allow-env \
   supabase/functions/league-chat/index.ts
 ```
 
@@ -576,7 +572,7 @@ own domain.
   and the encrypted store for ESPN keys saved to accounts (see
   [ESPN leagues](#espn-leagues)).
 - `supabase/functions/league-chat/` — the AI behind Ask the League: checks
-  the member may use it, asks Gemini, streams the answer (see
+  the member may use it, asks Claude Haiku 5.5, streams the answer (see
   [Ask the League](#ask-the-league-the-ai-chat)).
 
 Until `SUPABASE_URL` and `SUPABASE_ANON_KEY` are filled in, accounts run in
@@ -621,11 +617,9 @@ Going live:
    `20261005000000_free_for_everyone.sql` and, once every migration before
    it has run, `20261015000000_hardening.sql`, then deploy the function
    (`supabase functions deploy league-chat --no-verify-jwt`) and set its
-   secrets: `supabase secrets set GEMINI_API_KEY=AIza…` (from
-   aistudio.google.com) and `ALLOWED_ORIGINS` as for the relay. Optional:
-   `AI_DAILY_QUESTIONS`, `AI_DAILY_REQUESTS`, `AI_MODEL`, `AI_THINKING`,
-   and `ANTHROPIC_API_KEY` for the Claude Haiku 4.5 backup
-   (`CLAUDE_DAILY_REQUESTS` caps it).
+   secrets: `supabase secrets set ANTHROPIC_API_KEY=sk-ant-…` (from
+   platform.claude.com) and `ALLOWED_ORIGINS` as for the relay. Optional:
+   `AI_DAILY_QUESTIONS`, `AI_DAILY_REQUESTS` and `CLAUDE_DAILY_REQUESTS`.
 8. Bump `CACHE_VERSION` in `sw.js` so returning visitors pick up the new
    config.
 

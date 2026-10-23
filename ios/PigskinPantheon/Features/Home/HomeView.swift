@@ -9,6 +9,7 @@ struct HomeView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var finder = FinderModel.shared
     @State private var sheet: HomeSheet?
+    @State private var confirmSignOut = false
     /// The sheet last up, so its dismissal knows whether it was the ESPN
     /// sign-in or another one the sign-in was waiting on.
     @State private var shownSheet: String?
@@ -263,10 +264,7 @@ struct HomeView: View {
                 }
                 Button("Account", systemImage: "person.crop.circle") { sheet = .account }
                 Button("Sign out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
-                    Task {
-                        await account.signOut()
-                        account.say("Signed out.")
-                    }
+                    confirmSignOut = true
                 }
             } label: {
                 Text(account.initials)
@@ -276,6 +274,12 @@ struct HomeView: View {
                     .background(Theme.gold.gradient, in: Circle())
             }
             .accessibilityLabel("Account: \(account.displayName)")
+            .signOutConfirmation(isPresented: $confirmSignOut) {
+                Task {
+                    await account.signOut()
+                    account.say("Signed out.")
+                }
+            }
         } else {
             // Signed out: "Sign in", in words, where the site has its account button.
             Button("Sign In") {

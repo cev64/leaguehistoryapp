@@ -457,14 +457,19 @@ final class ClubhouseStore {
     /// Some of this league's notifications are on for the account, but this
     /// device doesn't get them (turned on elsewhere, or by another account
     /// here): the card offers to turn them on here.
-    var notOnThisDevice: Bool { notify.any && !PushCenter.shared.enabled && !PushCenter.shared.denied }
+    var notOnThisDevice: Bool {
+        notify.any && PushCenter.shared.available && !PushCenter.shared.enabled && !PushCenter.shared.denied
+    }
 
     private(set) var notifyError: String?
 
     /// A switch flipped: this league's notifications only
     /// (set_league_notifications for this league key; every other league
     /// keeps its own). Turning one on asks iOS first (the only time the app
-    /// asks), and registers the device with the account.
+    /// asks), and registers the device with the account. Nothing is
+    /// turned on at the server unless this device got a token: a device
+    /// that can't get notifications says so instead (turning them off
+    /// still works).
     func setNotify(_ new: ClubhouseNotify) async {
         guard !isDemo, let key else { return }
         notifyError = nil
@@ -484,12 +489,13 @@ final class ClubhouseStore {
     }
 
     /// Notifications on this device for the member (iOS asked the first
-    /// time). False, with the reason shown, if iOS says no.
+    /// time). False, with the reason shown, if iOS says no or this device
+    /// can't get a token.
     @discardableResult
     func enableHere() async -> Bool {
         notifyError = nil
         guard await PushCenter.shared.enable() else {
-            notifyError = "Notifications are off for Pigskin Pantheon. Turn them on in Settings."
+            notifyError = PushCenter.shared.registerError ?? "Notifications are off for Pigskin Pantheon. Turn them on in Settings."
             return false
         }
         // The account couldn't take the device (register_push_device's bad_device, say).

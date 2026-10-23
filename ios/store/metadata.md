@@ -69,7 +69,7 @@ Redraft, keeper or dynasty, with or without divisions or medians. The history go
 ASK THE LEAGUE
 Ask the League is an AI historian that answers from your league's own data: scores, standings, trades, waiver claims, drafts and lineups. Who owns who? Who lost the worst trade ever? You get the numbers, with a little smack when the numbers earn it. The smack stays on fantasy results.
 
-Ask the League needs a free account. The first time you ask, the app tells you what would be sent and asks your permission before anything is shared with its third-party AI providers, Google Gemini and Anthropic Claude. You can turn that off again from the chat menu. Answers are labelled as AI, they can be wrong, and the record book has the final word. Long-press an answer to report it. A daily limit on questions applies.
+Ask the League needs a free account. The first time you ask, the app tells you what would be sent and asks your permission before anything is shared with its third-party AI provider, Anthropic (Claude). You can turn that off again from the chat menu. Answers are labelled as AI, they can be wrong, and the record book has the final word. Long-press an answer to report it. A daily limit on questions applies.
 
 YOUR ACCOUNT (OPTIONAL, FREE)
 An account keeps your leagues on every device, saves your ESPN keys and unlocks Ask the League. Skip it and every league still opens. You can delete your account, and everything saved to it, from inside the app.
@@ -139,7 +139,7 @@ Apple's 2025+ questionnaire. These are the honest answers for what the app does 
 | Guns or other weapons | None | |
 | Sexual content or nudity: mature or suggestive themes | None | |
 | Sexual content or nudity: graphic | None | |
-| Profanity or crude humor | None | The roasts are about fantasy results. The league-chat function's prompt and Gemini's safety settings rule out profanity, slurs and real-life insults. Teasing is not crude humor |
+| Profanity or crude humor | None | The roasts are about fantasy results. The league-chat function's prompt rules out profanity, slurs and real-life insults. Teasing is not crude humor |
 | Horror or fear themes | None | |
 | Medical or treatment information | None | |
 | Health or wellness topics | None | |
@@ -172,7 +172,7 @@ Matches `ios/APP_STORE.md` and `PrivacyInfo.xcprivacy` (six collected types, all
 | Contact Info: Email Address | Yes | Yes | No | App Functionality | Sign-in email for the optional account |
 | Contact Info: Name | Yes | Yes | No | App Functionality | Display name on the account |
 | Identifiers: User ID | Yes | Yes | No | App Functionality | The account's ID |
-| User Content: Other User Content | Yes | Yes | No | App Functionality | Questions asked in Ask the League. They go to Google (Gemini) and Anthropic (Claude) after the user gives permission, together with the league's own results text |
+| User Content: Other User Content | Yes | Yes | No | App Functionality | Questions asked in Ask the League. They go to Anthropic (Claude) after the user gives permission, together with the league's own results text |
 | Other Data | Yes | Yes | No | App Functionality | Sleeper username, league IDs and the ESPN keys saved to the account (kept encrypted) |
 | Usage Data: Product Interaction | Yes | Yes | No | App Functionality | Each day's count of Ask the League questions and the requests they made, for the daily allowance (`chat_usage`), kept until the account is deleted |
 
@@ -182,7 +182,7 @@ Notes for the form:
 
 - All six data types are only collected when someone makes an account or uses Ask the League. Opening a league or the demo without an account collects nothing from the person. Apple's label still has to list them, because the app can collect them.
 - League data is read from Sleeper's and ESPN's public or keyed APIs directly on the device. It is not sent to Pigskin Pantheon's servers except as the league text in a question to Ask the League.
-- Data sent to Google and Anthropic counts as collected through third-party partners. Their handling is covered in the privacy policy.
+- Data sent to Anthropic counts as collected through third-party partners. Their handling is covered in the privacy policy.
 - Export compliance: `ITSAppUsesNonExemptEncryption = NO` is in Info.plist (standard HTTPS only), so the encryption question is answered for you.
 - Declare DSA trader status, or the EU storefronts drop the app (see `ios/APP_STORE.md`).
 

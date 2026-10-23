@@ -1855,6 +1855,7 @@
           ties: 0,
           pf: 0,
           pa: 0,
+          scoredGames: 0,
           championshipYears: [],
           lastPlaceYears: [],
           finishes: {},
@@ -1963,6 +1964,9 @@
             profile.ties += team.ties || 0;
             profile.pf += team.pf;
             profile.pa += team.pa;
+            // Points per game is over head-to-head games: a league that plays the
+            // weekly median counts two results a week, but only one score.
+            profile.scoredGames += season.regularGames.filter((g) => String(g.a) === teamId || String(g.b) === teamId).length;
             if (season.live) return;
             profile.finishes[season.year] = team.finalRank;
 
@@ -2010,7 +2014,7 @@
         profile.diff = profile.pf - profile.pa;
         profile.games = profile.wins + profile.losses + profile.ties;
         profile.pct = profile.games ? (profile.wins + profile.ties / 2) / profile.games : 0;
-        profile.pfg = profile.games ? profile.pf / profile.games : 0;
+        profile.pfg = profile.scoredGames ? profile.pf / profile.scoredGames : 0;
         const finishes = Object.values(profile.finishes).filter(Boolean);
         profile.bestFinish = finishes.length ? Math.min(...finishes) : null;
         profile.worstFinish = finishes.length ? Math.max(...finishes) : null;

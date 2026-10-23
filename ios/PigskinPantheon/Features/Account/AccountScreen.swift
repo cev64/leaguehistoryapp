@@ -110,9 +110,7 @@ private struct AccountPanel: View {
         } message: { row in
             Text("\(row.name ?? "This league") comes off your account.")
         }
-        .confirmationDialog("Sign out?", isPresented: $confirmSignOut, titleVisibility: .hidden) {
-            Button("Sign out", role: .destructive) { Task { await signOut() } }
-        }
+        .signOutConfirmation(isPresented: $confirmSignOut) { Task { await signOut() } }
         .alert("Delete your account?", isPresented: $confirmDelete) {
             Button("Delete Account", role: .destructive) { Task { await deleteAccount() } }
             Button("Cancel", role: .cancel) {}
@@ -358,6 +356,20 @@ private struct AccountPanel: View {
         } catch {
             await finder.engine.keepEspnKeys()
             deleteError = error.localizedDescription
+        }
+    }
+}
+
+extension View {
+    /// "Sign out?", asked the same way wherever Sign out is (Account, and
+    /// the home screen's account menu). With ESPN keys on this device, it
+    /// says they go too (`AccountStore.signOut`).
+    func signOutConfirmation(isPresented: Binding<Bool>, signOut: @escaping () -> Void) -> some View {
+        let espn = isPresented.wrappedValue && (FinderModel.shared.localCount > 0 || !EspnKeychain.load().isEmpty)
+        return confirmationDialog("Sign out?", isPresented: isPresented, titleVisibility: espn ? .visible : .hidden) {
+            Button("Sign out", role: .destructive, action: signOut)
+        } message: {
+            if espn { Text("ESPN sign-in is removed from this device too.") }
         }
     }
 }

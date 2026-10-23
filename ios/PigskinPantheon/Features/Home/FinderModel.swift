@@ -386,9 +386,10 @@ final class FinderModel {
         await loadEspnLeagues(account: account, force: true)
     }
 
-    /// Deleting the account: every ESPN account's keys off this device and
-    /// the Keychain too, as well as off the account. The Keychain goes
-    /// first, before anything waits, so no page is given the keys back.
+    /// Signing out or deleting the account: every ESPN account's keys off
+    /// this device and the Keychain too (keys saved to an account stay
+    /// there). The Keychain goes first, before anything waits, and again
+    /// after, so no page starting meanwhile is given the keys back.
     func forgetDevice(account: AccountStore) async {
         EspnKeychain.delete()
         try? await engine.run("Bridge.finder.espnForgetDevice()")

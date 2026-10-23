@@ -313,6 +313,51 @@ html:has(#hallAd) { --lhc-lift: var(--hall-ad, 0px); }
 }
 .lhc-note code { font-size: 11.5px; }
 
+/* asked before the first question goes out */
+.lhc-consent {
+  position: relative; margin: 4px auto 0; width: 100%; max-width: 380px; padding: 20px 18px 16px; border-radius: 18px;
+  text-align: center; background: #fff; border: 1px solid var(--lhc-line);
+  box-shadow: 0 14px 34px rgba(7, 24, 39, .1), 0 1px 2px rgba(16, 24, 40, .05);
+  animation: lhcRise .5s var(--lhc-ease) both;
+}
+.lhc-consent.is-alone { margin: auto; }
+.lhc-consent-icon {
+  width: 42px; height: 42px; margin: 0 auto 10px; border-radius: 13px; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--lhc-navy-2), var(--lhc-navy)); box-shadow: 0 8px 18px rgba(7, 24, 39, .22);
+}
+.lhc-consent-icon svg { width: 21px; height: 21px; fill: var(--lhc-gold); }
+.lhc-consent-kicker { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #b7791f; }
+.lhc-consent h3 {
+  margin: 5px 0 8px; font: 700 23px/1.02 var(--font-display, "Barlow Condensed", sans-serif);
+  text-transform: uppercase; letter-spacing: .02em; color: var(--lhc-ink);
+}
+.lhc-consent p { margin: 0 auto 12px; max-width: 320px; color: var(--lhc-ink-2); font-size: 13px; line-height: 1.5; }
+.lhc-consent ul {
+  list-style: none; margin: 0 0 12px; padding: 12px; display: grid; gap: 8px; text-align: left;
+  border: 1px solid var(--lhc-line); border-radius: 13px; background: var(--lhc-page);
+}
+.lhc-consent li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; line-height: 1.4; font-weight: 600; color: var(--lhc-ink); }
+.lhc-consent li svg {
+  width: 18px; height: 18px; flex: 0 0 auto; padding: 3px; border-radius: 50%; background: rgba(23, 105, 224, .12);
+  fill: none; stroke: var(--lhc-blue); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+}
+.lhc-consent .lhc-consent-fine { margin-bottom: 14px; font-size: 12px; color: var(--lhc-ink-3); }
+.lhc-consent-fine a { color: var(--lhc-blue); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.lhc-consent-fine a:hover { text-decoration: underline; }
+.lhc-consent-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lhc-allow, .lhc-not-now {
+  height: 42px; border-radius: 12px; cursor: pointer; font: 700 14px/1 var(--lhc-font);
+  transition: transform .25s var(--lhc-spring), box-shadow .2s, border-color .2s, background .2s;
+}
+.lhc-allow { border: 0; color: #fff; background: linear-gradient(135deg, #2b7cf0, var(--lhc-blue-2)); box-shadow: 0 6px 14px rgba(23, 105, 224, .3); }
+.lhc-not-now { border: 1px solid var(--lhc-line); color: var(--lhc-ink); background: #fff; }
+@media (hover: hover) {
+  .lhc-allow:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(23, 105, 224, .35); }
+  .lhc-not-now:hover { border-color: rgba(23, 105, 224, .35); }
+}
+.lhc-allow:active, .lhc-not-now:active { transform: scale(.97); }
+.lhc-allow:focus-visible, .lhc-not-now:focus-visible, .lhc-consent-fine a:focus-visible { outline: 2px solid var(--lhc-blue); outline-offset: 2px; }
+
 /* the composer */
 .lhc-compose {
   flex: 0 0 auto; display: flex; align-items: flex-end; gap: 8px; margin: 0 12px; padding: 7px 7px 7px 14px;

@@ -452,10 +452,14 @@ struct LeaderboardView: View {
         }
     }
 
+    /// What notifications would do, or (a device that can't get them) that
+    /// it can't, rather than a promise.
     private var demoNotifyNote: some View {
         Card {
-            CardHead(title: "Notifications", symbol: "bell.fill")
-            Text("In your own league: when a week is final, picks lock or the awards are in. Off until you turn them on.")
+            CardHead(title: "Notifications", symbol: PushCenter.shared.available ? "bell.fill" : "bell.slash")
+            Text(PushCenter.shared.available
+                 ? "In your own league: when a week is final, picks lock or the awards are in. Off until you turn them on."
+                 : PushCenter.unavailableMessage)
                 .font(.subheadline)
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -485,7 +489,9 @@ struct Chip: View {
 
 /// The league's notifications, for the member: off until they ask, and
 /// only then does iOS ask them. The switches are this league's, as the
-/// server has them for the account (league_claims().mine.notify_*).
+/// server has them for the account (league_claims().mine.notify_*). A
+/// device that can't get notifications (no token) says so instead of
+/// showing switches.
 private struct NotifyCard: View {
     @Environment(LeagueSession.self) private var session
     @Environment(\.openURL) private var openURL
@@ -497,54 +503,11 @@ private struct NotifyCard: View {
     var body: some View {
         let shown = store.notify
         Card {
-            CardHead(title: "Notify me", symbol: "bell.fill", meta: session.summary?.name)
-            VStack(spacing: 0) {
-                toggle("Week is final", "Tuesdays", shown.recap) { var n = shown; n.recap = $0; return n }
-                Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14)
-                toggle("Picks lock tonight", "Thursdays, before kickoff", shown.pickem) { var n = shown; n.pickem = $0; return n }
-                Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14)
-                toggle("Awards are in", "When voting closes", shown.awards) { var n = shown; n.awards = $0; return n }
-            }
-            if store.notOnThisDevice, store.notifyError == nil {
-                HStack(spacing: 10) {
-                    Label("On for your account, not this device yet.", systemImage: "iphone.badge.exclamationmark")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.ink2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 6)
-                    Button("Turn On Here") {
-                        busy = true
-                        Task {
-                            // This device, then the league's switches as shown,
-                            // sent again (set_league_notifications): the
-                            // server's flags start off for a new member.
-                            if await store.enableHere() { await store.setNotify(store.notify) }
-                            busy = false
-                        }
-                    }
-                    .font(.footnote.weight(.semibold))
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-                .padding(14)
-            }
-            if let error = store.notifyError ?? (push.denied ? "Notifications are off for Pigskin Pantheon in Settings." : nil) {
-                HStack(spacing: 10) {
-                    Label(error, systemImage: "bell.slash")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.ink2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 6)
-                    if push.denied {
-                        Button("Settings") {
-                            if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
-                        }
-                        .font(.footnote.weight(.semibold))
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                }
-                .padding(14)
+            CardHead(title: "Notify me", symbol: push.available ? "bell.fill" : "bell.slash", meta: session.summary?.name)
+            if push.available {
+                switches(shown)
+            } else {
+                unavailable(shown)
             }
         }
         .task {
@@ -553,6 +516,96 @@ private struct NotifyCard: View {
             await store.refreshClaims()
         }
         .disabled(busy)
+    }
+
+    /// No token on this device: the plain fact, and (should the account
+    /// have them on from another iPhone) a way to turn them off.
+    private func unavailable(_ shown: ClubhouseNotify) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(PushCenter.unavailableMessage, systemImage: "bell.slash")
+                .font(.subheadline)
+                .foregroundStyle(Theme.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+            if shown.any {
+                HStack(spacing: 10) {
+                    Text("They're on for your account on another device.")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.ink3)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 6)
+                    Button("Turn Off") {
+                        busy = true
+                        Task {
+                            await store.setNotify(.off)
+                            busy = false
+                        }
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            if let error = store.notifyError, error != PushCenter.unavailableMessage {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+    }
+
+    @ViewBuilder
+    private func switches(_ shown: ClubhouseNotify) -> some View {
+        VStack(spacing: 0) {
+            toggle("Week is final", "Tuesdays", shown.recap) { var n = shown; n.recap = $0; return n }
+            Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14)
+            toggle("Picks lock tonight", "Thursdays, before kickoff", shown.pickem) { var n = shown; n.pickem = $0; return n }
+            Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14)
+            toggle("Awards are in", "When voting closes", shown.awards) { var n = shown; n.awards = $0; return n }
+        }
+        if store.notOnThisDevice, store.notifyError == nil {
+            HStack(spacing: 10) {
+                Label("On for your account, not this device yet.", systemImage: "iphone.badge.exclamationmark")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 6)
+                Button("Turn On Here") {
+                    busy = true
+                    Task {
+                        // This device, then the league's switches as shown,
+                        // sent again (set_league_notifications): the
+                        // server's flags start off for a new member.
+                        if await store.enableHere() { await store.setNotify(store.notify) }
+                        busy = false
+                    }
+                }
+                .font(.footnote.weight(.semibold))
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            .padding(14)
+        }
+        if let error = store.notifyError ?? (push.denied ? "Notifications are off for Pigskin Pantheon in Settings." : nil) {
+            HStack(spacing: 10) {
+                Label(error, systemImage: "bell.slash")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 6)
+                if push.denied {
+                    Button("Settings") {
+                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .padding(14)
+        }
     }
 
     private func toggle(_ title: String, _ detail: String, _ on: Bool, _ change: @escaping (Bool) -> ClubhouseNotify) -> some View {

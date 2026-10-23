@@ -1,6 +1,5 @@
 // League chat: the AI that answers questions about a league, for signed-in
-// members. It runs on Google's Gemini API (Google AI Studio), which has a
-// free tier.
+// members. It runs on Claude Haiku 5.5, on Anthropic's API, and only there.
 //
 // The site is static and the league's data lives in the visitor's browser
 // (sleeper.js / espn.js read it there), so the browser sends two things:
@@ -8,11 +7,10 @@
 //     game's score, all-time records, head-to-head), written by chat.js; it
 //     goes first in the conversation, marked as the league's data (it is
 //     the browser's text, so it never goes in the instructions), the same
-//     on every turn, so Gemini's automatic caching can reuse it across a
-//     conversation
+//     on every turn, so it is cached across a conversation
 //   - the conversation so far
 // and this function adds the API key, the instructions and the tools, asks
-// Gemini, and streams the answer back.
+// Claude, and streams the answer back.
 //
 // Anything finer than the digest (box scores, a player's history in the
 // league, trades, waivers, drafts, lineup efficiency) is a tool. The tools run
@@ -20,13 +18,13 @@
 // stream ends with the call, chat.js runs it and sends the result back as
 // the next request. Nothing here reads Sleeper or ESPN.
 //
-// The browser speaks one format whatever the model: content blocks of
-// { type: "text" }, { type: "tool_use", id, name, input } and
-// { type: "tool_result", tool_use_id, content }, and a stop reason of
-// end_turn, tool_use, max_tokens or refusal. This file turns those into
-// Gemini's contents and parts and back. Gemini's thought signatures ride
-// along on the blocks (`sig`) and come back unchanged with the next turn,
-// which Gemini 3 requires for function calls.
+// The browser speaks Claude's format: content blocks of { type: "text" },
+// { type: "tool_use", id, name, input } and { type: "tool_result",
+// tool_use_id, content }, and a stop reason of end_turn, tool_use,
+// max_tokens or refusal. Thinking is off, so no thinking blocks need to
+// make the round trip through the browser and the app. A conversation begun
+// when this function ran on Gemini still reads: what only Gemini used is
+// left out.
 //
 // Who may use it:
 //   - with Supabase (SUPABASE_URL, SUPABASE_ANON_KEY and
@@ -48,42 +46,20 @@
 //
 // Deploy on Supabase:
 //   supabase functions deploy league-chat --no-verify-jwt
-//   supabase secrets set GEMINI_API_KEY=AIza…   (Google AI Studio ▸ Get API key)
-//   supabase secrets set ALLOWED_ORIGINS=https://your-site.example
-// Optional: AI_MODEL (default gemini-3.8-flash), AI_FALLBACK_MODEL (default
-// gemini-3.5-flash; "none" for no fallback), AI_THINKING (low, medium or
-// high; default low), AI_DAILY_QUESTIONS (default 25) and AI_DAILY_REQUESTS
-// (default nine for every question: one, plus eight rounds of look-ups).
-//
-// Google's free tier is sometimes overloaded ("This model is currently
-// experiencing high demand", a 503). A request that meets that, a brief
-// rate limit or a network error is tried again twice after a short wait,
-// then on the fallback model. Gemini has a minute to start answering; past
-// that the question goes straight to the Claude backup below.
-//
-// When Gemini still can't answer (most often: the free tier's daily allowance
-// is used up), the question goes to Claude Haiku 4.5 on Anthropic's API, if a
-// key is set:
 //   supabase secrets set ANTHROPIC_API_KEY=sk-ant-…   (platform.claude.com)
-// CLAUDE_FALLBACK_MODEL picks another Claude model, or "none" to turn it off.
-// Unlike Gemini's free tier this one is billed, per request; the member's
-// daily allowances above still cap it, and CLAUDE_DAILY_REQUESTS (default
-// 500) caps the whole site's Claude requests a day, look-up rounds
-// included: past it, members get Gemini's own answer (most often "back
-// tomorrow"). The browser's blocks are already Claude's
-// shape, so the turn goes over almost as it is, and a conversation can move
-// between the two from one turn to the next.
+//   supabase secrets set ALLOWED_ORIGINS=https://your-site.example
+// Optional: AI_DAILY_QUESTIONS (default 25), AI_DAILY_REQUESTS (default nine
+// for every question: one, plus eight rounds of look-ups) and
+// CLAUDE_DAILY_REQUESTS (default 2000; 0 turns the chat off for the day),
+// the whole site's requests to Claude a day, look-up rounds included: a cap
+// on the bill whatever the members' own allowances add up to.
 //
-// The free tier's limits are per Google Cloud project, shared by every
-// member: requests a minute, tokens a minute and requests a day (Google AI
-// Studio ▸ Usage shows them). Each question is one request plus one per
-// round of look-ups. Past a limit Gemini answers 429 and members are told to
-// try again shortly, or tomorrow. Free-tier prompts may be used by Google to
-// improve its products; a key on a project with billing turned on is the
-// paid tier, which isn't.
+// Claude is billed per request. A busy spell (a rate limit, an overloaded
+// API, a network error) is tried again twice by the SDK; past that the
+// member is told to try again shortly.
 //
 // On your own computer, with the site served locally:
-//   GEMINI_API_KEY=AIza… CHAT_OPEN=1 deno run --allow-net --allow-env \
+//   ANTHROPIC_API_KEY=sk-ant-… CHAT_OPEN=1 deno run --allow-net --allow-env \
 //     supabase/functions/league-chat/index.ts
 //   (http://localhost:8000; PORT=8001 to change it), then AI_CHAT_URL:
 //   "http://localhost:8000" in account-config.js.
@@ -97,22 +73,10 @@ const ANON_KEY = env("SUPABASE_ANON_KEY");
 const SERVICE_KEY = env("SUPABASE_SERVICE_ROLE_KEY");
 const ACCOUNTS = Boolean(SUPABASE_URL && ANON_KEY && SERVICE_KEY);
 const OPEN = env("CHAT_OPEN") === "1";
-const API_KEY = env("GEMINI_API_KEY");
-const MODEL = env("AI_MODEL").replace(/^models\//, "") || "gemini-3.8-flash";
-const FALLBACK = (() => {
-  const v = env("AI_FALLBACK_MODEL").replace(/^models\//, "");
-  if (v.toLowerCase() === "none") return "";
-  return (v || "gemini-3.5-flash") === MODEL ? "" : (v || "gemini-3.5-flash");
-})();
-const THINKING = ["low", "medium", "high"].includes(env("AI_THINKING")) ? env("AI_THINKING") : "low";
-const ANTHROPIC_KEY = env("ANTHROPIC_API_KEY");
-const CLAUDE_MODEL = (() => {
-  const v = env("CLAUDE_FALLBACK_MODEL");
-  if (v.toLowerCase() === "none" || !ANTHROPIC_KEY) return "";
-  return v || "claude-haiku-4-5";
-})();
-const claude = CLAUDE_MODEL ? new Anthropic({ apiKey: ANTHROPIC_KEY, maxRetries: 2 }) : null;
-const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
+// The model, fixed: every answer comes from Claude Haiku 5.5.
+const MODEL = "claude-haiku-5-5";
+const API_KEY = env("ANTHROPIC_API_KEY");
+const claude = API_KEY ? new Anthropic({ apiKey: API_KEY, maxRetries: 2 }) : null;
 
 // What one request may carry: a league digest, a conversation of a sensible
 // length, and a handful of tool rounds per question.
@@ -125,37 +89,23 @@ const MAX_TOOL_ROUNDS = 8;
 // under 10,000 characters; every trade in a league's history is the
 // longest). Longer is cut, never turned down.
 const MAX_TOOL_RESULT = 40_000;
-// One answer's text (8,192 tokens is about 35,000 characters), a tool
-// call's input (a season, a week, a name) and a thought signature.
+// One answer's text (8,192 tokens is about 35,000 characters) and a tool
+// call's input (a season, a week, a name).
 const MAX_ANSWER_TEXT = 60_000;
 const MAX_TOOL_INPUT = 2_000;
-const MAX_SIGNATURE = 32_000;
 // The whole conversation, the league's data aside: about 100,000 tokens,
 // far past what the window's 60 turns hold in practice.
 const MAX_CONVERSATION = 400_000;
 // Short answers are the brief; this is only the ceiling.
 const MAX_OUTPUT = 8192;
-// How long Gemini has to start answering (all tries together), and to
-// finish once it has.
-const GEMINI_START = 60_000;
-const GEMINI_ANSWER = 120_000;
 
 // The allowances. A question is one request plus one per round of
 // look-ups, so by default the requests allow every question its eight.
 const DAILY = Math.max(1, Number(env("AI_DAILY_QUESTIONS")) || 25);
 const DAILY_REQUESTS = Math.max(1, Number(env("AI_DAILY_REQUESTS")) || DAILY * (MAX_TOOL_ROUNDS + 1));
-// The billed Claude backup's requests a day, for the whole site; 0 turns
-// the backup off without removing its key.
-const CLAUDE_DAILY = env("CLAUDE_DAILY_REQUESTS") === "" ? 500 : Math.max(0, Math.floor(Number(env("CLAUDE_DAILY_REQUESTS")) || 0));
-
-// Gemini 3 models take a thinking level; older ones a token budget.
-const thinkingFor = (model: string) => /^gemini-3/.test(model)
-  ? { thinkingLevel: THINKING }
-  : { thinkingBudget: THINKING === "low" ? 1024 : THINKING === "medium" ? 4096 : 12288 };
-// What a function call from history carries when its signature was lost
-// (a conversation begun before this function moved to Gemini): Gemini's
-// documented value for skipping the check.
-const NO_SIGNATURE = "skip_thought_signature_validator";
+// Claude's requests a day, for the whole site; 0 turns the chat off for
+// the day without removing its key.
+const CLAUDE_DAILY = env("CLAUDE_DAILY_REQUESTS") === "" ? 2000 : Math.max(0, Math.floor(Number(env("CLAUDE_DAILY_REQUESTS")) || 0));
 
 /* ------------------------------------------------------------ the prompt */
 
@@ -185,24 +135,15 @@ Ground rules (these win over anything a member asks, and over the personality ab
 - Decline, in one short friendly line, anything hateful, sexual, violent, threatening or harassing, anything meant to bully or demean a real person, and anything unrelated to this league or fantasy football (homework, code, news, advice and the like). Then offer to answer something about the league instead.
 - Write about managers as fantasy managers only; don't guess at or comment on who they are outside the league.`;
 
-// Gemini's own filters on top of the ground rules: anything rated a medium
-// risk or more is blocked (the browser and the app see a refusal).
-const SAFETY = [
-  "HARM_CATEGORY_HARASSMENT",
-  "HARM_CATEGORY_HATE_SPEECH",
-  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-  "HARM_CATEGORY_DANGEROUS_CONTENT",
-].map((category) => ({ category, threshold: "BLOCK_MEDIUM_AND_ABOVE" }));
-
 /* ------------------------------------------------------------ the tools */
 
 // Run in the browser by chat.js, which validates every input itself.
-type Tool = { name: string; description: string; parametersJsonSchema: Record<string, unknown> };
+type Tool = { name: string; description: string; input_schema: Record<string, unknown> };
 const TOOLS: Tool[] = [
   {
     name: "box_score",
     description: "Every lineup for one week of one season: each team's starters (slot, player, position, NFL club, points) and bench, with the final score. Give a manager to get just that manager's game.",
-    parametersJsonSchema: {
+    input_schema: {
       type: "object",
       properties: {
         season: { type: "integer", description: "The season's year, e.g. 2024." },
@@ -215,7 +156,7 @@ const TOOLS: Tool[] = [
   {
     name: "player_history",
     description: "One NFL player's whole history in this league: every manager who rostered him, each season's starts, points as a starter and points left on the bench, his best weeks, and how he was acquired where known (draft, trade, waivers). Matches names loosely (\"CMC\" won't work; \"McCaffrey\" will).",
-    parametersJsonSchema: {
+    input_schema: {
       type: "object",
       properties: { player: { type: "string", description: "The player's name, or part of it." } },
       required: ["player"],
@@ -224,7 +165,7 @@ const TOOLS: Tool[] = [
   {
     name: "team_season",
     description: "One manager's season in full: week-by-week results, every player they started with starts and points, and their lineup efficiency (points scored against the best possible lineup).",
-    parametersJsonSchema: {
+    input_schema: {
       type: "object",
       properties: {
         season: { type: "integer" },
@@ -236,7 +177,7 @@ const TOOLS: Tool[] = [
   {
     name: "top_performances",
     description: "The highest single-week scores by players in starting lineups, across the league's history or one season, optionally for one position or one manager's teams. Also returns the best weeks left on a bench.",
-    parametersJsonSchema: {
+    input_schema: {
       type: "object",
       properties: {
         season: { type: "integer", description: "Optional: one season." },
@@ -250,7 +191,7 @@ const TOOLS: Tool[] = [
   {
     name: "trades",
     description: "Every completed trade (all seasons, or one), what each side received (players, draft picks and what they became, FAAB), and what each side's haul has scored for them since; plus each manager's all-time trade record.",
-    parametersJsonSchema: {
+    input_schema: {
       type: "object",
       properties: {
         season: { type: "integer", description: "Optional: one season." },
@@ -262,7 +203,7 @@ const TOOLS: Tool[] = [
   {
     name: "waiver_pickups",
     description: "One season's waiver claims and free-agent pickups: who added whom, the week, the FAAB bid where the league bids, and what each pickup scored for that manager that season; plus each manager's totals.",
-    parametersJsonSchema: {
+    input_schema: {
       type: "object",
       properties: {
         season: { type: "integer" },
@@ -274,7 +215,7 @@ const TOOLS: Tool[] = [
   {
     name: "draft",
     description: "A season's draft (startup, redraft or rookie): every pick in order with the manager who made it and the player taken, and what each player went on to score for that manager that season.",
-    parametersJsonSchema: {
+    input_schema: {
       type: "object",
       properties: { season: { type: "integer" } },
       required: ["season"],
@@ -283,7 +224,7 @@ const TOOLS: Tool[] = [
   {
     name: "lineup_efficiency",
     description: "How well managers set their lineups: points scored against the best lineup they could have set, points left on the bench, games a lineup cost them, and the worst benchings. For one season, or every season together.",
-    parametersJsonSchema: {
+    input_schema: {
       type: "object",
       properties: { season: { type: "integer", description: "Optional: one season; leave out for all-time." } },
       required: [],
@@ -376,8 +317,8 @@ async function countRequest(userId: string): Promise<{ day: string; questions: n
   return { day: String(used?.day ?? ""), questions: Number(used?.questions), requests: Number(used?.requests) };
 }
 
-// Counts a request to the billed Claude backup; the whole site's count
-// today, this one included.
+// Counts a request to Claude; the whole site's count today, this one
+// included.
 async function countClaude(userId: string): Promise<number> {
   const res = await service("rpc/count_chat_claude", {
     method: "POST",
@@ -401,7 +342,7 @@ function countOpen(req: Request, question: boolean): { questions: number; reques
 }
 let openClaude = { day: "", n: 0 };
 
-// Whether the Claude backup may take one more request today, counting it.
+// Whether Claude may take one more request today, counting it.
 // The count failing reads as no: the cap holds even then.
 async function claudeAllowed(userId: string | null): Promise<boolean> {
   if (CLAUDE_DAILY <= 0) return false;
@@ -429,9 +370,6 @@ type Block = {
   tool_use_id?: string;
   content?: unknown;
   is_error?: boolean;
-  sig?: string;   // Gemini's thought signature
-  m?: string;     // the model that wrote it: a signature is good only there
-  gid?: boolean;  // the id is Gemini's own, so it goes back with the call
   k?: string;     // this function's stamp on a tool call (see stamp())
 };
 type Message = { role: "user" | "assistant"; content: string | Block[] };
@@ -454,21 +392,12 @@ function tidyBlocks(role: "user" | "assistant", content: string | unknown[]): Bl
     if (!raw || typeof raw !== "object") continue;
     const b = raw as Block;
     if (b.type === "text" && typeof b.text === "string") {
-      const block: Block = { type: "text", text: cut(b.text, role === "user" ? MAX_QUESTION : MAX_ANSWER_TEXT) };
-      if (role === "assistant") {
-        const sig = short(b.sig, MAX_SIGNATURE), m = short(b.m, 100);
-        if (sig) block.sig = sig;
-        if (m) block.m = m;
-      }
-      out.push(block);
+      out.push({ type: "text", text: cut(b.text, role === "user" ? MAX_QUESTION : MAX_ANSWER_TEXT) });
     } else if (b.type === "tool_use" && role === "assistant" && typeof b.name === "string" && b.name.length <= 64) {
       let input = b.input && typeof b.input === "object" && !Array.isArray(b.input) ? b.input : {};
       if (JSON.stringify(input).length > MAX_TOOL_INPUT) input = {};
       const block: Block = { type: "tool_use", id: String(b.id ?? "").slice(0, 128), name: b.name, input };
-      const sig = short(b.sig, MAX_SIGNATURE), m = short(b.m, 100), k = short(b.k, 100);
-      if (sig) block.sig = sig;
-      if (m) block.m = m;
-      if (b.gid === true) block.gid = true;
+      const k = short(b.k, 100);
       if (k) block.k = k;
       out.push(block);
     } else if (b.type === "tool_result" && role === "user") {
@@ -574,144 +503,6 @@ function leagueData(league: string, digest: string): string {
   return `<league_data>\nThe league: ${defuse(league)}\n\n${defuse(digest)}\n</league_data>`;
 }
 
-/* ------------------------------------------------------------ Gemini */
-
-type Part = {
-  text?: string;
-  thought?: boolean;
-  thoughtSignature?: string;
-  functionCall?: { id?: string; name: string; args?: Record<string, unknown> };
-  functionResponse?: { id?: string; name: string; response: Record<string, unknown> };
-};
-type Content = { role: "user" | "model"; parts: Part[] };
-
-// The conversation as Gemini's contents, for `model`, the league's data
-// first (its own part of the first turn, the same every time). Thinking
-// blocks from a conversation begun on the earlier model are left out; a
-// signature only goes back to the model that wrote it (a block with none
-// named came from the main model), and a tool call without a usable one
-// carries the placeholder.
-function contents(messages: Message[], model: string, data: string): Content[] {
-  const sigOf = (b: Block) => (b.sig && (b.m || MODEL) === model ? b.sig : undefined);
-  const calls = new Map<string, { name: string; id?: string }>();
-  const out: Content[] = [];
-  for (const m of messages) {
-    const parts: Part[] = [];
-    for (const b of blocksOf(m)) {
-      if (b.type === "text" && typeof b.text === "string" && b.text) {
-        const sig = m.role === "assistant" ? sigOf(b) : undefined;
-        parts.push(sig ? { text: b.text, thoughtSignature: sig } : { text: b.text });
-      } else if (b.type === "tool_use" && m.role === "assistant" && typeof b.name === "string") {
-        const id = b.gid && typeof b.id === "string" ? b.id : undefined;
-        if (typeof b.id === "string") calls.set(b.id, { name: b.name, id });
-        const args = b.input && typeof b.input === "object" && !Array.isArray(b.input) ? b.input as Record<string, unknown> : {};
-        // Only the first call of a set carries a signature; a later one
-        // without its own goes as it came.
-        const first = !parts.some((p) => p.functionCall);
-        const call: Part = { functionCall: id ? { id, name: b.name, args } : { name: b.name, args } };
-        const sig = sigOf(b);
-        if (sig || first) call.thoughtSignature = sig || NO_SIGNATURE;
-        parts.push(call);
-      } else if (b.type === "tool_result" && m.role === "user") {
-        const { name, id } = calls.get(String(b.tool_use_id)) ?? { name: "lookup" };
-        const text = textOf(b.content);
-        const response = b.is_error ? { error: text } : { result: text };
-        parts.push({ functionResponse: id ? { id, name, response } : { name, response } });
-      }
-    }
-    if (!parts.length) parts.push({ text: m.role === "user" ? "…" : "(no answer)" });
-    out.push({ role: m.role === "user" ? "user" : "model", parts });
-  }
-  if (out.length) out[0].parts.unshift({ text: data });
-  return out;
-}
-
-// Why Gemini turned a request down, in the words a member sees, and
-// whether it's the site's setup (every question would fail the same way).
-function upstreamError(status: number, body: string): { message: string; setup: boolean } {
-  if (status === 429) {
-    return /PerDay|per day|daily/i.test(body)
-      ? { message: "The league AI has used up today's free allowance. It's back tomorrow.", setup: false }
-      : { message: "The league AI is getting a lot of questions right now. Try again in a minute.", setup: false };
-  }
-  if (status === 400 && /API_KEY_INVALID|API key not valid/i.test(body) || status === 401 || status === 403) {
-    return { message: "The league AI isn't set up right yet: its API key was turned down. (Site owner: the league-chat function's logs say why.)", setup: true };
-  }
-  if (status === 404) {
-    return { message: "The league AI isn't set up right yet: its model wasn't found. (Site owner: check AI_MODEL.)", setup: true };
-  }
-  if (status >= 500) return { message: "Google's AI is overloaded right now. Try again in a minute.", setup: false };
-  return { message: "The AI couldn't answer that. Try again.", setup: false };
-}
-
-/* Asking Gemini, through a busy spell: the main model up to three times
-   (a short wait between), then the fallback model twice. Only "busy"
-   answers are tried again: an overloaded model (500, 502, 503, 504), a
-   per-minute rate limit or a network error. Anything else (a bad key,
-   today's allowance used up) is final, and so is running out of time
-   (GEMINI_START for all the tries together): the Claude backup gets what
-   time is left. Returns the open stream and the model that answered, or
-   the last refusal (a network error or timeout reads as a 504). */
-const BUSY = new Set([500, 502, 503, 504]);
-const wait = (ms: number, signal: AbortSignal) => new Promise<void>((resolve) => {
-  const t = setTimeout(resolve, ms);
-  signal.addEventListener("abort", () => { clearTimeout(t); resolve(); }, { once: true });
-});
-async function askGemini(requestFor: (model: string) => unknown, signal: AbortSignal):
-  Promise<{ res: Response | null; model: string; status: number; detail: string }> {
-  const plan: [string, number][] = [[MODEL, 0], [MODEL, 700], [MODEL, 1800]];
-  if (FALLBACK) plan.push([FALLBACK, 0], [FALLBACK, 1200]);
-  let status = 0, detail = "", model = MODEL;
-  const deadline = Date.now() + GEMINI_START;
-  for (let i = 0; i < plan.length; i++) {
-    const [m, delay] = plan[i];
-    if (delay) await wait(delay, signal);
-    if (signal.aborted) break;
-    const left = deadline - Date.now();
-    if (left < 1000) { status = 504; detail = "out of time"; break; }
-    model = m;
-    // Until the deadline to start answering; once it has, GEMINI_ANSWER
-    // for the whole answer. The member stopping cancels it either way.
-    const start = new AbortController();
-    const timer = setTimeout(() => start.abort(), left);
-    let res: Response;
-    try {
-      res = await fetch(`${GEMINI}/${encodeURIComponent(m)}:streamGenerateContent?alt=sse`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": API_KEY },
-        body: JSON.stringify(requestFor(m)),
-        signal: AbortSignal.any([signal, start.signal, AbortSignal.timeout(GEMINI_ANSWER)]),
-      });
-    } catch (err) {
-      clearTimeout(timer);
-      if (signal.aborted) break;
-      status = 504;
-      detail = start.signal.aborted ? "timed out" : String(err);
-      console.error("league-chat: Gemini didn't answer on", m, detail.slice(0, 400));
-      if (start.signal.aborted) break;
-      continue;
-    } finally {
-      clearTimeout(timer);
-    }
-    if (res.ok && res.body) {
-      if (i > 0) console.log(`league-chat: answered by ${m} after a ${status} from Gemini`);
-      return { res, model: m, status: res.status, detail: "" };
-    }
-    status = res.status;
-    detail = await res.text().catch(() => "");
-    if (signal.aborted) break;
-    console.error("league-chat: Gemini answered", status, "on", m, detail.slice(0, 400));
-    const busy = BUSY.has(status) || (status === 429 && !/PerDay|per day|daily/i.test(detail));
-    if (busy) continue;
-    // The main model missing (404) or out of today's allowance still leaves
-    // the fallback, which has its own; anything else is final.
-    const next = plan.findIndex(([pm], k) => k > i && pm !== m);
-    if (m === MODEL && next > 0 && (status === 404 || status === 429)) { i = next - 1; continue; }
-    break;
-  }
-  return { res: null, model, status, detail };
-}
-
 /* ------------------------------------------------------------ Claude */
 
 // The tools as Claude takes them. chat.js checks every input itself, so a
@@ -719,18 +510,18 @@ async function askGemini(requestFor: (model: string) => unknown, signal: AbortSi
 const CLAUDE_TOOLS: Anthropic.Tool[] = TOOLS.map((t) => ({
   name: t.name,
   description: t.description,
-  input_schema: t.parametersJsonSchema as Anthropic.Tool.InputSchema,
+  input_schema: t.input_schema as Anthropic.Tool.InputSchema,
   eager_input_streaming: true,
 }));
 
 // A tool call's id as Claude accepts it (letters, digits, _ and -); a call
-// first made on Gemini may carry anything else. Its result maps the same way.
+// from a conversation begun on Gemini may carry anything else. Its result
+// maps the same way.
 const claudeId = (id: unknown) => String(id ?? "call").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64) || "call";
 
 // The conversation as Claude's messages: the league's data first (its own
-// block of the first turn, cached), then the browser's blocks, less what
-// only Gemini reads (signatures), and less empty text, which Claude turns
-// down.
+// block of the first turn, cached), then the browser's blocks, less empty
+// text, which Claude turns down.
 function claudeMessages(messages: Message[], data: string): Anthropic.MessageParam[] {
   return messages.map((m, i) => {
     const content: Anthropic.ContentBlockParam[] = [];
@@ -751,19 +542,21 @@ function claudeMessages(messages: Message[], data: string): Anthropic.MessagePar
   });
 }
 
-/* Asking Claude, streaming the answer to the browser as it is written, in
-   the same events as Gemini's. Returns null once the answer is sent, or why
-   Claude couldn't answer. The instructions and the league go first and are
-   cached, so a follow-up (or another question about the same league within
-   a few minutes) reads them at a tenth of the price. The tool calls are
-   stamped like Gemini's. */
+/* Asking Claude, streaming the answer to the browser as it is written.
+   Returns null once the answer is sent, or why Claude couldn't answer. The
+   instructions and the league go first and are cached, so a follow-up (or
+   another question about the same league within a few minutes) reads them
+   at a tenth of the price. Thinking is off (the browser's blocks have no
+   place for it) at medium effort, which still looks things up before
+   answering. The tool calls are stamped (see stamp()). */
 async function askClaude(messages: Message[], data: string, send: (e: Record<string, unknown>) => void, signal: AbortSignal,
   stampFor: Stamp | null): Promise<{ message: string; setup: boolean } | null> {
-  if (!claude) return { message: "", setup: false };
   try {
-    const stream = claude.messages.stream({
-      model: CLAUDE_MODEL,
+    const stream = claude!.messages.stream({
+      model: MODEL,
       max_tokens: MAX_OUTPUT,
+      thinking: { type: "disabled" },
+      output_config: { effort: "medium" },
       system: [{ type: "text", text: INSTRUCTIONS, cache_control: { type: "ephemeral" } }],
       tools: CLAUDE_TOOLS,
       messages: claudeMessages(messages, data),
@@ -798,7 +591,7 @@ async function askClaude(messages: Message[], data: string, send: (e: Record<str
     }
     if (err instanceof Anthropic.NotFoundError) {
       console.error("league-chat: Claude model not found,", err.message);
-      return { message: "The league AI isn't set up right yet: its Claude model wasn't found. (Site owner: check CLAUDE_FALLBACK_MODEL.)", setup: true };
+      return { message: "The league AI isn't set up right yet: its model wasn't found. (Site owner: the league-chat function's logs say why.)", setup: true };
     }
     if (err instanceof Anthropic.RateLimitError) {
       console.error("league-chat: Claude rate limit,", err.message);
@@ -806,15 +599,14 @@ async function askClaude(messages: Message[], data: string, send: (e: Record<str
     }
     if (err instanceof Anthropic.APIError) {
       console.error("league-chat: Claude answered", err.status, err.message);
-      return { message: "The league AI couldn't answer that. Try again in a minute.", setup: false };
+      return err.status === 529 || (err.status ?? 0) >= 500
+        ? { message: "The league AI is busy right now. Try again in a minute.", setup: false }
+        : { message: "The league AI couldn't answer that. Try again in a minute.", setup: false };
     }
     console.error("league-chat: Claude failed,", err);
     return { message: "The league AI couldn't answer that. Try again.", setup: false };
   }
 }
-
-// Finish reasons that mean Gemini declined to answer.
-const DECLINED = new Set(["SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "RECITATION", "IMAGE_SAFETY"]);
 
 /* ------------------------------------------------------------ the chat */
 
@@ -823,7 +615,7 @@ async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
   if (ALLOWED.length && origin && !ALLOWED.includes(origin)) return fail(403, "origin", "origin not allowed", origin);
   if (req.method !== "POST") return fail(405, "method", "POST only", origin);
-  if (!API_KEY && !claude) return fail(501, "not_set_up", "the league chat has no API key yet", origin);
+  if (!claude) return fail(501, "not_set_up", "the league chat has no API key yet", origin);
   if (!ACCOUNTS && !OPEN) return fail(501, "not_set_up", "the league chat needs Supabase accounts (or CHAT_OPEN=1 to try it locally)", origin);
 
   const text = await req.text();
@@ -872,27 +664,19 @@ async function handle(req: Request): Promise<Response> {
     if (used.questions > DAILY || used.requests > DAILY_REQUESTS) return fail(429, "daily_limit", limited, origin);
   }
 
-  // The instructions (ground rules included, for Claude as for Gemini) are
-  // the system instruction and nothing else: the league's data is the
-  // browser's, so it goes in the conversation, first, as data. Both are
-  // the same from one turn to the next, so either model's cache can serve
-  // them. Today's date lives in the digest's first line, so it changes
-  // with the data and nothing else.
+  // The instructions (ground rules included) are the system prompt and
+  // nothing else: the league's data is the browser's, so it goes in the
+  // conversation, first, as data. Both are the same from one turn to the
+  // next, so the cache can serve them. Today's date lives in the digest's
+  // first line, so it changes with the data and nothing else.
   const data = leagueData(league, digest);
-  const requestFor = (model: string) => ({
-    systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
-    contents: contents(convo.messages, model, data),
-    tools: [{ functionDeclarations: TOOLS }],
-    safetySettings: SAFETY,
-    generationConfig: { maxOutputTokens: MAX_OUTPUT, thinkingConfig: thinkingFor(model) },
-  });
 
   // The answer as server-sent events: text as it is written, a note when a
   // tool is called, then the whole message as content blocks, which the
   // browser sends back unchanged with the next turn.
   const encoder = new TextEncoder();
   // The member pressing stop (or leaving) cancels the answer, and with it
-  // the request to Gemini, so nothing more is written.
+  // the request to Claude, so nothing more is written.
   const abort = new AbortController();
   const out = new ReadableStream({
     async start(controller) {
@@ -900,96 +684,13 @@ async function handle(req: Request): Promise<Response> {
         if (!abort.signal.aborted) controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
       try {
-        const { res, model, status, detail } = API_KEY
-          ? await askGemini(requestFor, abort.signal)
-          : { res: null, model: MODEL, status: 0, detail: "" };
-        if (!res || !res.body) {
-          if (abort.signal.aborted) return;
-          // Gemini can't answer: Claude takes the question, if it's set up
-          // and today's Claude allowance isn't used up.
-          if (claude) {
-            if (await claudeAllowed(userId)) {
-              if (API_KEY) console.log(`league-chat: Gemini answered ${status}; asking ${CLAUDE_MODEL}`);
-              const failed = await askClaude(convo.messages, data, send, abort.signal, stampFor);
-              if (!failed) return;
-              if (!API_KEY || failed.setup) { send({ t: "error", ...failed }); return; }
-            } else {
-              console.error(`league-chat: Gemini answered ${status}; the Claude backup is past today's ${CLAUDE_DAILY} requests (CLAUDE_DAILY_REQUESTS)`);
-              if (!API_KEY) {
-                send({ t: "error", setup: false, message: "The league AI has used up today's allowance. It's back tomorrow." });
-                return;
-              }
-            }
-            if (abort.signal.aborted) return;
-          }
-          send({ t: "error", ...upstreamError(status, detail) });
+        if (!(await claudeAllowed(userId))) {
+          console.error(`league-chat: past today's ${CLAUDE_DAILY} requests for the whole site (CLAUDE_DAILY_REQUESTS)`);
+          send({ t: "error", setup: false, message: "The league AI has used up today's allowance. It's back tomorrow." });
           return;
         }
-
-        const content: Block[] = [];
-        let finish = "", blocked = false, calls = 0;
-        const addText = (t: string, sig?: string) => {
-          const last = content[content.length - 1];
-          if (last && last.type === "text" && !last.sig) {
-            last.text += t;
-            if (sig) { last.sig = sig; last.m = model; }
-          } else content.push(sig ? { type: "text", text: t, sig, m: model } : { type: "text", text: t });
-        };
-        const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
-        let buf = "";
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (value) buf += value.replace(/\r\n/g, "\n");
-          let cut;
-          while ((cut = buf.indexOf("\n\n")) >= 0) {
-            const chunk = buf.slice(0, cut);
-            buf = buf.slice(cut + 2);
-            const data = chunk.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).join("");
-            if (!data) continue;
-            let event: {
-              candidates?: { content?: { parts?: Part[] }; finishReason?: string }[];
-              promptFeedback?: { blockReason?: string };
-            };
-            try { event = JSON.parse(data); } catch { continue; }
-            if (event.promptFeedback?.blockReason) blocked = true;
-            const cand = event.candidates?.[0];
-            for (const part of cand?.content?.parts ?? []) {
-              if (part.thought) continue;
-              if (part.functionCall) {
-                calls++;
-                send({ t: "tool", name: part.functionCall.name });
-                const block: Block = {
-                  type: "tool_use",
-                  id: part.functionCall.id || `call_${Date.now().toString(36)}_${calls}`,
-                  name: part.functionCall.name,
-                  input: part.functionCall.args ?? {},
-                };
-                if (part.functionCall.id) block.gid = true;
-                if (part.thoughtSignature) { block.sig = part.thoughtSignature; block.m = model; }
-                content.push(block);
-              } else if (typeof part.text === "string") {
-                if (part.text) send({ t: "text", d: part.text });
-                if (part.text || part.thoughtSignature) addText(part.text, part.thoughtSignature);
-              }
-            }
-            if (cand?.finishReason) finish = cand.finishReason;
-          }
-          if (done) break;
-        }
-
-        const stop = blocked || DECLINED.has(finish) ? "refusal"
-          : calls ? "tool_use"
-          : finish === "MAX_TOKENS" ? "max_tokens"
-          : "end_turn";
-        // A turn of nothing but an empty signature carrier reads as empty.
-        const kept = content.filter((b) => b.type !== "text" || b.text || b.sig);
-        if (!kept.some((b) => b.type === "tool_use" || b.text) && stop === "end_turn" && finish && finish !== "STOP") {
-          console.error("league-chat: Gemini finished with", finish);
-          send({ t: "error", setup: false, message: "The AI couldn't answer that. Try again." });
-          return;
-        }
-        await stamp(kept, stampFor);
-        send({ t: "done", stop, content: kept });
+        const failed = await askClaude(convo.messages, data, send, abort.signal, stampFor);
+        if (failed) send({ t: "error", ...failed });
       } catch (err) {
         if (abort.signal.aborted) return;
         console.error("league-chat:", err);
