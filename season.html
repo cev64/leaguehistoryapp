@@ -8250,7 +8250,7 @@
         Promise.resolve(year === SEASON ? boxWeeks() : model.boxWeeks(year)).then(off, () => off(null));
       });
       const foot = document.getElementById("bxFoot");
-      foot.textContent = r.note;
+      foot.textContent = "";
       // Across to the game's box score, unless that is where it came from.
       const from = bxTop();
       const cameFrom = from && from.kind === "box" && from.year === SEASON && from.week === r.end && samePair(from, view);
