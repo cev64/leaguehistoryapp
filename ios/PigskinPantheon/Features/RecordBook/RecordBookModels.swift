@@ -164,7 +164,7 @@ struct BookH2HLine: Decodable, Hashable, Identifiable, BookFace {
 
 /// Most-started players (`Bridge.records.starters`).
 struct BookStarters: Decodable {
-    /// Set when there is nothing to show: "No box scores for this manager yet."
+    /// Set when there is nothing to show: "No box scores yet."
     let message: String?
     let years: [Int]
     let players: [Starter]

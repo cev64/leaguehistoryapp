@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The home screen: the member's leagues, the leagues opened before, the
 /// way to open one (Sleeper or ESPN) and the demo, as grouped sections
-/// under a large title. First time in, a welcome card says what the app is;
-/// the site's longer pitch and questions are in About.
+/// under a large title. First time in, a welcome card leads with the demo;
+/// what's inside and the questions people ask are in About.
 struct HomeView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -261,7 +261,7 @@ struct HomeView: View {
                         }
                     }
                 }
-                Button("Account & leagues", systemImage: "person.crop.circle") { sheet = .account }
+                Button("Account", systemImage: "person.crop.circle") { sheet = .account }
                 Button("Sign out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
                     Task {
                         await account.signOut()
@@ -282,7 +282,7 @@ struct HomeView: View {
                 sheet = .auth(.signin)
             }
             .fontWeight(.semibold)
-            .accessibilityHint("Sign in or create a free account")
+            .accessibilityHint("Sign in or create an account")
         }
     }
 }
@@ -308,7 +308,8 @@ private struct HeroBackground: View {
     }
 }
 
-/// First time in: what the app is, in a card, and the demo a tap away.
+/// First time in: what the app is, in a line and four features, and the
+/// demo a tap away.
 private struct WelcomeCard: View {
     @Environment(AppModel.self) private var app
 
@@ -321,21 +322,14 @@ private struct WelcomeCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 10) {
-                Image("Crest").resizable().scaledToFit().frame(width: 34, height: 34)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Welcome to the Pantheon")
-                        .font(.headline)
-                    Text("For Sleeper and ESPN leagues")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.7))
-                }
+            HStack(spacing: 12) {
+                Image("Crest").resizable().scaledToFit().frame(width: 40, height: 40)
+                    .accessibilityHidden(true)
+                Text("Every season your league has played, in one place.")
+                    .font(.title2.weight(.bold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
             }
-            .accessibilityElement(children: .combine)
-
-            Text("Every season your league has played, in one place.")
-                .font(.title2.weight(.bold))
-                .fixedSize(horizontal: false, vertical: true)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 ForEach(features, id: \.1) { f in
@@ -434,7 +428,7 @@ private struct DemoSection: View {
                         Text("Sunday Scaries")
                             .font(.body.weight(.semibold))
                             .foregroundStyle(Theme.ink)
-                        Text("A made-up dynasty league: five seasons to explore")
+                        Text("Dynasty · 10 teams")
                             .font(.subheadline)
                             .foregroundStyle(Theme.ink3)
                             .lineLimit(2)
@@ -490,39 +484,27 @@ private struct HomeAboutSection: View {
 
 // MARK: About sheet
 
-/// The site's pitch (index.html): what's inside, how it works, and the
-/// questions people ask, as a grouped list.
+/// What's inside and the questions people ask (index.html's FAQ), as a
+/// grouped list.
 private struct AboutSheet: View {
     @Environment(\.dismiss) private var dismiss
     let openDemo: () -> Void
 
-    private let features: [(String, Color, String, String)] = [
-        ("sparkles", Theme.gold, "Ask anything. Get roasted with receipts.",
-         "An AI that has read every score, trade, waiver claim, draft and lineup your league ever made. Ask who owns who or who lost the worst trade ever, and get the numbers with a little smack."),
-        ("trophy.fill", Color(hex: 0xC9A227), "Walk your league's hall of fame.",
-         "Champions in the Cup Room, a Hall of Fame and a Record Wall, the Lowlight Wall and the Cellar. Every manager gets a locker with their banner, pennants and cups."),
-        ("newspaper.fill", Theme.accent, "The recap the group chat actually reads.",
-         "Every week gets a headline and a story for every game: upsets, blowouts, streaks, the bench that cost someone the win. Power rankings and the playoff race come with it."),
-        ("tablecells.fill", Theme.green, "Settle every argument, permanently.",
-         "All-time standings, titles, last places and playoff records, plus head-to-head against every manager in the league."),
-        ("arrow.left.arrow.right", Color(hex: 0x7A5AF8), "Who won the trade? Now it's on the record.",
-         "Every trade judged in hindsight, every waiver pickup and FAAB dollar, lineup efficiency and where every draft pick ended up."),
-        ("person.text.rectangle.fill", Theme.red, "Every player's life in your league.",
-         "Who rostered him and when, his best games, his record as a starter and the rings he won you."),
-    ]
-
-    private let steps = [
-        ("Find your league", "Type your Sleeper username, or paste an ESPN league ID or link. Every season the league has played comes in at once."),
-        ("Keep it on your account", "Make a free account and your leagues stay on it, on every device. Or skip it: any league opens without one."),
-        ("Send it to the league", "Drop a recap, a head-to-head or the trophy room in the group chat and let the arguments begin."),
+    private let features: [(String, Color, String)] = [
+        ("sparkles", Theme.gold, "Ask the League, the AI historian"),
+        ("trophy.fill", Color(hex: 0xC9A227), "3D trophy room"),
+        ("newspaper.fill", Theme.accent, "Weekly recaps and power rankings"),
+        ("tablecells.fill", Theme.green, "All-time record book and head-to-head"),
+        ("arrow.left.arrow.right", Color(hex: 0x7A5AF8), "Trades, waivers and drafts"),
+        ("person.text.rectangle.fill", Theme.red, "Player cards"),
     ]
 
     private let faq = [
-        ("Do I need an account?", "No. Any league opens without one. An account keeps your leagues on every device you sign in on, saves private ESPN keys, and is needed to ask the AI."),
-        ("Do you need my Sleeper or ESPN password?", "No. Sleeper's league data is public, so your username is enough. A public ESPN league needs only its ID. A private ESPN league opens once you sign in on ESPN's own page in the app: your password goes to ESPN alone, and the app keeps only the two keys ESPN hands back, encrypted if you save them to your account."),
-        ("Which leagues work?", "Sleeper and ESPN leagues: redraft, keeper and dynasty, with or without divisions, any scoring. The history goes back as far as each platform keeps it."),
-        ("What does the AI know?", "Only your league: every score, standing, trade, waiver claim, draft and lineup the app has read. It quotes the numbers, and it can be wrong now and then, so the record book has the final word."),
-        ("Is this made by Sleeper or ESPN?", "No. Pigskin Pantheon is independent and isn't affiliated with or endorsed by Sleeper or ESPN. It reads each platform's league data to build your history."),
+        ("Do I need an account?", "No. Any league opens without one. An account keeps your leagues on every device, saves private ESPN keys and unlocks Ask the League."),
+        ("Do you need my Sleeper or ESPN password?", "No. A Sleeper username or a public ESPN league ID is enough. For a private ESPN league you sign in on ESPN's own page: the password goes to ESPN alone, and the app keeps only the two keys ESPN hands back (encrypted, if saved to your account)."),
+        ("Which leagues work?", "Sleeper and ESPN: redraft, keeper and dynasty, any scoring, as far back as each platform keeps."),
+        ("What does the AI know?", "Only your league's own data. It can be wrong now and then; the record book has the final word."),
+        ("Is this made by Sleeper or ESPN?", "No. Pigskin Pantheon is independent and isn't affiliated with or endorsed by Sleeper, ESPN, the NFL or the NFLPA."),
     ]
 
     var body: some View {
@@ -531,11 +513,8 @@ private struct AboutSheet: View {
                 Section {
                     VStack(spacing: 10) {
                         Image("Crest").resizable().scaledToFit().frame(width: 64, height: 64)
+                            .accessibilityHidden(true)
                         BrandWordmark(size: 26)
-                        Text("Sleeper and ESPN show you this week. Pigskin Pantheon remembers everything else: who won, who choked, who got fleeced, and by how much.")
-                            .font(.subheadline)
-                            .foregroundStyle(Theme.ink2)
-                            .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
@@ -544,31 +523,10 @@ private struct AboutSheet: View {
 
                 Section("What's Inside") {
                     ForEach(features, id: \.2) { f in
-                        HStack(alignment: .top, spacing: 12) {
+                        HStack(spacing: 12) {
                             IconTile(symbol: f.0, color: f.1)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(f.2).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
-                                Text(f.3).font(.footnote).foregroundStyle(Theme.ink2)
-                            }
+                            Text(f.2).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
                         }
-                        .padding(.vertical, 2)
-                    }
-                }
-
-                Section("How It Works") {
-                    ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
-                        HStack(alignment: .top, spacing: 12) {
-                            Text("\(i + 1)")
-                                .font(.subheadline.weight(.heavy))
-                                .foregroundStyle(Theme.navy)
-                                .frame(width: 28, height: 28)
-                                .background(Theme.gold, in: Circle())
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(step.0).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.ink)
-                                Text(step.1).font(.footnote).foregroundStyle(Theme.ink2)
-                            }
-                        }
-                        .padding(.vertical, 2)
                     }
                 }
 

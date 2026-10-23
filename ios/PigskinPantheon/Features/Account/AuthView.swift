@@ -45,10 +45,10 @@ struct AuthView: View {
 
     private var title: String {
         switch mode {
-        case .signin: return "Welcome back"
-        case .signup: return "Create your account"
-        case .forgot: return "Reset your password"
-        case .sent: return "Check your email"
+        case .signin: return "Sign In"
+        case .signup: return "Create Account"
+        case .forgot: return "Reset Password"
+        case .sent: return "Check Your Email"
         }
     }
 
@@ -118,11 +118,9 @@ struct AuthView: View {
 
     // MARK: Views
 
+    /// Why the sign-in is asked for, when a screen says (the clubhouse).
     private var reasonText: String? {
         if let reason, !reason.isEmpty { return reason }
-        if mode == .signup {
-            return "It's free: every league you add, every season it played, and the league AI."
-        }
         return nil
     }
 
@@ -161,14 +159,14 @@ struct AuthView: View {
     @ViewBuilder
     private var signUpFields: some View {
         Section {
-            TextField("Name", text: $name, prompt: Text("Name: what the league calls you"))
+            TextField("Name", text: $name, prompt: Text("Name"))
                 .textContentType(.nickname)
                 .focused($focus, equals: .name)
                 .submitLabel(.next)
                 .onSubmit { focus = .email }
                 .onChange(of: name) { _, v in if v.count > 60 { name = String(v.prefix(60)) } }
             emailField
-            SecureField("Password", text: $password, prompt: Text("Password: at least 8 characters"))
+            SecureField("Password", text: $password, prompt: Text("Password (8+ characters)"))
                 .textContentType(.newPassword)
                 .focused($focus, equals: .password)
                 .submitLabel(.go)
@@ -180,7 +178,7 @@ struct AuthView: View {
         }
         .listRowBackground(Theme.card)
         Section {
-            primaryButton("Create free account")
+            primaryButton("Create account")
             legalLine("By creating an account you agree to the [Terms of Service](\(Legal.terms.absoluteString)) and [Privacy Policy](\(Legal.privacy.absoluteString)).")
         }
         .listRowBackground(Color.clear)
@@ -192,8 +190,6 @@ struct AuthView: View {
     private var forgotFields: some View {
         Section {
             emailField
-        } header: {
-            Text("We'll email you a link to choose a new one.").textCase(nil)
         } footer: {
             errorLine
         }
@@ -318,9 +314,9 @@ struct AuthView: View {
                     let confirm = try await account.signUp(email: mail, password: password, name: name.trimmingCharacters(in: .whitespaces))
                     succeeded += 1
                     if confirm {
-                        withAnimation { self.mode = .sent("We sent a confirmation link to \(mail). Follow it to finish creating your account.") }
+                        withAnimation { self.mode = .sent("Follow the link we sent to \(mail) to finish creating your account.") }
                     } else {
-                        account.say("Welcome! Your account is ready.")
+                        account.say("Account created.")
                         finish()
                     }
                 case .forgot:
@@ -350,8 +346,7 @@ struct AuthView: View {
     }
 }
 
-/// The gate over a league (account.js drawGate, signed out): which league,
-/// and what an account gets you.
+/// The gate over a league (account.js drawGate, signed out): which league.
 private struct GateHeader: View {
     let pending: AccountStore.PendingLeague
 
@@ -361,10 +356,6 @@ private struct GateHeader: View {
             Text("Sign in to open \(pending.name ?? "this league")")
                 .font(.title3.weight(.bold))
                 .foregroundStyle(Theme.ink)
-                .multilineTextAlignment(.center)
-            Text("Pigskin Pantheon is free with an account: every season your league has played, the trophy room and the league AI.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.ink2)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

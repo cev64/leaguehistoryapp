@@ -9,7 +9,17 @@ struct OfficeCardView: View {
 
     var body: some View {
         Card {
-            CardHead(title: card.title, symbol: card.symbol, meta: card.meta)
+            BookCardHead(title: card.title, symbol: card.symbol) {
+                HStack(spacing: 8) {
+                    if let meta = card.meta {
+                        Text(meta)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Theme.ink3)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    if let note = card.note { OfficeNoteButton(note: note) }
+                }
+            }
             if let empty = card.empty {
                 OfficeEmptyText(text: empty)
             } else {
@@ -24,19 +34,37 @@ struct OfficeCardView: View {
                     EmptyView()
                 }
             }
-            if let note = card.note {
-                Text(note)
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(Theme.muted)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 14)
-                    .padding(.top, 10)
-                    .padding(.bottom, 12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: 1) }
-            }
         }
+    }
+}
+
+/// How a card's numbers are worked out (the site's `.fo-note`), behind an
+/// (i) in the card's head.
+private struct OfficeNoteButton: View {
+    let note: String
+    @State private var shown = false
+
+    var body: some View {
+        Button {
+            shown = true
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.ink3)
+                .frame(minWidth: 28, minHeight: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(Felt(.plain))
+        .popover(isPresented: $shown) {
+            Text(note)
+                .font(.footnote)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(idealWidth: 300, maxWidth: 320, alignment: .leading)
+                .padding(14)
+                .presentationCompactAdaptation(.popover)
+        }
+        .accessibilityLabel("How it's counted")
+        .accessibilityHint(note)
     }
 }
 
@@ -417,7 +445,7 @@ private struct OfficeTrades: View {
             Button {
                 store.showMore()
             } label: {
-                Text("Show more trades (\(trades.count - shown.count))")
+                Text("Show \(trades.count - shown.count) more")
                     .font(.system(size: 13, weight: .bold))
                     .frame(maxWidth: .infinity, minHeight: 28)
             }

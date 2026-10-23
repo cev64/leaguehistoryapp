@@ -8,7 +8,7 @@
                                       all-time standings with every sort order
      Bridge.records.profile(ownerId)  one manager's history (the drawer)
      Bridge.records.starters(ownerId) most-started players (async)
-     Bridge.records.search(query)     the "Search any player" field (async) */
+     Bridge.records.search(query)     the player search (async) */
 (function () {
   "use strict";
 
@@ -390,7 +390,7 @@
     try { data = await B.model().starters(); } catch (err) { data = null; }
     const entry = data && data.owners[ownerId];
     if (!entry || !entry.players.length) {
-      return { message: data ? "No box scores for this manager yet." : "Lineups could not be loaded.", years: [], players: [] };
+      return { message: data ? "No box scores yet." : "Lineups could not be loaded.", years: [], players: [] };
     }
     const years = entry.seasons;
     const most = Math.max(...entry.players.flatMap((p) => Object.values(p.years).map((y) => y[0])));

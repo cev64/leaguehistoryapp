@@ -1192,7 +1192,7 @@
   function hall() {
     const data = hallData();
     if (!data.seasons.length) {
-      throw new Error(`The trophy room opens once the league has finished a season on ${window.League.sourceName()}. Until then, the season page has everything so far.`);
+      throw new Error("The trophy room opens once the league finishes a season.");
     }
     const built = buildHall(data);
     const lockers = {};

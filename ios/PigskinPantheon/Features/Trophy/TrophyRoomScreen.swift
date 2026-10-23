@@ -63,8 +63,8 @@ private struct TrophyHallView: View {
                 VStack {
                     Spacer()
                     HintPill(text: stage.upright
-                             ? "Swipe up to walk the hall · tap a trophy to inspect it"
-                             : "Drag to walk the hall · tap a trophy to inspect it")
+                             ? "Swipe up to walk · tap a trophy to inspect"
+                             : "Drag to walk · tap a trophy to inspect")
                 }
                 .padding(.bottom, 10)
                 .padding(.horizontal, 16)
@@ -173,8 +173,8 @@ private struct TrophyLockerView: View {
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                     HintPill(text: stage.upright
-                             ? "Tap anything on the wall to see it up close"
-                             : "Drag to look around the wall · tap anything to see it up close")
+                             ? "Tap anything to inspect"
+                             : "Drag to look around · tap to inspect")
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
@@ -185,7 +185,7 @@ private struct TrophyLockerView: View {
         .environment(\.colorScheme, .dark)
         .modifier(RecordPresenter(stage: stage, shown: stage.mode == .lockerFocus) { stage.exitLockerFocus() })
         .navigationTitle(locker?.team ?? "Team Locker")
-        .navigationSubtitle(locker.map { "Team Locker · \($0.name)" } ?? "Team Locker")
+        .navigationSubtitle(locker?.name ?? "Team Locker")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .task(id: ownerId) { await stage.enterLocker(ownerId) }
@@ -393,11 +393,15 @@ private struct Nameplate: View {
         let accent = Color(css: item.accent) ?? Theme.gold
         Button(action: action) {
             VStack(spacing: 2) {
-                Text(item.wingName)
+                // A pillar opens its manager's locker: said on the kicker,
+                // so every nameplate keeps one height as the hall is walked.
+                Text(item.opensLocker ? "\(item.wingName) · Open locker →" : item.wingName)
                     .font(.system(size: 10, weight: .bold))
                     .tracking(1.6)
                     .textCase(.uppercase)
                     .foregroundStyle(accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text(item.title)
                     .displayStyle(short ? 20 : 24)
                     .foregroundStyle(.primary)
@@ -408,14 +412,6 @@ private struct Nameplate: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                if !short {
-                    Text(item.opensLocker ? "Open team locker →" : "Tap to inspect")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(1.2)
-                        .textCase(.uppercase)
-                        .foregroundStyle(accent.opacity(0.9))
-                        .padding(.top, 2)
-                }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, short ? 6 : 10)
@@ -665,9 +661,6 @@ private struct RecordPanel: View {
 
     private var foot: some View {
         HStack {
-            Text("Drag to turn · pinch to zoom")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
             Spacer()
             GlassEffectContainer(spacing: 8) {
                 HStack(spacing: 8) {
@@ -705,7 +698,8 @@ enum TrophyInk {
 
 // MARK: The doorway
 
-/// The doorway the hall is built behind, and where a failure is explained.
+/// The doorway the hall is built behind: the cup and a spinner, or why the
+/// hall couldn't be read.
 private struct TrophyDoorway: View {
     let note: String?
     /// Offered with a note (the hall couldn't be read).
@@ -716,17 +710,21 @@ private struct TrophyDoorway: View {
             LinearGradient(colors: [Color(hex: 0x0B1626), Color(hex: 0x05090F)], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
             VStack(spacing: 14) {
-                Text("🏆").font(.system(size: 56))
-                Text(note ?? "Championships, the managers who won them, the records nobody has beaten, and the seats at the very bottom of the table.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 340)
-                if note == nil { ProgressView().tint(Theme.gold).padding(.top, 6) }
-                else if let retry {
-                    Button("Try again", action: retry)
-                        .buttonStyle(Felt(.glassProminent))
-                        .padding(.top, 6)
+                Text("🏆").font(.system(size: 56)).accessibilityHidden(true)
+                if let note {
+                    Text(note)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 340)
+                    if let retry {
+                        Button("Try again", action: retry)
+                            .buttonStyle(Felt(.glassProminent))
+                            .padding(.top, 6)
+                    }
+                } else {
+                    ProgressView().tint(Theme.gold).padding(.top, 6)
+                        .accessibilityLabel("Opening the trophy room")
                 }
             }
             .padding(24)

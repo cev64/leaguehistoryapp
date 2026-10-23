@@ -175,23 +175,6 @@ enum CardIcon {
     static let trophy = "trophy.fill"
 }
 
-/// A page title with the site's blue rule on its left ("WEEK 8 · 2026").
-struct PageTitle: View {
-    let text: String
-    var body: some View {
-        HStack(spacing: 10) {
-            Capsule().fill(Theme.accent).frame(width: 5, height: 28)
-            Text(text)
-                .displayStyle(30)
-                .foregroundStyle(Theme.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .contentTransition(.numericText())
-        }
-        .accessibilityAddTraits(.isHeader)
-    }
-}
-
 /// Small label over a value ("W–L / 7–1").
 struct StatPair: View {
     let label: String

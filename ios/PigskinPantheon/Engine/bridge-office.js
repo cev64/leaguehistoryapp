@@ -2,7 +2,8 @@
 
    The page's own script (frontOffice in moves.html) lifted as it is: the
    same tabs and season wheel, the same cards in the same order, the same
-   words and numbers. Where the page writes HTML this writes plain data the
+   words and numbers, less the season in a card's title or meta (the app's
+   title says it). Where the page writes HTML this writes plain data the
    app draws natively:
 
      Bridge.office.nav()            the tabs, and the season each opens on
@@ -15,6 +16,7 @@
              (and for draft picks, a row of chips per draft)
      items   a line of what happened (a benching, a pickup), a number at the end
      trades  a trade per entry, one block per side
+   and note is how the card is scored (the page's and the app's (i)).
    Text that the page sets in <em> or .muted comes as segments
    [{ t, em?, muted?, pid? }]; a pid makes it a link to that player. */
 (function () {
@@ -121,11 +123,12 @@
   async function drawLineups(m, y, db) {
     const { model, played } = m;
     const player = (pid) => (db[pid] ? db[pid][0] : `Player ${pid}`);
-    const note = "Hindsight: the best lineup each team could have set from the players it had that week, against the one it set. Players who stayed on a taxi squad all season aren't counted.";
+    // How a card is scored: the page's (i) by the card's title.
+    const note = "Points scored as a share of the best lineup each team could have set from its own players that week. Season-long taxi-squad players don't count.";
     if (y === ALL) {
       const rows = await Insights.lineupAllTime(model);
       const best = Math.max(...rows.map((r) => r.efficiency), 0);
-      return [card("Lineup efficiency · All-time", "lineup", `${played.length} seasons`, "rows", {
+      return [card("Lineup efficiency", "lineup", `${played.length} seasons`, "rows", {
         rows: rows.map((r, i) => ({
           rank: i + 1, who: manager(model, r.ownerId),
           big: pctTxt(r.efficiency), bigSub: "of the best lineup", tone: null,
@@ -139,7 +142,7 @@
     const s = await Insights.lineupSeason(model, y);
     if (!s) return [];
     const best = Math.max(...s.rows.map((r) => r.efficiency), 0);
-    const table = card(`Lineup efficiency · ${y}`, "lineup", `${s.weeks.length} week${s.weeks.length === 1 ? "" : "s"}`, "rows", {
+    const table = card("Lineup efficiency", "lineup", `${s.weeks.length} week${s.weeks.length === 1 ? "" : "s"}`, "rows", {
       rows: s.rows.map((r, i) => ({
         rank: i + 1, who: seasonTeam(model, y, r.teamId),
         big: pctTxt(r.efficiency), bigSub: `${fmt(r.actual)} of ${fmt(r.optimal)}`, tone: null,
@@ -150,7 +153,7 @@
       note,
     });
     const lost = new Set(s.lostGames.map((g) => `${g.week}|${g.teamId}`));
-    const blunders = card("Costliest benchings", "star", y, "items", s.blunders.length ? {
+    const blunders = card("Costliest benchings", "star", null, "items", s.blunders.length ? {
       items: s.blunders.slice(0, 12).map((b) => ({
         title: `${teamName(model, y, b.teamId)} · Week ${b.week}`,
         tag: lost.has(`${b.week}|${b.teamId}`) ? "Cost the game" : null, tagSoft: false,
@@ -161,7 +164,7 @@
         big: `−${fmt(b.cost)}`, bigSub: "points", tone: "bad",
         pid: b.benched.pid, team: seasonTeam(model, y, b.teamId), week: b.week, opponent: null,
       })),
-    } : { empty: "Not one benching cost a point. Remarkable." });
+    } : { empty: "No costly benchings." });
     const cards = [table, blunders];
     if (s.lostGames.length) {
       cards.push(card("Games lost to the lineup", "lineup", `${s.lostGames.length}`, "items", {
@@ -188,11 +191,11 @@
     if (!tradesJob || tradesModel !== model) { tradesJob = Insights.trades(model); tradesModel = model; }
     const { trades, traders: allTime } = await tradesJob;
     if (!tradeYears) tradeYears = new Set(trades.map((t) => t.year));
-    if (!trades.length) return { empty: "No trades in this league's history yet." };
+    if (!trades.length) return { empty: "No trades yet." };
     const list = trades.filter((t) => ty === ALL || t.year === ty);
-    if (!list.length) return { empty: `No trades were made in ${ty}.` };
+    if (!list.length) return { empty: `No trades in ${ty}.` };
     const traders = ty === ALL ? allTime : Insights.tradersOf(list);
-    const board = card("Best and worst traders", "trade", ty === ALL ? "All-time" : ty, "rows", {
+    const board = card("Best and worst traders", "trade", null, "rows", {
       rows: traders.map((o, i) => ({
         rank: i + 1, who: ty === ALL ? manager(model, o.ownerId) : seasonTeam(model, ty, o.teamId),
         big: `${o.net > 0 ? "+" : ""}${fmt(o.net)}`, bigSub: "net points", tone: o.net > 0 ? "good" : o.net < 0 ? "bad" : null,
@@ -200,7 +203,7 @@
         stats: [stat("Trades", o.trades), stat("Won", o.won), stat("Got", fmt(o.got)), stat("Gave away", fmt(o.gave))],
         picks: [],
       })),
-      note: "A trade is scored by the points each side's players went on to put up in its starting lineup. A traded pick counts once it's used, through the player drafted with it.",
+      note: "Points each side's players scored in its starting lineup after the trade. A traded pick counts once used, through the player drafted with it.",
     });
 
     const item = (g, year) => {
@@ -220,7 +223,7 @@
       return { text: `${teamName(model, t.year, t.winner)} +${fmt(t.margin)}${t.pending || t.live ? " so far" : ""}`, won: true };
     };
     const when = (t) => (t.created ? new Date(t.created).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : `Week ${t.week}`);
-    const every = card(ty === ALL ? "Every trade" : `${ty} trades`, "trade", `${list.length}`, "trades", {
+    const every = card("Every trade", "trade", `${list.length}`, "trades", {
       trades: list.map((t, i) => ({
         id: `${t.id}:${i}`, year: t.year, week: t.week,
         head: `${t.year} · ${when(t)}`,
@@ -240,8 +243,8 @@
   async function drawWaivers(m, y) {
     const { model } = m;
     const w = await Insights.waivers(model, y);
-    if (!w || !w.pickups.length) return { empty: `No waiver claims or free-agent pickups in ${y}.` };
-    const report = card(`Waiver report · ${y}`, "wire", w.faab ? `$${w.budget} FAAB budget` : "Rolling waivers", "rows", {
+    if (!w || !w.pickups.length) return { empty: `No pickups in ${y}.` };
+    const report = card("Waiver report", "wire", w.faab ? `$${w.budget} FAAB budget` : "Rolling waivers", "rows", {
       rows: w.rows.map((r, i) => ({
         rank: i + 1, who: seasonTeam(model, y, r.teamId),
         big: fmt(r.pts), bigSub: "pts from pickups", tone: null, meter: null,
@@ -251,7 +254,7 @@
         ],
         picks: [],
       })),
-      note: `Points a pickup scored in the starting lineup of the team that added him, for the rest of that season.${w.failed ? ` ${w.failed} claim${w.failed === 1 ? "" : "s"} lost out to a higher bid or priority.` : ""}`,
+      note: `Points a pickup scored in the adding team's starting lineup for the rest of the season.${w.failed ? ` ${w.failed} claim${w.failed === 1 ? "" : "s"} lost to a higher bid or priority.` : ""}`,
     });
     const pickupRow = (p) => ({
       title: p.name, tag: p.pos || null, tagSoft: true,
@@ -259,10 +262,10 @@
       big: fmt(p.pts), bigSub: "pts", tone: null,
       pid: p.pid, team: seasonTeam(model, y, p.teamId), week: p.week, opponent: null,
     });
-    const cards = [report, card("Best pickups", "star", y, "items", { items: w.pickups.slice(0, 12).map(pickupRow) })];
+    const cards = [report, card("Best pickups", "star", null, "items", { items: w.pickups.slice(0, 12).map(pickupRow) })];
     if (w.faab) {
       const big = w.pickups.filter((p) => p.bid).sort((a, b) => b.bid - a.bid).slice(0, 10);
-      if (big.length) cards.push(card("Biggest bids", "wire", "and what they bought", "items", { items: big.map(pickupRow) }));
+      if (big.length) cards.push(card("Biggest bids", "wire", null, "items", { items: big.map(pickupRow) }));
     }
     return { cards };
   }
@@ -272,7 +275,7 @@
   async function drawPicks(m, picked) {
     const { model } = m;
     const ledger = await Insights.pickLedger(model);
-    if (!ledger) return { empty: "This league has no rookie draft picks to track." };
+    if (!ledger) return { empty: "No rookie draft picks." };
     if (!pickYears) pickYears = ledger.seasons;
     const y = ledger.year;
     const one = picked === ALL ? null : picked;
@@ -298,7 +301,7 @@
     return {
       cards: [card(one ? `${one} draft picks` : "Future draft picks", "pick", span, "rows", {
         rows,
-        note: "Each number is a round. Blue with a * came in a trade (hover or long-press for whose); dashed and struck through was traded away. Pick capital weighs a first-round pick most and each later round a little over half the one before; 100% is a team's own picks.",
+        note: "Each number is a round. * came in a trade; struck through was traded away. Pick capital weighs a 1st-round pick most, each later round a little over half the one before; 100% is a team's own picks.",
       })],
     };
   }
@@ -311,7 +314,7 @@
       tab, year: y, title: titleOf(tab, y), wheel: wheel(tab),
       cards: body.cards || [], empty: body.empty || null,
     });
-    if (!m.years.length) return out(ALL, { empty: "No games have been played in this league yet." });
+    if (!m.years.length) return out(ALL, { empty: "No games played yet." });
     const db = await League.players();
     let y = settle(tab, year);
     let body;
@@ -323,7 +326,7 @@
       if (y2 !== y) { y = y2; body = await drawTrades(m, y); }
     } else if (tab === "waivers") body = await drawWaivers(m, y);
     else if (tab === "picks") {
-      if (!m.picksShown) return out(ALL, { empty: "This league has no rookie draft picks to track." });
+      if (!m.picksShown) return out(ALL, { empty: "No rookie draft picks." });
       body = await drawPicks(m, y);
       // the wheel now knows the drafts to come
       const y2 = settle(tab, y);

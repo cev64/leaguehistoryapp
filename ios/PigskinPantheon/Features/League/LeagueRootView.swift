@@ -478,7 +478,7 @@ private struct LeagueToolbar: ViewModifier {
     }
 }
 
-/// The demo's note under the header: what it is, and the way to your own.
+/// The demo's strip under the header: the DEMO badge, and the way to your own.
 struct DemoBanner: View {
     @Environment(AppModel.self) private var app
     @Environment(LeagueSession.self) private var session
@@ -493,12 +493,9 @@ struct DemoBanner: View {
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
                     .background(Theme.gold, in: Capsule())
-                Text("You're exploring \(Text("Sunday Scaries").bold()), a made-up league.")
-                    .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.92))
-                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel("Demo league")
                 Spacer(minLength: 4)
-                Button("Open yours") { app.closeLeague() }
+                Button("Open your league") { app.closeLeague() }
                     .font(.footnote.weight(.bold))
                     .lineLimit(1)
                     .fixedSize()
@@ -506,7 +503,8 @@ struct DemoBanner: View {
                     .tint(.white)
                     .foregroundStyle(Theme.navy)
             }
-            .padding(12)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(LinearGradient(colors: [Theme.navy, Theme.navy2], startPoint: .leading, endPoint: .trailing),
                         in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }

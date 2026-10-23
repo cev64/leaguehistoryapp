@@ -10,8 +10,6 @@ struct StandingsData: Decodable {
     let hasDivisions: Bool
     let cards: [Table]
     let legend: [LegendKey]
-    /// With What If picks in: what the records rest on.
-    let note: String?
 
     struct Table: Decodable, Identifiable {
         let title: String
@@ -89,7 +87,7 @@ struct StandingsPanel: View {
             ?? ("Bridge.season.standings(year, week, view)", arguments)
         VStack(alignment: .leading, spacing: 0) {
             if let whatIf, view == "panel-standings" {
-                WhatIfCard(season: season, week: payload.week, moves: "standings", whatIf: whatIf)
+                WhatIfCard(season: season, week: payload.week, whatIf: whatIf)
             }
             // A pick redraws the tables in place, each team sliding to its
             // new place (the rows keep their identity by team).
@@ -99,14 +97,6 @@ struct StandingsPanel: View {
                         failureTitle: "The standings couldn't be read",
                         refresh: .spring(response: 0.55, dampingFraction: 0.86)) { (data: StandingsData) in
                 VStack(alignment: .leading, spacing: 14) {
-                    if let note = data.note {
-                        Text(note)
-                            .font(.footnote)
-                            .foregroundStyle(Theme.ink2)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 4)
-                            .transition(.opacity)
-                    }
                     ForEach(data.cards) { table in
                         StandingsTableCard(season: season, table: table, live: data.live, hasDivisions: data.hasDivisions)
                     }

@@ -36,7 +36,7 @@ struct TrophySummary: Decodable, Hashable {
 
     /// The site's line under the wing chips.
     var line: String {
-        "\(titles) titles · \(managers) managers · \(seasons) seasons on record · \(games) games played"
+        "\(titles) titles · \(managers) managers · \(seasons) seasons · \(games) games"
     }
 }
 

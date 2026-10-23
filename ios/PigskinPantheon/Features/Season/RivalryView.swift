@@ -18,7 +18,6 @@ struct RivalryPreview: Decodable {
     let stakesTitle: String
     let stakes: [Stake]
     let noStakes: String
-    let note: String
 
     struct Score: Decodable { let a: Double; let b: Double; let aText: String; let bText: String }
 
@@ -192,10 +191,6 @@ struct RivalryView: View {
             }
             .buttonStyle(Felt(.plain))
         }
-        Text(p.note)
-            .font(.caption)
-            .foregroundStyle(Theme.ink3)
-            .padding(.horizontal, 4)
     }
 }
 
@@ -368,12 +363,7 @@ private struct SeriesCard: View {
         let s = p.series
         Card {
             CardHead(title: "The Series", symbol: CardIcon.versus, meta: s.games > 0 ? s.lead : "Never met")
-            if s.games == 0 {
-                Text("These two managers have never met. Here is how each has fared against the league.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.ink2)
-                    .padding(14)
-            } else {
+            if s.games > 0 {
                 AdaptiveGrid(minWidth: 140, spacing: 10) {
                     Superlative(label: "Regular season", title: s.regular.games > 0 ? s.regular.record : "—", detail: splitDetail(s.regular))
                     Superlative(label: "Playoffs", title: s.playoffs.games > 0 ? s.playoffs.record : "—", detail: s.playoffs.games > 0 ? splitDetail(s.playoffs) : "Never met")

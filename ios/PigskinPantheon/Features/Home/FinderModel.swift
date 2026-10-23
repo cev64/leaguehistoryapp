@@ -204,7 +204,8 @@ final class FinderModel {
         sleeperTurn += 1
         let turn = sleeperTurn
         looking = true
-        sleeperNote = .message("Looking you up on Sleeper…")
+        // The button's spinner says it's looking.
+        sleeperNote = .standard
         defer { if turn == sleeperTurn { looking = false } }
         do {
             let user = try await engine.call(SleeperUser.self, "Bridge.finder.user(name)", ["name": name])
@@ -312,12 +313,6 @@ final class FinderModel {
         !isConnected ? "Private league?" : connectedCount > 1 ? "\(connectedCount) ESPN accounts connected" : "ESPN connected"
     }
 
-    var toggleSubtitle: String {
-        isConnected
-            ? "Your ESPN keys are saved \(onAccountKnown ? "to your account" : "on this device"), so your private leagues open and are listed below. Manage them, or add another ESPN account, here."
-            : "Sign in to ESPN to open private leagues and list all your ESPN leagues here."
-    }
-
     private struct SaveAnswer: Decodable {
         let ok: Bool
         let error: String?
@@ -357,7 +352,7 @@ final class FinderModel {
             return true
         }
         if answer.accountError == nil {
-            espnNote = .message("✓ ESPN connected. Your ESPN leagues are listed below.")
+            espnNote = .message("✓ ESPN connected.")
         }
         return true
     }
@@ -416,19 +411,9 @@ final class FinderModel {
     }
 
     func detail(for row: EspnAccount) -> String {
-        let place = row.local && row.account ? "on this device and on your account" : row.account ? "on your account" : "on this device"
+        let place = row.local && row.account ? "This device and your account" : row.account ? "Your account" : "This device"
         let id = row.swid.count > 6 ? String(row.swid.dropLast().suffix(5)) : row.swid
-        return "Keys saved \(place) · ESPN id …\(id)"
-    }
-
-    var savedHint: String? {
-        guard !connected.isEmpty, accountsAvailable else { return nil }
-        if !connected.contains(where: { !$0.account }) {
-            return "Your private ESPN leagues open on any device you sign in on, your phone included."
-        }
-        return espnSignedIn
-            ? "Save keys to your account to open those private leagues on your other devices too, just by signing in there."
-            : nil
+        return "\(place) · ESPN id …\(id)"
     }
 
     // MARK: ESPN: the member's leagues
@@ -473,9 +458,9 @@ final class FinderModel {
             withAnimation(.smooth) {
                 espnLeagues = list.leagues
                 espnListNote = signedOut
-                    ? "ESPN signed you out, so it didn't list your leagues. Sign in again on the ESPN tab, under ESPN connected."
+                    ? "ESPN signed you out. Sign in again on the ESPN tab."
                     : list.leagues.isEmpty
-                    ? "ESPN has no football leagues on the profile your keys belong to. You can still open one by its ID or link on the ESPN tab."
+                    ? "No football leagues on your ESPN account."
                     : nil
             }
         } catch EngineError.empty {
@@ -486,7 +471,7 @@ final class FinderModel {
         } catch {
             guard turn == espnAsked else { return }
             espnLeagues = []
-            espnListNote = "ESPN didn't list your leagues (\(error.localizedDescription)). You can still open one by its ID or link on the ESPN tab."
+            espnListNote = "ESPN didn't list your leagues (\(error.localizedDescription))."
         }
     }
 
@@ -504,6 +489,6 @@ final class FinderModel {
 
     var sleeperEmptyNote: String? {
         guard let s = sleeperLeagues, s.isEmpty else { return nil }
-        return "No NFL leagues on Sleeper for \(sleeperUser?.name ?? username) in the last ten seasons."
+        return "No NFL leagues on Sleeper for \(sleeperUser?.name ?? username)."
     }
 }

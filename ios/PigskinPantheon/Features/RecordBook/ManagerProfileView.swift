@@ -93,11 +93,6 @@ private struct BookProfileHero: View {
                 TeamBadge(bookFace: profile, size: 64)
                     .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("All-time")
-                        .font(.system(size: 11, weight: .heavy))
-                        .tracking(1.4)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Theme.gold)
                     Text(profile.currentTeam)
                         .displayStyle(30)
                         .foregroundStyle(.white)
@@ -563,7 +558,7 @@ private struct BookHeadToHeadCard: View {
             }
             if table { wideHeader }
             if rows.isEmpty {
-                Text("No games against the league yet.")
+                Text("No games yet.")
                     .font(.subheadline).foregroundStyle(Theme.ink3).padding(14)
             }
             ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in

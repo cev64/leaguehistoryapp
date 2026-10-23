@@ -123,7 +123,7 @@ struct MyLeaguesSection: View {
         let leagues = app.account.leagues
         HomeSection(title: "My Leagues", meta: leagues.isEmpty ? nil : Fmt.plural(leagues.count, "league")) {
             if leagues.isEmpty {
-                EmptyLine(text: "Open a league below to add it to your account.")
+                EmptyLine(text: "No leagues yet.")
             }
             ForEach(Array(leagues.enumerated()), id: \.element.id) { i, l in
                 if i > 0 { RowDivider() }
@@ -188,7 +188,7 @@ private struct PlatformPicker: View {
     @Bindable var finder: FinderModel
 
     var body: some View {
-        Picker("Where your league is played", selection: $finder.platform.animation(.smooth(duration: 0.25))) {
+        Picker("Platform", selection: $finder.platform.animation(.smooth(duration: 0.25))) {
             ForEach(FinderModel.Platform.allCases) { Text($0.label).tag($0) }
         }
         .pickerStyle(.segmented)
@@ -247,7 +247,7 @@ private struct SleeperForm: View {
 
     private var standard: AttributedString {
         let link = finder.byId ? "username" : "league ID"
-        return (try? AttributedString(markdown: "Sleeper's league data is public, so your username is all it takes: no password, nothing to connect. Or use a [\(link)](pp://byid).")) ?? AttributedString()
+        return (try? AttributedString(markdown: "[Use a \(link) instead](pp://byid)")) ?? AttributedString()
     }
 }
 
@@ -263,7 +263,7 @@ func noteView(_ note: FinderModel.Note, standard: AttributedString) -> some View
         case .error(let text):
             Text(text).foregroundStyle(Theme.red)
         case .notEspnId:
-            Text((try? AttributedString(markdown: "That isn't an ESPN league ID. It's the number after `leagueId=` in your league's address on fantasy.espn.com. [Private league?](pp://private)")) ?? AttributedString())
+            Text((try? AttributedString(markdown: "That isn't an ESPN league ID: it's the number after `leagueId=` in the league's address. [Private league?](pp://private)")) ?? AttributedString())
                 .foregroundStyle(Theme.red)
         }
     }
@@ -300,10 +300,11 @@ private struct EspnForm: View {
     @Bindable var finder: FinderModel
     var signIn: () -> Void
     @FocusState private var focus: EspnFormFocus?
+    @State private var showIdHelp = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            HomeSection(title: "Open a League", footer: AnyView(note)) {
+            HomeSection(title: "Open a League", footer: finder.espnNote == .standard ? nil : AnyView(note)) {
                 VStack(alignment: .leading, spacing: 12) {
                     PlatformPicker(finder: finder)
                     FieldBox(symbol: "number") {
@@ -314,6 +315,7 @@ private struct EspnForm: View {
                             .submitLabel(.go)
                             .focused($focus, equals: .league)
                             .onSubmit { finder.submitEspn(app: app) }
+                        idHelp
                     }
                     Button {
                         focus = nil
@@ -353,8 +355,30 @@ private struct EspnForm: View {
             })
     }
 
-    private var standard: AttributedString {
-        (try? AttributedString(markdown: "Your league ID is the number after `leagueId=` in your league's address on fantasy.espn.com; pasting the whole link works too. A league that's viewable to the public needs nothing else.")) ?? AttributedString()
+    /// Nothing under the form until there's a message or an error.
+    private var standard: AttributedString { AttributedString() }
+
+    /// Where the league ID is, a tap away.
+    private var idHelp: some View {
+        Button {
+            showIdHelp = true
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.ink3)
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Where to find your league ID")
+        .popover(isPresented: $showIdHelp) {
+            Text((try? AttributedString(markdown: "The number after `leagueId=` in your league's address on fantasy.espn.com. Pasting the whole link works too.")) ?? AttributedString())
+                .font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 280)
+                .padding()
+                .presentationCompactAdaptation(.popover)
+        }
     }
 
     /// "Private league?", or where the keys stand once connected.
@@ -369,16 +393,9 @@ private struct EspnForm: View {
                     .frame(width: 34, height: 34)
                     .background((finder.isConnected ? Theme.green : Theme.accent).opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                     .contentTransition(.symbolEffect(.replace))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(finder.toggleTitle)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Theme.ink)
-                    Text(finder.toggleSubtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.ink3)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(finder.toggleTitle)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
                 Spacer(minLength: 6)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
@@ -390,12 +407,12 @@ private struct EspnForm: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(Felt(RowPressStyle()))
-        .accessibilityHint(finder.privateOpen ? "Hides the private league steps" : "Shows how to open a private league")
+        .accessibilityHint(finder.privateOpen ? "Hides ESPN sign-in" : "Shows ESPN sign-in")
     }
 }
 
-/// "Opening a private ESPN league": "Sign in with ESPN", the ESPN accounts
-/// connected, and what the keys are used for.
+/// Under "Private league?": "Sign in with ESPN", the ESPN accounts
+/// connected, and a line on what's kept.
 private struct PrivatePanel: View {
     @Environment(AppModel.self) private var app
     @Bindable var finder: FinderModel
@@ -403,24 +420,16 @@ private struct PrivatePanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Opening a private ESPN league")
-                .font(.headline)
-                .foregroundStyle(Theme.ink)
-
             if !finder.relay {
                 Text("Private ESPN leagues can't be opened yet.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink2)
             } else {
                 if finder.connected.isEmpty { connect } else { savedAccounts }
-                if let hint = finder.savedHint {
-                    Text(hint).font(.footnote).foregroundStyle(Theme.ink2)
-                } else if !finder.connected.isEmpty && finder.accountsAvailable && !finder.espnSignedIn {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Button("Sign in", action: signIn).buttonStyle(Felt(.automatic)).font(.footnote.weight(.semibold))
-                        Text("to save them to your account, so your private leagues open on your other devices too.")
-                            .font(.footnote).foregroundStyle(Theme.ink2)
-                    }
+                if !finder.connected.isEmpty && finder.accountsAvailable && !finder.espnSignedIn {
+                    Button("Sign in to save them to your account", action: signIn)
+                        .buttonStyle(Felt(.automatic))
+                        .font(.footnote.weight(.semibold))
                 }
                 Text(fine)
                     .font(.caption)
@@ -433,24 +442,21 @@ private struct PrivatePanel: View {
 
     private var fine: AttributedString {
         let text = finder.accountsAvailable
-            ? "From your ESPN sign-in, Pigskin Pantheon keeps two keys (espn_s2 and SWID), never your password. Sign in once for each ESPN account you play on. Signed in here, the keys are saved to your account, encrypted, so your private leagues open on any device you sign in on; otherwise they stay on this device. Either way they're only used to read your leagues, through our secure relay to ESPN. *Forget* removes an account's keys everywhere, and signing out of ESPN ends them."
-            : "From your ESPN sign-in, Pigskin Pantheon keeps two keys (espn_s2 and SWID), never your password. Sign in once for each ESPN account you play on. The keys stay on this device, and are only used to read your leagues, through our secure relay to ESPN. *Forget* removes them, and signing out of ESPN ends them."
+            ? "Pigskin Pantheon never sees your ESPN password. It keeps two keys (espn_s2 and SWID) on this device, and encrypted on your account if you save them there, only to read your leagues through our relay to ESPN. *Forget* removes them."
+            : "Pigskin Pantheon never sees your ESPN password. It keeps two keys (espn_s2 and SWID) on this device, only to read your leagues through our relay to ESPN. *Forget* removes them."
         return (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 
-    /// Nothing connected yet: one line and the button.
+    /// Nothing connected yet: where to keep the keys, and the button.
     @ViewBuilder
     private var connect: some View {
-        Text("Sign in to ESPN once and your private leagues open here.")
-            .font(.subheadline)
-            .foregroundStyle(Theme.ink2)
-            .fixedSize(horizontal: false, vertical: true)
         if finder.espnSignedIn && finder.accountsAvailable {
             Toggle(isOn: $finder.toAccount) {
-                Text("Also save them to my account, so my private leagues open on my other devices too. Turn off to keep them on this device only.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.ink2)
+                Text("Also save them to my account")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.ink)
             }
+            .accessibilityHint("Off keeps the keys on this device only")
             .toggleStyle(.switch)
             .padding(.vertical, 2)
         }
@@ -472,14 +478,6 @@ private struct PrivatePanel: View {
 
     private var savedAccounts: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Label(finder.connected.count == 1 ? "ESPN connected" : "\(finder.connected.count) ESPN accounts connected",
-                      systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.green)
-                // keys from the sign-in sheet, being saved
-                if finder.connecting { ProgressView() }
-            }
             ForEach(Array(finder.connected.enumerated()), id: \.element.id) { index, row in
                 let refused = finder.refusedSwids.contains(row.swid)
                 VStack(alignment: .leading, spacing: 6) {
@@ -517,14 +515,18 @@ private struct PrivatePanel: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.surface3, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            Button {
-                finder.signInOpen = true
-            } label: {
-                Label("Add another ESPN account", systemImage: "plus")
-                    .font(.footnote.weight(.semibold))
+            HStack(spacing: 8) {
+                Button {
+                    finder.signInOpen = true
+                } label: {
+                    Label("Add another ESPN account", systemImage: "plus")
+                        .font(.footnote.weight(.semibold))
+                }
+                .buttonStyle(Felt(.glass))
+                .disabled(finder.connecting)
+                // keys from the sign-in sheet, being saved
+                if finder.connecting { ProgressView() }
             }
-            .buttonStyle(Felt(.glass))
-            .disabled(finder.connecting)
         }
     }
 }

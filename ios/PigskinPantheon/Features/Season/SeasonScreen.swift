@@ -228,17 +228,16 @@ private struct LiveHero: View {
 
     private var badgeAndLine: (String, String) {
         let n = season.teams.count, p = info.playoffTeams
-        let out = season.postseason.contains { $0.bracket == "L" } ? n - p : 0
         if info.latestWeek > info.regularWeeks {
-            return ("Playoffs · Week \(info.latestWeek)", "The regular season is over. \(capital(word(p))) teams made the playoffs.")
+            return ("Playoffs · Week \(info.latestWeek)", "\(capital(word(p))) teams made the playoffs.")
         }
         if info.lastPlayedWeek > 0 {
             var line = "Week \(info.lastPlayedWeek) of \(info.regularWeeks)."
-            if p > 0 { line += " \(capital(word(p))) make the playoffs\(out > 0 ? ", \(word(out)) play in the losers bracket" : "")." }
+            if p > 0 { line += " \(capital(word(p))) make the playoffs." }
             return ("Through Week \(info.lastPlayedWeek)", line)
         }
         if season.unplayed == true {
-            return ("Not played", "\(info.source) closed this season before a single game was scored.")
+            return ("Not played", "\(info.source) closed it before any games were scored.")
         }
         return ("Preseason", "\(capital(word(n))) teams. \(info.regularWeeks) weeks.\(p > 0 ? " \(capital(word(p))) make the playoffs." : "")")
     }

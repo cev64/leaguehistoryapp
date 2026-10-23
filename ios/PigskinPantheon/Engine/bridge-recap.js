@@ -43,7 +43,7 @@
 
     /* the lead */
     const lead = {
-      kicker: `${r.playoff ? "Playoffs · " : ""}Week ${r.week} recap · ${r.season}`,
+      kicker: r.playoff ? "Playoff recap" : "Recap",
       title: r.headline ? r.headline.title : null,
       dek: r.headline ? r.headline.dek : null,
       also: r.also.slice(),
@@ -68,12 +68,11 @@
       const faller = r.power.slice().sort((a, b) => a.move - b.move)[0];
       const best = Math.max(...r.power.map((x) => x.score), 1);
       power = {
-        meta: `After week ${r.week}`,
         rows: r.power.map((p) => ({
           id: p.id, rank: p.rank, move: p.move || 0, record: p.record, apRecord: p.apRecord,
           pfg: fmt1(p.pfg), bar: p.score / best,
         })),
-        foot: `${plain(top.id)} ${top.move > 0 ? `climb to the top` : "hold the top spot"}${riser && riser.move >= 2 ? `; ${plain(riser.id)} jump ${riser.move}` : ""}${faller && faller.move <= -2 ? `; ${plain(faller.id)} slide ${-faller.move}` : ""}. Ranked on all-play record (every team against every other team's score, every week), the actual record, the last three weeks and points per game.`,
+        foot: `${plain(top.id)} ${top.move > 0 ? `climb to the top` : "hold the top spot"}${riser && riser.move >= 2 ? `; ${plain(riser.id)} jump ${riser.move}` : ""}${faller && faller.move <= -2 ? `; ${plain(faller.id)} slide ${-faller.move}` : ""}.`,
       };
     }
 
@@ -267,7 +266,6 @@
         group("Bench", lu(idA, benched), lu(idB, benched)),
         group("Injured reserve", lu(idA, reserve), lu(idB, reserve)),
       ].filter((g) => g.rows.length),
-      foot: "The chip beside each player is his NFL club today.",
     };
   }
 
