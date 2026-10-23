@@ -76,7 +76,7 @@ class Browser {
   startBackground() {
     const b = this;
     const bg = {
-      onMessage: event(), onInstalled: event(), onChanged: event(), onRemoved: event(), onAdded: event(),
+      onMessage: event(), onInstalled: event(), onChanged: event(), onRemoved: event(), onAdded: event(), onUpdated: event(),
     };
     this.bg = bg;
     const api = {
@@ -121,10 +121,15 @@ class Browser {
           page.runtimeOnMessage.ls.forEach((l) => l(clone(msg), { id: EXT }));
         },
         onRemoved: bg.onRemoved,
+        onUpdated: bg.onUpdated,
       },
       windows: { update: async () => ({}) },
       scripting: {
-        executeScript: async ({ target, files }) => { b.injected.push({ tabId: target.tabId, files }); b.loadContent(target.tabId); return []; },
+        executeScript: async ({ target, files, func, world }) => {
+          b.injected.push({ tabId: target.tabId, files, func: func && func.name, world });
+          if (files) b.loadContent(target.tabId);
+          return [];
+        },
       },
     };
     const ctx = { chrome: api, console, URL, Promise, Object, JSON, String, Number, Boolean, Array, Set, Map, Error, RegExp, crypto, TextEncoder, Uint8Array };
@@ -230,7 +235,12 @@ class Browser {
     this.pages.set(tabId, page);
     return page;
   }
-  loginTabs() { return [...this.tabs.values()].filter((t) => t.url === "https://www.espn.com/login"); }
+  loginTabs() { return [...this.tabs.values()].filter((t) => t.url === "https://www.espn.com/fantasy/football/"); }
+  // A tab finished loading (tabs.onUpdated, status complete).
+  loaded(id) {
+    const tab = this.tabs.get(id);
+    this.bg.onUpdated.ls.forEach((l) => l(id, { status: "complete" }, clone(tab)));
+  }
 }
 
 const cases = [];
@@ -314,6 +324,13 @@ test("not signed in: ESPN's sign-in opens next to the site, and the keys come wh
   assert.ok(login, "a sign-in tab");
   assert.equal(login.index, site.index + 1);
   assert.equal(login.openerTabId, site.id);
+  b.loaded(login.id);
+  await settle();
+  assert.deepEqual(b.injected.filter((x) => x.tabId === login.id).map((x) => [x.func, x.world]), [["launchLogin", "MAIN"]],
+    "MyDisney's sign-in is opened over ESPN's page");
+  b.loaded(site.id);
+  await settle();
+  assert.equal(b.injected.filter((x) => x.tabId === site.id && x.func).length, 0, "and only in the sign-in tab");
   b.setCookie("espn_s2", S2);
   await settle();
   assert.equal(b.loginTabs().length, 0, "the sign-in tab closed");

@@ -34,10 +34,9 @@ league was listed. What it took:
 Left:
 
 1. **A real sign-in through the extension** (Chrome, then Firefox), and the
-   rest of the Testing checklist below. The extension still opens
-   `espn.com/login` (v2) in a normal tab; if that sign-in doesn't stick
-   (Firefox's cookie partitioning is the likely place), open the fantasy
-   page and run the same `launchLogin()` script there.
+   rest of the Testing checklist below. The extension's sign-in tab opens
+   the same fantasy page and runs the same `launchLogin()` there (checked
+   in Chrome for Testing: MyDisney's sign-in shows over the page).
 2. **Publish the extension** (Publishing, below): Chrome Web Store and
    Firefox Add-ons, then set `ESPN_EXTENSION_CHROME` and
    `ESPN_EXTENSION_FIREFOX` (and `APP_STORE_URL`) in `account-config.js`.

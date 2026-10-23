@@ -46,8 +46,12 @@ Plain JavaScript, no build step, no popup, no options page, no remote code.
    tab's cookie store (Firefox: its container's `cookieStoreId`; Chromium:
    the store holding the tab, so incognito works).
    - Both there: `{ s2, swid }` at once.
-   - No `espn_s2`: `https://www.espn.com/login` opens in a tab next to the
-     site's (and in its container). When `cookies.onChanged` sees
+   - No `espn_s2`: ESPN's fantasy page (`https://www.espn.com/fantasy/football/`)
+     opens in a tab next to the site's (and in its container), and once it
+     has loaded, `launchLogin()` runs in the page (`world: "MAIN"`) to open
+     MyDisney's sign-in over it, as ESPN's own Log In does. (The fantasy
+     page's OneID is v4; `espn.com/login` is v2, whose sign-in never reached
+     ESPN's cookies in the iOS app's web view.) When `cookies.onChanged` sees
      `espn_s2` set on espn.com in that store, the ESPN tab closes, the
      site's tab comes back to the front, and the keys go to it.
    - The member closes the ESPN tab: `{ cancelled: true }`. The page's

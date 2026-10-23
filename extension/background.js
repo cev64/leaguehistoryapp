@@ -7,8 +7,10 @@
    content.js, content.js asks here, and this answers that one tab:
 
      both cookies there     { s2, swid }, at once
-     no espn_s2             ESPN's sign-in page opens in a tab next to the
-                            site's; once ESPN sets espn_s2 that tab closes,
+     no espn_s2             ESPN's fantasy page opens in a tab next to the
+                            site's, with MyDisney's sign-in over it (as
+                            ESPN's own Log In opens it); once ESPN sets
+                            espn_s2 that tab closes,
                             the site's tab comes back to the front, and the
                             keys go to it
      fresh: true            (the page's keys were ended by ESPN, and this
@@ -35,7 +37,9 @@
 const api = globalThis.browser ?? globalThis.chrome;
 
 const ESPN_URL = "https://www.espn.com/";
-const LOGIN_URL = "https://www.espn.com/login";
+// ESPN's fantasy page, whose OneID (v4, MyDisney) signs in; espn.com/login
+// is OneID v2, whose sign-in doesn't always reach ESPN's cookies.
+const LOGIN_URL = "https://www.espn.com/fantasy/football/";
 const ESPN_ORIGINS = ["https://*.espn.com/*"];
 const WAIT_MS = 10 * 60 * 1000;
 const STATE_KEY = "pending";
@@ -298,6 +302,33 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   return undefined;
 });
+
+// The sign-in tab finished loading a page of ESPN's: MyDisney's sign-in is
+// opened over it, as ESPN's own Log In does (the page alone only shows a
+// Log In link). Only in tabs opened for a sign-in that's still waiting.
+api.tabs.onUpdated.addListener((tabId, info, tab) => {
+  if (!info || info.status !== "complete") return;
+  const url = (tab && tab.url) || "";
+  if (!/^https:\/\/([\w-]+\.)*espn\.com\//.test(url)) return;
+  withState((state) => Object.values(state).some((p) => p.waitFor === "login" && p.waitTab === tabId)).then((waiting) => {
+    if (!waiting) return;
+    api.scripting.executeScript({ target: { tabId }, world: "MAIN", func: launchLogin }).catch(() => {});
+  });
+});
+
+/* Runs in ESPN's page (world MAIN, where ESPN keeps OneID at window.did).
+   ESPN makes did before OneID has started, and launchLogin() rejects until
+   it has, so it's tried every half second for up to 20 seconds. */
+function launchLogin() {
+  let tries = 0;
+  const retry = () => { if (++tries < 40) setTimeout(go, 500); };
+  const go = () => {
+    const did = window.did;
+    if (!did || typeof did.launchLogin !== "function") return retry();
+    Promise.resolve().then(() => did.launchLogin()).catch(retry);
+  };
+  go();
+}
 
 // ESPN writes the pair (and often rewrites SWID) over a moment: the keys
 // are read once a cookie store has been quiet for SETTLE_MS after its last
