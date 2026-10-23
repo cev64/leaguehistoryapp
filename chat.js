@@ -17,10 +17,16 @@
        drafts and lineup efficiency. The AI asks for one, this file works it
        out from the data the page already has, and sends it back.
    Both go to the league-chat function (supabase/functions/league-chat),
-   which holds the Gemini API key, checks the member may use it, and streams the
+   which holds the AI's API key, checks the member may use it, and streams the
    answer back. Nothing about the league is stored anywhere but this
    browser: the conversation is kept in sessionStorage so it follows the
    member from page to page, and is gone when the tab is.
+
+   Nothing is sent until the member allows it: the first question waits on a
+   card saying what goes to the AI and to whom (`consentCard`), and the
+   choice is kept in this browser (localStorage, CONSENT_KEY), like the
+   app's aiConsent.v1. Keep the card in step with what digestOf and the
+   tools send, and with privacy.html.
 
    Settings: AI_CHAT_URL in account-config.js, or Supabase's
    <SUPABASE_URL>/functions/v1/league-chat once SUPABASE_URL is set.
@@ -46,6 +52,17 @@
   // look-ups), which still fits under the function's 80.
   const MAX_TURNS = 60;
   const MAX_TOOL_ROUNDS = 8;
+  // The member's yes to sending league data to the AI, per browser.
+  const CONSENT_KEY = "lh-ai-consent.v1";
+  let consentedHere = false; // when storage is blocked, the yes lasts the page
+  const consented = () => {
+    if (consentedHere) return true;
+    try { return localStorage.getItem(CONSENT_KEY) === "1"; } catch (err) { return false; }
+  };
+  const allowAI = () => {
+    consentedHere = true;
+    try { localStorage.setItem(CONSENT_KEY, "1"); } catch (err) { /* blocked: this page only */ }
+  };
 
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -658,7 +675,11 @@
     if (!res.ok) {
       let answer = {};
       try { answer = await res.json(); } catch (err) { /* not JSON */ }
-      const msg = answer.error ? answer.error.charAt(0).toUpperCase() + answer.error.slice(1) + "." : `The league AI answered ${res.status}.`;
+      // The function's own errors are written to be read; anything else
+      // (a bare 500, a gateway page) gets a plain line, not a status code.
+      const msg = answer && typeof answer.error === "string" && answer.error
+        ? answer.error.charAt(0).toUpperCase() + answer.error.slice(1) + "."
+        : "The league AI is having trouble right now. Try again in a moment.";
       throw new ChatError(msg, answer.code || `http_${res.status}`);
     }
     // Server-sent events, one JSON object per `data:` line.
@@ -790,6 +811,27 @@
     return out.slice(0, 4);
   }
 
+  // A saved chat, read back with anything broken left out: an older build
+  // could save holes (nulls) after "New chat" during an answer, and one bad
+  // entry mustn't break the panel for the rest of the tab. The AI's side
+  // must still read as a conversation (user first, turns alternating, ending
+  // on a finished answer), or it starts fresh; what's on screen just drops
+  // what it can't draw.
+  function cleanSaved(saved) {
+    const turn = (m) => m && typeof m === "object" && (m.role === "user" || m.role === "assistant") &&
+      (typeof m.content === "string" ? m.content.length > 0 : Array.isArray(m.content) && m.content.length > 0 &&
+        m.content.every((b) => b && typeof b === "object" && typeof b.type === "string"));
+    let history = (Array.isArray(saved.history) ? saved.history : []).filter(turn);
+    const asksTool = (m) => Array.isArray(m.content) && m.content.some((b) => b.type === "tool_use");
+    while (history.length && (history[history.length - 1].role !== "assistant" || asksTool(history[history.length - 1]))) history.pop();
+    const ok = history.every((m, i) => m.role === (i % 2 ? "assistant" : "user")) &&
+      (!history.length || typeof history[0].content === "string");
+    if (!ok) history = [];
+    const shown = (Array.isArray(saved.shown) ? saved.shown : []).filter((m) =>
+      m && typeof m === "object" && (m.role === "user" || m.role === "assistant") && typeof m.text === "string");
+    return { history, shown };
+  }
+
   function mount(model) {
     const leagueKey = `lh-chat:${model.leagueId}`;
     const tools = toolkit(model);
@@ -798,11 +840,12 @@
     let history = [];   // what the API sees: every turn, tool calls included
     let shown = [];     // what the member sees: { role, text, error? }
     let busy = null;    // the AbortController of the answer being written
+    let held = null;    // a question waiting on the consent card
     let opened = false;
 
     try {
       const saved = JSON.parse(sessionStorage.getItem(leagueKey) || "null");
-      if (saved && saved.v === 1) { history = saved.history || []; shown = saved.shown || []; }
+      if (saved && saved.v === 1) ({ history, shown } = cleanSaved(saved));
     } catch (err) { /* nothing saved */ }
     const save = () => {
       try { sessionStorage.setItem(leagueKey, JSON.stringify({ v: 1, history, shown })); } catch (err) { /* full or blocked */ }
@@ -895,9 +938,13 @@
     fab.addEventListener("click", () => (opened ? close() : open()));
     panel.querySelector('[data-act="close"]').addEventListener("click", close);
     panel.querySelector('[data-act="fresh"]').addEventListener("click", () => {
+      // The answer being written belongs to the old conversation: ask()
+      // sees its arrays were replaced and leaves the new ones alone.
       if (busy) busy.abort();
+      busy = null;
       history = [];
       shown = [];
+      held = null;
       save();
       draw();
       input.focus({ preventScroll: true });
@@ -944,6 +991,28 @@
       </div>`;
     }
 
+    // Asked before the first question goes out, as the app does: what is
+    // sent, to whom and why. What it lists is what digestOf and the tools
+    // write out and post() sends: keep it in step with them.
+    function consentCard() {
+      return `<div class="lhc-consent${shown.length ? "" : " is-alone"}" role="group" aria-labelledby="lhc-consent-title">
+        <span class="lhc-consent-icon" aria-hidden="true">${ICON.spark}</span>
+        <span class="lhc-consent-kicker">Before your first question</span>
+        <h3 id="lhc-consent-title">Share league data with AI?</h3>
+        <p>To answer, Ask the League sends this to Anthropic's Claude, through Pigskin Pantheon's server:</p>
+        <ul>
+          <li>${ICON.check}Your question, and this chat so far</li>
+          <li>${ICON.check}A summary of this league's history: managers' names, scores, records, trades</li>
+          <li>${ICON.check}Details it looks up to answer, like box scores and drafts</li>
+        </ul>
+        <p class="lhc-consent-fine">It's used only to write the answer. Your email and account details aren't sent. <a href="privacy.html#ai" target="_blank" rel="noopener">Privacy policy</a></p>
+        <div class="lhc-consent-actions">
+          <button type="button" class="lhc-not-now" data-act="not-now">Not now</button>
+          <button type="button" class="lhc-allow" data-act="allow">Allow</button>
+        </div>
+      </div>`;
+    }
+
     function draw() {
       panel.classList.toggle("is-locked", !pro());
       if (!pro()) {
@@ -959,8 +1028,26 @@
       form.hidden = false;
       panel.querySelector(".lhc-fine").hidden = false;
       panel.querySelector('[data-act="fresh"]').hidden = !shown.length;
-      log.innerHTML = shown.length ? shown.map(bubble).join("") : welcome();
-      if (!ENDPOINT && !shown.length) {
+      log.innerHTML = shown.length ? shown.map(bubble).join("") : held != null ? "" : welcome();
+      if (held != null) {
+        log.insertAdjacentHTML("beforeend", consentCard());
+        log.querySelector('[data-act="allow"]').addEventListener("click", () => {
+          allowAI();
+          const q = held;
+          held = null;
+          draw();
+          ask(q);
+        });
+        log.querySelector('[data-act="not-now"]').addEventListener("click", () => {
+          const q = held;
+          held = null;
+          draw();
+          // The question isn't lost: it goes back in the box.
+          if (!input.value.trim()) { input.value = q; autosize(); updateSend(); }
+          input.focus({ preventScroll: true });
+        });
+      }
+      if (!ENDPOINT && !shown.length && held == null) {
         log.insertAdjacentHTML("beforeend", `<div class="lhc-note">${window.Account && window.Account.mode === "preview"
           ? "Preview mode: the league AI isn't connected yet. Set <code>AI_CHAT_URL</code> in account-config.js (or connect Supabase) and deploy <code>supabase/functions/league-chat</code>."
           : "The league AI isn't switched on for this site yet."}</div>`);
@@ -1009,13 +1096,29 @@
     /* ---- asking ---- */
     async function ask(question) {
       if (busy || !pro() || history.length >= MAX_TURNS) return;
-      const mark = history.length;
-      const markShown = shown.length;
-      history.push({ role: "user", content: question });
-      shown.push({ role: "user", text: question });
-      if (log.querySelector(".lhc-welcome, .lhc-note")) log.innerHTML = shown.slice(0, -1).map(bubble).join("");
+      // Nothing leaves the browser before the member allows it: the
+      // question waits on the consent card, and goes out from there.
+      if (!consented()) {
+        held = question;
+        draw();
+        scrollDown();
+        const allow = log.querySelector('[data-act="allow"]');
+        if (allow && !PHONE.matches) allow.focus({ preventScroll: true });
+        return;
+      }
+      // This conversation's own arrays: "New chat" puts new ones in place
+      // while this answer may still be on its way, and whatever happens to
+      // this one (stopped, failed, finished) mustn't touch those.
+      const hist = history;
+      const said = shown;
+      const current = () => hist === history && said === shown;
+      const mark = hist.length;
+      const markShown = said.length;
+      hist.push({ role: "user", content: question });
+      said.push({ role: "user", text: question });
+      if (log.querySelector(".lhc-welcome, .lhc-note")) log.innerHTML = said.slice(0, -1).map(bubble).join("");
       panel.querySelector('[data-act="fresh"]').hidden = false;
-      log.insertAdjacentHTML("beforeend", bubble(shown[shown.length - 1], 0));
+      log.insertAdjacentHTML("beforeend", bubble(said[said.length - 1], 0));
 
       // The answer's bubble: a status line while it works, then the words.
       log.insertAdjacentHTML("beforeend", `<div class="lhc-msg lhc-ai is-working">
@@ -1046,13 +1149,14 @@
       let tick = 0;
       const cycler = setInterval(() => { if (!text) setStatus(WORKING.start[++tick % WORKING.start.length]); }, 2600);
 
-      busy = new AbortController();
+      const ctl = new AbortController();
+      busy = ctl;
       updateSend();
       try {
         const leagueText = await digest();
         for (let round = 0; ; round++) {
           if (text && !/\n\n$/.test(text)) text += "\n\n";
-          const done = await post({ league: model.name, digest: leagueText, messages: history }, busy.signal, (event) => {
+          const done = await post({ league: model.name, digest: leagueText, messages: hist }, ctl.signal, (event) => {
             if (event.t === "text") {
               text += event.d;
               if (!frame) frame = requestAnimationFrame(paint);
@@ -1067,7 +1171,7 @@
             : [{ type: "text", text: "I couldn't find an answer to that." }];
           const uses = content.filter((b) => b.type === "tool_use");
           if (done.stop === "max_tokens" && uses.length) throw new ChatError("That answer ran too long. Try asking something narrower.", "max_tokens");
-          history.push({ role: "assistant", content });
+          hist.push({ role: "assistant", content });
           if (done.stop !== "tool_use" || !uses.length) break;
           // Round 0 is look-up 1: at most MAX_TOOL_ROUNDS are worked out.
           if (round >= MAX_TOOL_ROUNDS) throw new ChatError("That one needed too many look-ups. Try asking it more narrowly.", "too_many_steps");
@@ -1084,14 +1188,16 @@
               return { type: "tool_result", tool_use_id: u.id, is_error: true, content: known ? err.message : "That couldn't be worked out from the data here." };
             }
           }));
-          history.push({ role: "user", content: results });
+          hist.push({ role: "user", content: results });
           msgEl.classList.remove("is-looking");
           setStatus("Writing it up");
         }
         if (frame) cancelAnimationFrame(frame);
         clearInterval(cycler);
+        // A conversation replaced meanwhile keeps its own (empty) screen.
+        if (!current()) return;
         const final = text.trim() || "I couldn't find an answer to that in the league's history.";
-        shown.push({ role: "assistant", text: final });
+        said.push({ role: "assistant", text: final });
         save();
         msgEl.classList.remove("is-working", "is-looking");
         msgEl.classList.add("is-done");
@@ -1100,15 +1206,18 @@
       } catch (err) {
         if (frame) cancelAnimationFrame(frame);
         clearInterval(cycler);
+        // "New chat" was pressed: this conversation is gone, and the new
+        // one is already on screen. Nothing to roll back, save or draw.
+        if (!current()) return;
         // The question and anything after it come off the conversation, so
         // the next one starts clean.
-        history.length = mark;
+        hist.length = mark;
         const stopped = err.name === "AbortError";
         if (stopped) {
           // What was written so far stays on screen, marked as stopped; the
           // AI won't see it.
-          shown.length = markShown;
-          if (text.trim()) shown.push({ role: "user", text: question }, { role: "assistant", text: `${text.trim()}\n\n*(stopped)*` });
+          said.length = markShown;
+          if (text.trim()) said.push({ role: "user", text: question }, { role: "assistant", text: `${text.trim()}\n\n*(stopped)*` });
         } else {
           if (err.code === "pro_required") { window.Account && window.Account.ready.then(() => draw()); }
           const message = err.code === "not_set_up"
@@ -1116,13 +1225,14 @@
               ? "Preview mode: the league AI isn't connected yet. Set AI_CHAT_URL in account-config.js (or connect Supabase) and deploy supabase/functions/league-chat."
               : "The league AI isn't switched on for this site yet.")
             : err.message || "Something went wrong. Try again.";
-          shown.push({ role: "assistant", text: message, error: true, retry: !["not_set_up", "not_set_up_upstream", "pro_required", "daily_limit"].includes(err.code) });
+          said.push({ role: "assistant", text: message, error: true, retry: !["not_set_up", "not_set_up_upstream", "pro_required", "daily_limit"].includes(err.code) });
         }
         save();
         draw();
         scrollDown();
       } finally {
-        busy = null;
+        // A new question may already be on its way (after "New chat").
+        if (busy === ctl) busy = null;
         updateSend();
         if (opened && !PHONE.matches) input.focus({ preventScroll: true });
       }
