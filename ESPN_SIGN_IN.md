@@ -31,12 +31,24 @@ league was listed. What it took:
   second, and on OneID's `login`. Keys are taken when two reads in a row
   agree and `SWID` is a real `{GUID}`.
 
+**A real sign-in works through the extension too** (2026-10-22, Chrome,
+localhost:8765): Connect ESPN opened MyDisney over ESPN's fantasy page, and
+the tab closed and the site connected once signed in. What it took:
+
+- The sign-in tab opens `https://www.espn.com/fantasy/football/#pp-connect`;
+  `espn-login.js` (world MAIN, only in a tab with that mark) calls
+  `did.launchLogin()` as soon as the page is ready.
+- On a computer ESPN writes `espn_s2` and `SWID` from its page's own script
+  after MyDisney signs in, and Chrome doesn't report such cookies to
+  `cookies.onChanged` (or list them in `getAll`); only `cookies.get` finds
+  them. So while a sign-in waits the keys are looked for every 1.5 seconds
+  and when the tab loads, and taken when two looks agree.
+
 Left:
 
-1. **A real sign-in through the extension** (Chrome, then Firefox), and the
-   rest of the Testing checklist below. The extension's sign-in tab opens
-   the same fantasy page and runs the same `launchLogin()` there (checked
-   in Chrome for Testing: MyDisney's sign-in shows over the page).
+1. **Firefox** (desktop, then Android): a real sign-in, and the rest of the
+   Testing checklist below. Remove `http://localhost:8765` from the
+   Supabase `ALLOWED_ORIGINS` secret when local testing is done.
 2. **Publish the extension** (Publishing, below): Chrome Web Store and
    Firefox Add-ons, then set `ESPN_EXTENSION_CHROME` and
    `ESPN_EXTENSION_FIREFOX` (and `APP_STORE_URL`) in `account-config.js`.
