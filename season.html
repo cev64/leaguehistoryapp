@@ -6421,7 +6421,7 @@
       const label = picture.seedLabels[id];
       if (!label) return "";
       const cls = label.kind === "div" ? (label.lead ? "div lead" : "div") : label.kind;
-      return `<span class="seed-tag ${cls}" title="${label.note}">${label.chip}</span>`;
+      return `<span class="seed-tag ${cls}" title="${esc(label.note)}">${label.chip}</span>`;
     }
 
     function clinchTag(picture, id) {
