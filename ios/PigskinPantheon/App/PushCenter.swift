@@ -1,4 +1,5 @@
 import Foundation
+import MachO
 import Observation
 import UIKit
 import UserNotifications
@@ -25,8 +26,17 @@ final class PushCenter {
     private(set) var deviceToken: String? = UserDefaults.standard.string(forKey: PushCenter.tokenKey)
     private(set) var status: UNAuthorizationStatus = .notDetermined
     /// Notifications are on for this device: the signed-in member turned
-    /// one on here and iOS allows them.
-    var enabled: Bool { asked && allowed }
+    /// one on here, iOS allows them and this device can get them.
+    var enabled: Bool { asked && allowed && available }
+    /// This device can get notifications at all: the app is signed for
+    /// push (aps-environment) and APNs hasn't turned this launch's
+    /// registration down. False while the entitlement is commented out
+    /// (a free developer team can't sign for push).
+    var available: Bool { Self.entitled && !registrationFailed }
+    /// APNs turned registration down this launch (no aps-environment in
+    /// the app's signature, say); a token arriving clears it.
+    private(set) var registrationFailed = false
+    static let unavailableMessage = "This device can't get notifications yet."
     /// iOS allows notifications.
     var allowed: Bool { status == .authorized || status == .provisional || status == .ephemeral }
     /// iOS said no (in the prompt or in Settings).
@@ -74,6 +84,35 @@ final class PushCenter {
 
     /// A provisioning profile's aps-environment, as APNs names it. The
     /// profile is CMS-signed; its plist sits inside as plain XML.
+    /// Whether the app is signed for push at all, known without asking iOS
+    /// (so nothing prompts for a device that can't get a token). On a
+    /// device, the provisioning profile's aps-environment (App Store and
+    /// TestFlight builds carry none: assumed signed for it). On the
+    /// simulator, the entitlements Xcode puts in the executable. Where it
+    /// can't be told, registering answers (`registrationFailed`).
+    static let entitled: Bool = {
+        #if targetEnvironment(simulator)
+        guard let entitlements = simulatorEntitlements() else { return true }
+        return entitlements["aps-environment"] != nil
+        #else
+        guard let profile = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision") else { return true }
+        return apsEnvironment(profile: profile) != nil
+        #endif
+    }()
+
+    /// A simulator build's entitlements: the plist Xcode writes into the
+    /// executable's __TEXT,__entitlements section.
+    private static func simulatorEntitlements() -> [String: Any]? {
+        guard let header = _dyld_get_image_header(0) else { return nil }
+        var size: UInt = 0
+        let bytes = header.withMemoryRebound(to: mach_header_64.self, capacity: 1) {
+            getsectiondata($0, "__TEXT", "__entitlements", &size)
+        }
+        guard let bytes, size > 0 else { return nil }
+        let data = Data(bytes: bytes, count: Int(size))
+        return (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any]
+    }
+
     nonisolated static func apsEnvironment(profile url: URL?) -> String? {
         guard let url, let data = try? Data(contentsOf: url),
               let start = data.range(of: Data("<?xml".utf8)),
@@ -104,7 +143,12 @@ final class PushCenter {
             #if DEBUG
             // SIMCTL_CHILD_PP_PUSH=1 turns notifications on at launch, to try
             // `xcrun simctl push` (ios/tools/clubhouse-push.apns).
-            if ProcessInfo.processInfo.environment["PP_PUSH"] == "1" { await enable() }
+            if ProcessInfo.processInfo.environment["PP_PUSH"] == "1", !(await enable()) {
+                // No token (the simulator without the entitlement): iOS's
+                // permission all the same, so `xcrun simctl push` shows.
+                _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+                await refreshStatus()
+            }
             #endif
         }
     }
@@ -121,27 +165,40 @@ final class PushCenter {
     }
 
     /// Asks iOS (the first time) and registers this device with the signed-in
-    /// member's account. True when notifications can arrive.
+    /// member's account. True when notifications can arrive: iOS allows
+    /// them and APNs gave a token. Without a token it's false, with the
+    /// reason in `registerError` (nil when iOS said no). A device that
+    /// can't get a token isn't asked for permission at all.
     @discardableResult
     func enable() async -> Bool {
+        registerError = nil
+        guard available else {
+            registerError = Self.unavailableMessage
+            return false
+        }
         await refreshStatus()
         if status == .notDetermined {
             _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
             await refreshStatus()
         }
         guard allowed else { return false }
-        if let id = account?.user?.id, !askedUsers.contains(id) {
-            askedUsers.insert(id)
-            UserDefaults.standard.set(Array(askedUsers), forKey: Self.askedKey)
-        }
         requested = true
         let token = await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in
             tokenWaiters.append(c)
             UIApplication.shared.registerForRemoteNotifications()
-            // The simulator without a push server, a device offline: don't wait forever.
+            // A device offline: don't wait forever (a token from an earlier
+            // launch will do).
             DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in self?.answerWaiters(self?.deviceToken) }
         }
-        if token != nil { await registerWithAccount() }
+        guard token != nil else {
+            registerError = registrationFailed ? Self.unavailableMessage : "Apple's notification service didn't answer. Try again in a moment."
+            return false
+        }
+        if let id = account?.user?.id, !askedUsers.contains(id) {
+            askedUsers.insert(id)
+            UserDefaults.standard.set(Array(askedUsers), forKey: Self.askedKey)
+        }
+        await registerWithAccount()
         return true
     }
 
@@ -150,6 +207,7 @@ final class PushCenter {
     func didRegister(_ data: Data) {
         let hex = data.map { String(format: "%02x", $0) }.joined()
         if hex != deviceToken { registeredFor = nil }
+        registrationFailed = false
         deviceToken = hex
         UserDefaults.standard.set(hex, forKey: Self.tokenKey)
         answerWaiters(hex)
@@ -160,6 +218,7 @@ final class PushCenter {
         #if DEBUG
         print("[push] registration failed: \(error.localizedDescription)")
         #endif
+        registrationFailed = true
         answerWaiters(nil)
     }
 
