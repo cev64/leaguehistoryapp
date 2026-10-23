@@ -127,7 +127,7 @@ class Browser {
       scripting: {
         executeScript: async ({ target, files, func, world }) => {
           b.injected.push({ tabId: target.tabId, files, func: func && func.name, world });
-          if (files) b.loadContent(target.tabId);
+          if (files && files.includes("content.js")) b.loadContent(target.tabId);
           return [];
         },
       },
@@ -155,6 +155,10 @@ class Browser {
     const cookie = { name, value, domain: ".espn.com", storeId, httpOnly: name === "espn_s2" };
     this.jar.set(`${storeId}|${name}`, cookie);
     this.bg.onChanged.ls.forEach((l) => l({ removed: false, cookie: clone(cookie), cause: "explicit" }));
+  }
+  // A cookie ESPN's page writes itself: Chrome tells cookies.onChanged nothing.
+  setCookieQuietly(name, value, storeId = "0") {
+    this.jar.set(`${storeId}|${name}`, { name, value, domain: ".espn.com", storeId, httpOnly: false });
   }
   // What the browser tells the background about a message from a tab.
   senderFor(tabId, page) {
@@ -235,7 +239,7 @@ class Browser {
     this.pages.set(tabId, page);
     return page;
   }
-  loginTabs() { return [...this.tabs.values()].filter((t) => t.url === "https://www.espn.com/fantasy/football/"); }
+  loginTabs() { return [...this.tabs.values()].filter((t) => t.url === "https://www.espn.com/fantasy/football/#pp-connect"); }
   // A tab finished loading (tabs.onUpdated, status complete).
   loaded(id) {
     const tab = this.tabs.get(id);
@@ -294,10 +298,12 @@ test("the background refuses foreign senders", async () => {
   b.setCookie("espn_s2", S2);
   b.setCookie("SWID", SWID);
   const evil = b.openTab("https://evil.example/page");
+  const espn = b.openTab("https://www.espn.com/fantasy/football/#pp-connect");
   const site = b.openTab(`${SITE}/index.html`);
   const ask = { type: "espn-keys", id: "f1" };
   const refused = [
     b.senderFor(evil.id), // a tab on another site
+    b.senderFor(espn.id), // ESPN's page, where espn-login.js runs
     { ...b.senderFor(site.id), id: "someotherextension" }, // another extension
     { ...b.senderFor(site.id), frameId: 3 }, // a frame inside the site's page
     { ...b.senderFor(site.id), origin: "https://evil.example" }, // origin and URL disagree
@@ -326,8 +332,8 @@ test("not signed in: ESPN's sign-in opens next to the site, and the keys come wh
   assert.equal(login.openerTabId, site.id);
   b.loaded(login.id);
   await settle();
-  assert.deepEqual(b.injected.filter((x) => x.tabId === login.id).map((x) => [x.func, x.world]), [["launchLogin", "MAIN"]],
-    "MyDisney's sign-in is opened over ESPN's page");
+  assert.equal(JSON.stringify(b.injected.filter((x) => x.tabId === login.id && x.files).map((x) => [x.files, x.world])),
+    JSON.stringify([[["espn-login.js"], "MAIN"]]), "espn-login.js runs again in ESPN's page once it has loaded");
   b.loaded(site.id);
   await settle();
   assert.equal(b.injected.filter((x) => x.tabId === site.id && x.func).length, 0, "and only in the sign-in tab");
@@ -337,6 +343,24 @@ test("not signed in: ESPN's sign-in opens next to the site, and the keys come wh
   assert.equal(b.tabs.get(site.id).active, true, "the site's tab is in front");
   assert.deepEqual(page.answer("l1"), { pp: "espn-connect-answer", id: "l1", s2: S2, swid: SWID });
   assert.deepEqual(b.session.pending, {}, "nothing left waiting");
+});
+
+test("ESPN's page writes the keys itself (no cookie event): they're found on the next looks", async () => {
+  const b = new Browser();
+  b.openTab("https://example.com/");
+  const page = b.sitePage();
+  const site = b.tabs.get(page.tabId);
+  page.ask("q1");
+  await settle();
+  assert.equal(b.loginTabs().length, 1);
+  b.setCookieQuietly("SWID", SWID);
+  b.setCookieQuietly("espn_s2", S2);
+  await b.advance(1500);
+  assert.equal(page.answer("q1"), undefined, "one look isn't enough: the pair has to hold");
+  await b.advance(1500);
+  assert.equal(b.loginTabs().length, 0, "the sign-in tab closed");
+  assert.equal(b.tabs.get(site.id).active, true);
+  assert.deepEqual(page.answer("q1"), { pp: "espn-connect-answer", id: "q1", s2: S2, swid: SWID });
 });
 
 test("closing the ESPN tab cancels", async () => {

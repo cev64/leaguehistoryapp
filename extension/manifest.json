@@ -11,7 +11,11 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": ["cookies", "scripting", "storage"],
+  "permissions": [
+    "cookies",
+    "scripting",
+    "storage"
+  ],
   "host_permissions": [
     "https://*.espn.com/*",
     "https://pigskinpantheon.com/*",
@@ -20,7 +24,9 @@
   ],
   "background": {
     "service_worker": "background.js",
-    "scripts": ["background.js"]
+    "scripts": [
+      "background.js"
+    ]
   },
   "content_scripts": [
     {
@@ -29,8 +35,20 @@
         "https://www.pigskinpantheon.com/*",
         "http://localhost:8765/*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.espn.com/fantasy/*"
+      ],
+      "js": [
+        "espn-login.js"
+      ],
+      "run_at": "document_end",
+      "world": "MAIN"
     }
   ],
   "browser_specific_settings": {
@@ -38,7 +56,9 @@
       "id": "connect@pigskinpantheon.com",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "required": ["authenticationInfo"]
+        "required": [
+          "authenticationInfo"
+        ]
       }
     },
     "gecko_android": {

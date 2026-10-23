@@ -1,8 +1,8 @@
 /* Pigskin Pantheon Connect: the background.
 
    A private ESPN league opens with two cookies ESPN keeps once a member is
-   signed in, espn_s2 and SWID. espn_s2 is HttpOnly, so the site's own
-   scripts can't read it; this extension can, with the cookies permission.
+   signed in, espn_s2 and SWID. They're espn.com's, so the site's own
+   scripts can't read them; this extension can, with the cookies permission.
    When the member clicks Connect ESPN on pigskinpantheon.com, the page asks
    content.js, content.js asks here, and this answers that one tab:
 
@@ -39,7 +39,9 @@ const api = globalThis.browser ?? globalThis.chrome;
 const ESPN_URL = "https://www.espn.com/";
 // ESPN's fantasy page, whose OneID (v4, MyDisney) signs in; espn.com/login
 // is OneID v2, whose sign-in doesn't always reach ESPN's cookies.
-const LOGIN_URL = "https://www.espn.com/fantasy/football/";
+// #pp-connect marks the tab as ours for espn-login.js, which opens
+// MyDisney's sign-in over the page.
+const LOGIN_URL = "https://www.espn.com/fantasy/football/#pp-connect";
 const ESPN_ORIGINS = ["https://*.espn.com/*"];
 const WAIT_MS = 10 * 60 * 1000;
 const STATE_KEY = "pending";
@@ -47,11 +49,16 @@ const ID = /^[\w-]{1,64}$/;
 
 /* ------------------------------------------------------------ the site */
 
-// The origins content.js runs on, from the manifest, so the dev build's
-// localhost is allowed in the dev build and nowhere else.
-function siteOrigins() {
+// The site's pages: where content.js runs, from the manifest (so the dev
+// build's localhost is allowed in the dev build and nowhere else). Only
+// content.js's entry counts: espn-login.js runs on ESPN's pages, which are
+// never the site.
+function sitePatterns() {
   const scripts = api.runtime.getManifest().content_scripts || [];
-  return [...new Set(scripts.flatMap((c) => c.matches || []).map((p) => p.replace(/\/\*$/, "")))];
+  return scripts.filter((c) => (c.js || []).includes("content.js")).flatMap((c) => c.matches || []);
+}
+function siteOrigins() {
+  return [...new Set(sitePatterns().map((p) => p.replace(/\/\*$/, "")))];
 }
 function onSite(url) {
   try { return siteOrigins().includes(new URL(url).origin); } catch (err) { return false; }
@@ -191,6 +198,7 @@ async function waitOn(waitFor, tab, sender, id, storeId, { fresh = false, not = 
   });
   replaced.forEach((p) => answer(p, { cancelled: true }));
   setTimeout(sweep, WAIT_MS + 1000);
+  if (waitFor === "login") pollWhileWaiting();
   return { waiting: waitFor };
 }
 
@@ -245,14 +253,21 @@ async function cancel(msg, sender) {
 // a sign-in in that cookie store with both keys now there (espn_s2 is the
 // signed-in one: SWID alone is a visitor) is answered, and for a fresh
 // sign-in only with a new espn_s2.
-async function signedIn(storeId) {
+async function signedIn(storeId, { twice = false } = {}) {
   const done = await withState(async (state) => {
     const out = [];
     for (const [k, p] of Object.entries(state)) {
       if (p.waitFor !== "login") continue;
       if (p.storeId && storeId && p.storeId !== storeId) continue;
       const keys = await newKeys(p.storeId || undefined, p.not);
-      if (!keys) continue;
+      if (!keys) { lastRead.delete(k); continue; }
+      // Read on a timer, the pair is taken when two reads in a row agree
+      // (ESPN can swap a visitor's SWID for the member's just after).
+      if (twice) {
+        const pair = await digest(`${keys.s2}|${keys.swid}`);
+        if (lastRead.get(k) !== pair) { lastRead.set(k, pair); continue; }
+      }
+      lastRead.delete(k);
       delete state[k];
       out.push([p, keys]);
     }
@@ -263,6 +278,27 @@ async function signedIn(storeId) {
     await focus(p);
     await answer(p, keys);
   }
+}
+
+/* Chrome doesn't tell cookies.onChanged (or list in getAll) about cookies a
+   page's own script writes, and on a computer ESPN writes espn_s2 and SWID
+   that way, from the page, after MyDisney signs in. So while a sign-in
+   waits the keys are also looked for every POLL_MS, and whenever the
+   sign-in tab loads. lastRead holds a digest of each wait's last read, in
+   memory only. */
+const POLL_MS = 1500;
+const lastRead = new Map();
+let polling = false;
+function pollWhileWaiting() {
+  if (polling) return;
+  polling = true;
+  const next = async () => {
+    const waiting = await withState((state) => Object.values(state).some((p) => p.waitFor === "login")).catch(() => false);
+    if (!waiting) { polling = false; lastRead.clear(); return; }
+    await signedIn(undefined, { twice: true }).catch(() => {});
+    setTimeout(next, POLL_MS);
+  };
+  setTimeout(next, POLL_MS);
 }
 
 // Access to espn.com was granted: carry on with whoever was waiting on it.
@@ -303,32 +339,24 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return undefined;
 });
 
-// The sign-in tab finished loading a page of ESPN's: MyDisney's sign-in is
-// opened over it, as ESPN's own Log In does (the page alone only shows a
-// Log In link). Only in tabs opened for a sign-in that's still waiting.
+// The sign-in tab finished loading a page of ESPN's: espn-login.js runs
+// again, in case ESPN dropped the tab's #pp-connect (it opens the sign-in
+// once per tab, so it's harmless when it already has). Only in tabs opened
+// for a sign-in that's still waiting.
 api.tabs.onUpdated.addListener((tabId, info, tab) => {
   if (!info || info.status !== "complete") return;
   const url = (tab && tab.url) || "";
   if (!/^https:\/\/([\w-]+\.)*espn\.com\//.test(url)) return;
-  withState((state) => Object.values(state).some((p) => p.waitFor === "login" && p.waitTab === tabId)).then((waiting) => {
+  withState((state) => Object.values(state).some((p) => p.waitFor === "login" && p.waitTab === tabId)).then(async (waiting) => {
     if (!waiting) return;
-    api.scripting.executeScript({ target: { tabId }, world: "MAIN", func: launchLogin }).catch(() => {});
+    pollWhileWaiting();
+    signedIn(undefined, { twice: true }).catch(() => {});
+    try {
+      await api.scripting.executeScript({ target: { tabId }, world: "MAIN", func: () => { window.__ppConnectLaunch = true; } });
+      await api.scripting.executeScript({ target: { tabId }, world: "MAIN", files: ["espn-login.js"] });
+    } catch (err) { /* the tab moved on */ }
   });
 });
-
-/* Runs in ESPN's page (world MAIN, where ESPN keeps OneID at window.did).
-   ESPN makes did before OneID has started, and launchLogin() rejects until
-   it has, so it's tried every half second for up to 20 seconds. */
-function launchLogin() {
-  let tries = 0;
-  const retry = () => { if (++tries < 40) setTimeout(go, 500); };
-  const go = () => {
-    const did = window.did;
-    if (!did || typeof did.launchLogin !== "function") return retry();
-    Promise.resolve().then(() => did.launchLogin()).catch(retry);
-  };
-  go();
-}
 
 // ESPN writes the pair (and often rewrites SWID) over a moment: the keys
 // are read once a cookie store has been quiet for SETTLE_MS after its last
@@ -363,7 +391,7 @@ if (api.permissions && api.permissions.onAdded) api.permissions.onAdded.addListe
 // so the Connect button appears without a reload. If the browser held back
 // access to the sites (Firefox can), our page asks for it.
 async function injectIntoOpenTabs() {
-  const patterns = (api.runtime.getManifest().content_scripts || []).flatMap((c) => c.matches || []);
+  const patterns = sitePatterns();
   let tabs = [];
   try { tabs = await api.tabs.query({ url: patterns }); } catch (err) { tabs = []; }
   await Promise.all(tabs.map((t) => api.scripting.executeScript({ target: { tabId: t.id }, files: ["content.js"] }).catch(() => {})));
@@ -379,3 +407,4 @@ api.runtime.onInstalled.addListener(async () => {
 });
 
 sweep();
+pollWhileWaiting();
