@@ -25,6 +25,19 @@ window.ACCOUNT_CONFIG = {
   // leagues and every Sleeper league never use it.
   ESPN_PROXY_URL: "",
 
+  // Pigskin Pantheon Connect, the browser extension that connects ESPN on a
+  // computer (extension/): its listing in the Chrome Web Store (Edge,
+  // Brave and Arc use it too) and on Firefox Add-ons. Empty until it's
+  // published; while both are empty, the front page's ESPN panel says it's
+  // coming soon and keeps "Enter keys by hand" (the old cookie fields).
+  ESPN_EXTENSION_CHROME: "",
+  ESPN_EXTENSION_FIREFOX: "",
+
+  // The iPhone app's App Store page, for the ESPN panel's note on phones
+  // and tablets ("connect once in the app or on a computer"). Empty: the
+  // note names the app without a link.
+  APP_STORE_URL: "",
+
   // Ask the League, the AI chat on every league page (chat.js), for
   // signed-in members (Pro only once PRICING is on). It talks to
   // supabase/functions/league-chat, which holds the Gemini API key (Google AI

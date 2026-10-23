@@ -568,8 +568,20 @@ private struct LeagueFailedView: View {
             } description: {
                 Text(message)
             } actions: {
-                Button("Try again") { session.retry() }
+                if session.privateLeague {
+                    // A private ESPN league: signing in to ESPN on the home
+                    // screen opens it (its ID waits in the box).
+                    Button("Sign in with ESPN") {
+                        FinderModel.shared.signIn(for: session.id)
+                        app.closeLeague()
+                    }
                     .buttonStyle(Felt(.glassProminent))
+                    Button("Try again") { session.retry() }
+                        .buttonStyle(Felt(.glass))
+                } else {
+                    Button("Try again") { session.retry() }
+                        .buttonStyle(Felt(.glassProminent))
+                }
                 Button("Choose a league") { app.closeLeague() }
                     .buttonStyle(Felt(.glass))
             }

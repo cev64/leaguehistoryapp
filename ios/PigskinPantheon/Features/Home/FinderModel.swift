@@ -5,8 +5,9 @@ import SwiftUI
 /// The front page's league finder (index.html's script), driven through
 /// the finder engine: the site's own sleeper.js and espn.js, with no league
 /// open. Sleeper: a username lists its leagues, or a league ID opens one.
-/// ESPN: a league ID or link opens one; the private-league panel keeps the
-/// member's ESPN keys (a set per ESPN account) and lists their ESPN leagues.
+/// ESPN: a league ID or link opens one; the private-league panel signs in to
+/// ESPN (`EspnSignIn`), keeps the member's ESPN keys (a set per ESPN
+/// account) and lists their ESPN leagues.
 @MainActor
 @Observable
 final class FinderModel {
@@ -104,14 +105,13 @@ final class FinderModel {
     var connected: [EspnAccount] = []
     var localCount = 0
     var onAccountKnown = false
-    var adding = false
-    /// "Have your keys already? Enter them here": the key boxes instead of
-    /// the finish-on-a-computer steps.
-    var keysAnyway = false
+    /// The ESPN sign-in sheet, over the home screen.
+    var signInOpen = false
+    /// Scrolls the home screen down to the private-league panel.
+    var showPrivate = 0
     var toAccount = true
-    var s2 = ""
-    var swid = ""
-    var savingKeys = false
+    /// Saving the keys the sign-in sheet brought back.
+    var connecting = false
     var busySwid: String?
     /// The member's ESPN leagues: nil when there's nothing to show.
     var espnLeagues: [EspnLeague]?
@@ -149,6 +149,8 @@ final class FinderModel {
             }
             await loadState()
             await loadEspnLeagues(account: account)
+            // A panel opened before the session reached the engine.
+            if privateOpen { await drawPrivate() }
         }
     }
 
@@ -283,6 +285,26 @@ final class FinderModel {
         if open { Task { await drawPrivate() } }
     }
 
+    /// The private-league panel open, in view, with "Sign in with ESPN".
+    func showSignIn() {
+        platform = .espn
+        setPrivateOpen(true)
+        showPrivate += 1
+    }
+
+    /// A private league that wouldn't open: back on the home screen, its ID
+    /// in the box (so it opens once ESPN is connected) and the sign-in sheet
+    /// up, once the league has made way.
+    func signIn(for leagueId: String) {
+        espnInput = leagueId.replacingOccurrences(of: #"^espn-"#, with: "", options: .regularExpression)
+        espnNote = .standard
+        showSignIn()
+        Task {
+            try? await Task.sleep(for: .milliseconds(450))
+            signInOpen = true
+        }
+    }
+
     var isConnected: Bool { (relay && localCount > 0) || onAccountKnown }
     var connectedCount: Int { max(connected.count, localCount) }
 
@@ -290,20 +312,11 @@ final class FinderModel {
         !isConnected ? "Private league?" : connectedCount > 1 ? "\(connectedCount) ESPN accounts connected" : "ESPN connected"
     }
 
-    /// The site's words on a phone or tablet (index.html drawToggle, TOUCH).
     var toggleSubtitle: String {
         isConnected
             ? "Your ESPN keys are saved \(onAccountKnown ? "to your account" : "on this device"), so your private leagues open and are listed below. Manage them, or add another ESPN account, here."
-            : "A one-time setup on a computer, then it works on your phone too."
+            : "Sign in to ESPN to open private leagues and list all your ESPN leagues here."
     }
-
-    /// A phone has no developer tools to copy the keys from, so until there
-    /// are keys the panel says to finish on a computer (index.html
-    /// drawPrivate's desktopOnly), unless they have the keys anyway.
-    var showDesktop: Bool { relay && connected.isEmpty && !keysAnyway }
-
-    /// The key boxes show until an account is connected, and again for "+ Add another".
-    var showKeyFields: Bool { relay && !showDesktop && (connected.isEmpty || adding) }
 
     private struct SaveAnswer: Decodable {
         let ok: Bool
@@ -312,32 +325,41 @@ final class FinderModel {
         let accountError: String?
     }
 
-    func saveKeys(app: AppModel, account: AccountStore) async {
-        savingKeys = true
-        defer { savingKeys = false }
+    /// The sign-in sheet's keys: saved on this device (and the Keychain),
+    /// and to the account if the member is signed in and wants them there;
+    /// then the panel and the list drawn again. A league ID in the box opens
+    /// (unless `openTyped` is off, from the account screen).
+    @discardableResult
+    func didSignIn(_ keys: EspnSignIn.Keys, app: AppModel, account: AccountStore, openTyped: Bool = true) async -> Bool {
+        connecting = true
+        defer { connecting = false }
         await sendSession(account)
+        var toAccount = self.toAccount && espnSignedIn
+        #if DEBUG
+        // PP_ESPN_FAKE's made-up keys stay on the device, off a real account.
+        if ProcessInfo.processInfo.environment["PP_ESPN_FAKE"] == "1" { toAccount = false }
+        #endif
         guard let answer = try? await engine.call(SaveAnswer.self, "Bridge.finder.espnSave(s2, swid, toAccount)",
-                                                  ["s2": s2, "swid": swid, "toAccount": toAccount && espnSignedIn]) else {
+                                                  ["s2": keys.s2, "swid": keys.swid, "toAccount": toAccount]) else {
             espnNote = .error("Something went wrong.")
-            return
+            return false
         }
         guard answer.ok else {
             espnNote = .error(answer.error ?? "Something went wrong.")
-            return
+            return false
         }
-        s2 = ""
-        swid = ""
-        adding = false
+        await engine.keepEspnKeys()
         if let e = answer.accountError { espnNote = .error(e) }
         await drawPrivate()
         await loadEspnLeagues(account: account, force: true)
-        if !espnInput.trimmingCharacters(in: .whitespaces).isEmpty {
+        if openTyped && !espnInput.trimmingCharacters(in: .whitespaces).isEmpty {
             submitEspn(app: app)
-            return
+            return true
         }
         if answer.accountError == nil {
-            espnNote = .message("✓ Keys saved. Your ESPN leagues are listed below; or enter a league's ID or link above.")
+            espnNote = .message("✓ ESPN connected. Your ESPN leagues are listed below.")
         }
+        return true
     }
 
     func saveToAccount(_ swid: String, account: AccountStore) async {
@@ -352,6 +374,9 @@ final class FinderModel {
     }
 
     func forget(_ row: EspnAccount, account: AccountStore) async {
+        // Out of the Keychain before anything waits, so a page that starts
+        // meanwhile isn't given the keys back.
+        EspnKeychain.remove(swid: row.swid)
         busySwid = row.swid
         defer { busySwid = nil }
         await sendSession(account)
@@ -362,8 +387,21 @@ final class FinderModel {
         } else if !connected.contains(where: { $0.swid != row.swid }) {
             espnNote = .standard
         }
+        await engine.keepEspnKeys(without: row.swid)
         // Where the keys stand first, so the list is asked for (or not)
         // with the keys that are left.
+        await drawPrivate()
+        await loadEspnLeagues(account: account, force: true)
+    }
+
+    /// Deleting the account: every ESPN account's keys off this device and
+    /// the Keychain too, as well as off the account. The Keychain goes
+    /// first, before anything waits, so no page is given the keys back.
+    func forgetDevice(account: AccountStore) async {
+        EspnKeychain.delete()
+        try? await engine.run("Bridge.finder.espnForgetDevice()")
+        EspnKeychain.delete()
+        espnNote = .standard
         await drawPrivate()
         await loadEspnLeagues(account: account, force: true)
     }
@@ -397,7 +435,10 @@ final class FinderModel {
 
     private struct EspnListing: Decodable {
         let leagues: [EspnLeague]
-        let refused: [String]
+        /// The ESPN accounts whose keys ESPN turned away.
+        var refused: [String]?
+        /// ESPN turned every set of keys away (when the page says so).
+        var signedOut: Bool?
     }
 
     /// loadEspnLeagues: asked again only when the keys change hands.
@@ -425,10 +466,15 @@ final class FinderModel {
             var names: [String: [String]] = [:]
             list.leagues.forEach { l in if let s = l.swid { names[s, default: []].append(l.name) } }
             leagueNamesBySwid = names
-            refusedSwids = list.refused
+            let refused = list.refused ?? []
+            refusedSwids = refused
+            // Without the page's word for it: nothing listed and keys refused.
+            let signedOut = list.signedOut ?? (list.leagues.isEmpty && !refused.isEmpty)
             withAnimation(.smooth) {
                 espnLeagues = list.leagues
-                espnListNote = list.leagues.isEmpty
+                espnListNote = signedOut
+                    ? "ESPN signed you out, so it didn't list your leagues. Sign in again on the ESPN tab, under ESPN connected."
+                    : list.leagues.isEmpty
                     ? "ESPN has no football leagues on the profile your keys belong to. You can still open one by its ID or link on the ESPN tab."
                     : nil
             }

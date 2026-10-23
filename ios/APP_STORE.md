@@ -8,7 +8,7 @@ Guidelines of June 8, 2026.
 
 | Guideline | What the app does |
 | --- | --- |
-| 5.1.1(v) account deletion | Account ▸ Delete Account deletes the Supabase user (`delete_my_account()`), which cascades to the profile, synced leagues, saved ESPN keys, chat usage and League Pass rows |
+| 5.1.1(v) account deletion | Account ▸ Delete Account deletes the Supabase user (`delete_my_account()`), which cascades to the profile, synced leagues, saved ESPN keys, chat usage and League Pass rows; the ESPN keys on the device (and their Keychain copy) go too |
 | 5.1.1(v) no needless sign-in | Any league opens without an account. An account only syncs leagues, saves ESPN keys to the account and unlocks Ask the League (`Supabase.requireAccount` is `false` in the app) |
 | 5.1.1(i) privacy policy | Privacy Policy, Terms of Service and Support in the Account screen's About section, under the sign-up button, and in the home screen's footer (`App/Legal.swift`) |
 | 5.1.2(i) third-party AI | Ask the League asks before the first question goes out, naming Google Gemini and Anthropic Claude and what is sent. The ⋯ menu turns it off again |
@@ -59,6 +59,8 @@ Guidelines of June 8, 2026.
 >
 > The demo league also shows the clubhouse: on Week 9's Matchups, pick the winners (league pick'em, free bragging rights, no stakes or prizes); a played week's Recap has the league's weekly awards to vote on and "Share the week". Notifications are off until a member turns them on for one of their own leagues.
 >
+> A private ESPN league connects with "Sign in with ESPN" (ESPN tab ▸ Private league?): ESPN's own sign-in page opens in a sheet, and the app never sees the password. Once ESPN signs the member in, the app keeps two of ESPN's cookies (espn_s2 and SWID) to read that member's leagues: on the device, and on their account (encrypted) only if they leave "Also save them to my account" on. Forget, or Delete Account, removes them.
+>
 > Ask the League asks for permission before it shares anything with Google Gemini or Anthropic Claude. Answers can be reported by long-pressing them. Account ▸ Delete Account deletes the account and everything saved to it.
 >
 > The app is not affiliated with Sleeper, ESPN, the NFL or the NFLPA. It reads Sleeper's public API and ESPN's fantasy API on the user's device. There are no purchases or ads.
@@ -66,6 +68,6 @@ Guidelines of June 8, 2026.
 ## Still a judgement call
 
 - **Pictures.** Player headshots come from Sleeper's and ESPN's CDNs, and team avatars are whatever managers uploaded (some are NFL logos). A reviewer could raise 5.2.1. Initials in place of headshots would take that off the table.
-- **ESPN.** The app reads ESPN's unofficial fantasy API. Private leagues need the member's ESPN cookies, copied on a computer. That's allowed, but if a reviewer pushes back, hiding private ESPN for v1 is the fallback.
+- **ESPN.** The app reads ESPN's unofficial fantasy API. A private league connects through ESPN's own sign-in page, in a sheet in the app (a web view limited to ESPN's and Disney's sites; other links open in Safari). The app never sees the password: once ESPN has signed the member in, it keeps two of ESPN's cookies (`espn_s2` and `SWID`), on the device (localStorage and the Keychain) and, only if the member chooses, on their account, encrypted. The sheet's web data is wiped when it closes. Account ▸ Forget and Delete Account remove the keys. Guideline 5.1.1(v)'s "credentials or tokens to social networks" kept off the device arguably doesn't cover ESPN, but say plainly in the review notes what's stored. If a reviewer pushes back, hiding private ESPN for v1 is the fallback.
 - **Sleeper's API** is "free to use for non-commercial purposes". Ask Sleeper before turning on plans or ads.
 - **Plans later.** In-app unlocks need In-App Purchase (15% on the Small Business Program). On the US storefront only, a link to Stripe checkout is allowed since May 2025 (Epic v. Apple).

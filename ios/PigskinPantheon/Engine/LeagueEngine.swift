@@ -84,15 +84,38 @@ final class LeagueEngine: NSObject {
 
     /// A page started again after iOS killed the last one: given the
     /// session and the league again, so screens carry on as if nothing
-    /// happened.
+    /// happened. Every page first gets back any ESPN keys iOS cleared from
+    /// its storage.
     private func restore() async throws {
+        await restoreEspnKeys()
         if let session { try check(await evaluate("Bridge.setSession(s)", ["s": session])) }
         if loaded { try check(await evaluate("Bridge.load()", [:])) }
     }
 
     private func check(_ data: Data) throws {
         let envelope = try JSONDecoder().decode(Envelope<JSONValue>.self, from: data)
-        if let error = envelope.error { throw EngineError.script(error) }
+        if let error = envelope.failure { throw error }
+    }
+
+    // MARK: ESPN keys
+
+    /// The Keychain's copy of the ESPN keys back in a page that has none
+    /// (iOS cleared its storage), and the page's sets kept in the Keychain
+    /// in turn, so keys saved before there was a copy get one too. A Forget
+    /// takes its keys out of the Keychain before the page, so they aren't
+    /// given back here.
+    private func restoreEspnKeys() async {
+        let saved = EspnKeychain.load().map { ["s2": $0.s2, "swid": $0.swid] }
+        guard let data = try? await evaluate("Bridge.finder.espnRestore(list)", ["list": saved]),
+              let sets = try? JSONDecoder().decode(Envelope<[EspnKeychain.KeySet]>.self, from: data).ok else { return }
+        EspnKeychain.save(sets)
+    }
+
+    /// After a save or a Forget: the Keychain's copy made the page's again,
+    /// less any ESPN account just forgotten (should the page still have it).
+    func keepEspnKeys(without forgotten: String? = nil) async {
+        guard let sets = try? await call([EspnKeychain.KeySet].self, "Bridge.finder.espnLocalSets()") else { return }
+        EspnKeychain.save(sets.filter { $0.swid != forgotten })
     }
 
     private func makeWebView() {
@@ -164,7 +187,7 @@ final class LeagueEngine: NSObject {
         let data = try await callData(expression, arguments)
         return try await Task.detached(priority: .userInitiated) {
             let envelope = try JSONDecoder().decode(Envelope<T>.self, from: data)
-            if let error = envelope.error { throw EngineError.script(error) }
+            if let error = envelope.failure { throw error }
             guard let value = envelope.ok else { throw EngineError.empty }
             return value
         }.value
@@ -203,7 +226,7 @@ final class LeagueEngine: NSObject {
           const ok = await (\(expression));
           return JSON.stringify({ ok: ok === undefined ? null : ok });
         } catch (e) {
-          return JSON.stringify({ error: String((e && e.message) || e || "Something went wrong.") });
+          return JSON.stringify({ error: String((e && e.message) || e || "Something went wrong."), privateLeague: Boolean(e && e.privateLeague) });
         }
         """
         #if DEBUG
@@ -225,6 +248,12 @@ final class LeagueEngine: NSObject {
     private struct Envelope<T: Decodable>: Decodable {
         let ok: T?
         let error: String?
+        /// espn.js's privateError: a private ESPN league ESPN wouldn't open.
+        let privateLeague: Bool?
+
+        var failure: EngineError? {
+            error.map { privateLeague == true ? .privateLeague($0) : .script($0) }
+        }
     }
 
     /// Closed with its league: the page goes, and the engine doesn't start again.
@@ -244,13 +273,16 @@ final class LeagueEngine: NSObject {
 
 enum EngineError: LocalizedError {
     case script(String)
+    /// A private ESPN league that needs (fresh) ESPN keys: signing in to
+    /// ESPN opens it.
+    case privateLeague(String)
     case empty
     case notRunning
     case loadFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .script(let message): return message
+        case .script(let message), .privateLeague(let message): return message
         case .empty: return "The league engine gave no answer."
         case .notRunning: return "The league engine isn't running."
         case .loadFailed(let message): return message
@@ -326,7 +358,7 @@ extension LeagueEngine: WKNavigationDelegate, WKScriptMessageHandler {
 
 /// WKUserContentController keeps its handlers strongly; this keeps the
 /// engine out of that cycle.
-private final class WeakMessageHandler: NSObject, WKScriptMessageHandler {
+final class WeakMessageHandler: NSObject, WKScriptMessageHandler {
     weak var target: (any WKScriptMessageHandler)?
     init(_ target: any WKScriptMessageHandler) { self.target = target }
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {

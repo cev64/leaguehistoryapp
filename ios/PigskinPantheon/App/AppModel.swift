@@ -124,6 +124,9 @@ final class LeagueSession: Identifiable {
     /// The league's clubhouse: pick'em and the week's awards.
     let clubhouse: ClubhouseStore
     var phase: Phase = .loading(done: 0, total: 0)
+    /// It failed as a private ESPN league ESPN wouldn't open without keys
+    /// (or with stale ones): signing in to ESPN is the way in.
+    var privateLeague = false
     var summary: LeagueSummary?
     /// The season the season screens show.
     var year: Int = Calendar.current.component(.year, from: Date())
@@ -146,6 +149,7 @@ final class LeagueSession: Identifiable {
     func load() async {
         guard !closed else { return }
         phase = .loading(done: 0, total: 0)
+        privateLeague = false
         engine.onProgress = { [weak self] done, total in
             // Not once the league shows: a page iOS restarted reads it again quietly.
             guard let self, case .loading = self.phase else { return }
@@ -164,6 +168,7 @@ final class LeagueSession: Identifiable {
             phase = .ready
         } catch {
             guard !closed else { return }
+            if case EngineError.privateLeague = error { privateLeague = true }
             phase = .failed(error.localizedDescription)
         }
     }

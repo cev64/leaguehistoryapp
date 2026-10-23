@@ -47,6 +47,8 @@ private struct AccountPanel: View {
     @State private var confirmDelete = false
     @State private var deleting = false
     @State private var deleteError: String?
+    /// ESPN's sign-in sheet, over the account.
+    @State private var signingInToEspn = false
 
     private var account: AccountStore { app.account }
 
@@ -115,7 +117,18 @@ private struct AccountPanel: View {
             Button("Delete Account", role: .destructive) { Task { await deleteAccount() } }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently deletes your account, the leagues synced to it and any ESPN keys saved to it. It can't be undone.")
+            Text("This permanently deletes your account, the leagues synced to it and any ESPN keys saved to it or on this device. It can't be undone.")
+        }
+        .sheet(isPresented: $signingInToEspn) {
+            EspnSignInSheet { keys in
+                Task {
+                    if await finder.didSignIn(keys, app: app, account: account, openTyped: false) {
+                        account.say("ESPN connected.")
+                    } else if case .error(let message) = finder.espnNote {
+                        account.say(message)
+                    }
+                }
+            }
         }
     }
 
@@ -209,7 +222,7 @@ private struct AccountPanel: View {
     private var espnSection: some View {
         Section {
             if finder.connected.isEmpty {
-                Text("No ESPN keys saved. A private ESPN league opens with your ESPN keys (espn_s2 and SWID): add them with Connect ESPN.")
+                Text("No ESPN account connected. Connect ESPN to sign in on ESPN's own page, and your private ESPN leagues open in the app.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.ink2)
             }
@@ -219,13 +232,19 @@ private struct AccountPanel: View {
                         .font(.body.weight(.semibold))
                         .foregroundStyle(Theme.ink)
                     if finder.refusedSwids.contains(row.swid) {
-                        Text("ESPN turned these keys away: copy them again.")
+                        Text("ESPN signed you out.")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(Theme.red)
                     }
                     Text(finder.detail(for: row))
                         .font(.caption)
                         .foregroundStyle(Theme.ink3)
+                    if finder.refusedSwids.contains(row.swid) {
+                        Button("Sign in again") { signingInToEspn = true }
+                            .buttonStyle(Felt(.glassProminent))
+                            .font(.footnote.weight(.semibold))
+                            .disabled(finder.busySwid != nil || finder.connecting)
+                    }
                     HStack {
                         if row.local && !row.account && finder.espnSignedIn {
                             Button("Save to my account") { Task { await finder.saveToAccount(row.swid, account: account) } }
@@ -236,19 +255,19 @@ private struct AccountPanel: View {
                         if finder.busySwid == row.swid { ProgressView().padding(.leading, 4) }
                     }
                     .font(.footnote.weight(.semibold))
-                    .disabled(finder.busySwid != nil)
+                    .disabled(finder.busySwid != nil || finder.connecting)
                 }
                 .padding(.vertical, 4)
             }
             Button {
-                close()
-                finder.platform = .espn
-                finder.adding = !finder.connected.isEmpty
-                finder.setPrivateOpen(true)
-                if app.league != nil { app.closeLeague() }
+                signingInToEspn = true
             } label: {
-                Label(finder.connected.isEmpty ? "Connect ESPN" : "Add another ESPN account", systemImage: "plus")
+                HStack {
+                    Label(finder.connected.isEmpty ? "Connect ESPN" : "Add another ESPN account", systemImage: "plus")
+                    if finder.connecting { Spacer(); ProgressView() }
+                }
             }
+            .disabled(finder.connecting)
         } header: {
             Text("ESPN accounts")
         } footer: {
@@ -326,15 +345,22 @@ private struct AccountPanel: View {
     }
 
     /// Gone on the server first; only then signed out here, and the sheet
-    /// shows the signed-out account (the sign-in dialog).
+    /// shows the signed-out account (the sign-in dialog). The ESPN keys'
+    /// Keychain copy goes before anything waits, so no page starting
+    /// meanwhile is given them back; if the account stays (no connection),
+    /// the page's keys are copied to the Keychain again.
     private func deleteAccount() async {
+        EspnKeychain.delete()
         deleting = true
         deleteError = nil
         defer { deleting = false }
         do {
             try await account.deleteAccount()
+            // The keys on this device (and in the Keychain) go with it.
+            await finder.forgetDevice(account: account)
             account.say("Your account has been deleted.")
         } catch {
+            await finder.engine.keepEspnKeys()
             deleteError = error.localizedDescription
         }
     }
